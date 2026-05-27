@@ -17,6 +17,22 @@ Every variable that affects what you hear should be **visible, named, and animat
 
 ## Layered architecture
 
+Two complementary views: how the code is **layered in the source tree** (what may depend on what), and how it's **split across threads** at runtime.
+
+### Source-code layering — headless core, browser on top (enforced)
+
+The source tree is a **headless core** with a **browser layer** built on top, and a one-way dependency rule.
+
+- **Headless core** — `cpu/`, `board/`, `synth/`, `engine/` (the realtime CPU+DAC driver, per-engine state, history rings, scrubber math), and `data/protocol.ts` (the shared `StateSnapshot` + worklet-message contract). Pure logic: **no DOM, no Web Audio, no Node**. The exact same modules run in the Node test suite / WAV CLI *and* inside the AudioWorklet.
+- **Browser layer** — `web/` (the `WilliamsSoundHost`, the worklet entry, `main.ts` + its `ui/` controllers, onboarding, the IndexedDB ROM store, the JSON loaders) and `viz/` (the canvas panels). DOM / Web Audio / IndexedDB / fetch live here and **only** here.
+- **Node-only** — `node/` (`rom.ts`, `runnerNode.ts`): `node:fs` loaders for the CLI + tests; never bundled into the browser.
+
+**The dependency arrow points one way: browser → core, never the reverse.** The core imports nothing from `web/`, `viz/`, or `node/`. That separation is what lets one engine power both the offline renderer and the live worklet, and keeps the audio thread free of Node-isms.
+
+**It's enforced, not conventional.** `explorer/tsconfig.core.json` compiles the headless layers with `lib: ["ES2022"]` and `types: []` (no DOM, no Node types), run as the second half of `npm run typecheck`. A stray `document` / `fetch` / `import.meta.env` in a core file — or a core→browser import — fails the build. (The concrete file tree + per-module notes live in [`explorer_implementation.md` §Source layout](explorer_implementation.md).)
+
+### Runtime layering — threads
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  UI Layer (browser, main thread)                                │
@@ -201,48 +217,12 @@ A pragmatic phasing — each phase produces something demoable.
 
 Per-phase patterns table is in `docs/pedagogical_design.md` §Implementation priority.
 
-## File layout (suggested)
+## File layout
 
-```
-williams-sound-explorer/
-├── docs/                      # this directory — reference docs
-├── research/                  # raw research + cloned ROM source
-├── src/
-│   ├── cpu/
-│   │   ├── m6800.ts          # the CPU core
-│   │   ├── instructions.ts   # opcode table
-│   │   └── pia.ts            # 6821 PIA model
-│   ├── board/
-│   │   ├── soundboard.ts     # bus + memory map
-│   │   ├── dac.ts            # MC1408 sample-and-hold
-│   │   └── rom/
-│   │       ├── defender.ts   # 2KB ROM + label map
-│   │       └── robotron.ts   # 4KB ROM + label map
-│   ├── synth/
-│   │   ├── DacSampler.ts     # zero-order-hold resampler
-│   │   └── lpf.ts            # single-pole biquad
-│   ├── audio/
-│   │   └── worklet.ts        # AudioWorklet wrapper
-│   ├── viz/
-│   │   ├── Oscilloscope.tsx
-│   │   ├── Spectrogram.tsx
-│   │   ├── WavetableView.tsx
-│   │   ├── LFSRView.tsx
-│   │   ├── VARIView.tsx
-│   │   ├── FNOISEView.tsx
-│   │   ├── SCREAMView.tsx
-│   │   ├── ORGANView.tsx
-│   │   └── StageSwimlane.tsx
-│   ├── ui/
-│   │   ├── App.tsx
-│   │   ├── CommandPicker.tsx
-│   │   └── SpeedControl.tsx
-│   └── data/
-│       ├── defender_catalog.ts   # generated from docs/defender_sound_catalogue.md
-│       └── robotron_catalog.ts
-└── tests/
-    └── golden/                # per-sound recorded outputs for regression
-```
+The concrete, current source tree (every file + a one-line note) is maintained in
+**[`explorer_implementation.md` §Source layout](explorer_implementation.md)** — the home for
+implementation state.  The *conceptual* layering (headless core vs browser, the one-way
+dependency rule, and the `tsconfig.core.json` enforcement) is in §Layered architecture above.
 
 ## Open design questions
 

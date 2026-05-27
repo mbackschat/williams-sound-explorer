@@ -32,6 +32,8 @@ cd explorer && npm run dev
 
 ## Source layout
 
+The *conceptual* layering — the headless core vs browser split, the one-way dependency rule, and the `tsconfig.core.json` enforcement — is in [`explorer_architecture.md` §Layered architecture](explorer_architecture.md). Below is the concrete tree; the comment tags mark each dir's layer (**headless** = DOM/Node-free, gated; **browser** = DOM/Web Audio; **Node-only** = `node:fs`).
+
 ```
 explorer/
 ├── package.json                    # Vite + esbuild + Vitest dev deps
@@ -180,7 +182,7 @@ tools/
    └──────────┘         └────┬─────┘       └────┬─────┘
                              │                  │
                         ┌────▼─────┐            │
-                        │ rom.ts   │            │
+                        │ node/rom │            │
                         │(Node FS) │            │
                         └──────────┘            │
                                                 ▼
@@ -190,6 +192,8 @@ tools/
 ```
 
 Reading order for a new session: `flags` → `types` → `alu` → `instructions` → `m6800` → `pia` → `soundboard` → `runner` → `synth/*`.
+
+This is the **headless-core spine** (all DOM/Node-free except `node/rom.ts`, which is the Node-only ROM loader). The `web/` + `viz/` browser layer and the `engine/` realtime driver sit on top of it — see [`explorer_architecture.md` §Layered architecture](explorer_architecture.md) for the full layering + the dependency rule.
 
 ## CPU emulator — design decisions
 
