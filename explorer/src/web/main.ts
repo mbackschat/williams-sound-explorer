@@ -44,6 +44,7 @@ import { initABDiff } from "./ui/abdiff.ts";
 import { initParamSliders } from "./ui/paramSliders.ts";
 import { initEngineToggles } from "./ui/engineToggles.ts";
 import { initGlossaryUi } from "./ui/glossaryUi.ts";
+import { initKeyboard } from "./ui/keyboard.ts";
 import { ORGAN_TUNES, DEFAULT_ORGAN_TUNE, AUTO_PULSE_GAP_MS } from "./organTunes.ts";
 import type { AppContext } from "./appContext.ts";
 
@@ -1072,6 +1073,8 @@ loadZeroPageMaps().then((m) => {
 const ctx: AppContext = {
   log,
   getHost: () => host,
+  isScrubbing: () => scrubbing,
+  isPaused: () => paused,
   currentGame,
   fireUserCmd,
   getGlossary: () => glossary,
@@ -1086,5 +1089,6 @@ const glossaryUi = initGlossaryUi(ctx);
 initLayout(log);
 initWavExport(ctx);
 initABDiff(ctx);
+initKeyboard(ctx);
 
 log("Loaded.");

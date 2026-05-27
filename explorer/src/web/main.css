@@ -743,3 +743,25 @@ details.explainer-sub[open] > summary { color: #d8f0a8; margin-bottom: 0.2rem; }
 }
 #onboardingEnter:disabled { background: #3a3a40; color: #777; cursor: not-allowed; }
 #onboardingHint { font-size: 0.8rem; color: #9098a6; }
+
+/* ── Keyboard-shortcuts overlay (web/ui/keyboard.ts, toggled with ?) ─────── */
+#shortcutsOverlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 11, 14, 0.72);
+}
+#shortcutsOverlay .shortcuts-card {
+  background: #1a1e26; border: 1px solid #3a3f4b; border-radius: 8px;
+  padding: 1.1rem 1.4rem; max-width: 30rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+#shortcutsOverlay h2 { margin: 0 0 0.7rem; font-size: 1rem; color: #ffd866; }
+#shortcutsOverlay dl {
+  display: grid; grid-template-columns: max-content 1fr;
+  gap: 0.35rem 0.9rem; margin: 0; align-items: baseline;
+}
+#shortcutsOverlay dt {
+  font-family: ui-monospace, monospace; font-size: 0.82rem; color: #78dce8;
+  text-align: right; white-space: nowrap;
+}
+#shortcutsOverlay dd { margin: 0; font-size: 0.85rem; color: #c8ccd4; }
+#shortcutsOverlay .help-text { margin: 0.9rem 0 0; font-size: 0.78rem; color: #9098a6; }

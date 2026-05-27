@@ -20,10 +20,10 @@ cd explorer && npm run dev
 
 | Metric | Value |
 |---|---|
-| TypeScript modules | ~60 across 8 layers: **cpu** 6, **board** 2, **synth** 3 (headless); **engine** 8 + **data** 1 (headless logic + shared contract); **web** 21 (incl. 6 `web/ui/` feature controllers extracted from `main.ts`), **viz** 17 (browser); **node** 2 (Node-only loaders). `engine`/`data`/`cpu`/`board`/`synth` are gated DOM-free by `tsconfig.core.json`. |
+| TypeScript modules | ~60 across 8 layers: **cpu** 6, **board** 2, **synth** 3 (headless); **engine** 8 + **data** 1 (headless logic + shared contract); **web** 23 (incl. 8 `web/ui/` modules — feature controllers extracted from `main.ts` + the keyboard handler/mapper), **viz** 17 (browser); **node** 2 (Node-only loaders). `engine`/`data`/`cpu`/`board`/`synth` are gated DOM-free by `tsconfig.core.json`. |
 | Implemented 6800 opcodes | ~160 (every addressing mode of every common op) |
-| Test files | 25 |
-| Tests passing | **376 / 376** |
+| Test files | 26 |
+| Tests passing | **385 / 385** |
 | Strict-mode TypeScript errors | 0 |
 | Round-trip time (LITE end-to-end, offline) | ~30 ms |
 | WAV size (Defender LITE) | 67 KB, 0.70 s |
@@ -91,7 +91,9 @@ explorer/
 │   │       ├── abdiff.ts           # A/B diff + genealogy
 │   │       ├── paramSliders.ts     # Pattern 5 what-if LOPER/HIPER sliders
 │   │       ├── engineToggles.ts    # Pattern 3 freeze row + Pattern 4 voice-mute sequencer
-│   │       └── glossaryUi.ts       # command-info card + Try-chip browser + term popover
+│   │       ├── glossaryUi.ts       # command-info card + Try-chip browser + term popover
+│   │       ├── keymap.ts           # pure key→action mapping (DOM-free, unit-tested)
+│   │       └── keyboard.ts         # global keydown handler → existing controls + ? overlay
 │   ├── viz/                        # Step 3.1+ visualisation panels  (browser)
 │   │   ├── types.ts                # VizPanel interface (update(snapshot))
 │   │   ├── resizeObserver.ts       # NEW: shared ResizeObserver helper for canvases

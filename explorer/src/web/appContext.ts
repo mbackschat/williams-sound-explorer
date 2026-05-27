@@ -20,6 +20,10 @@ export interface AppContext {
   log(line: string, kind?: "" | "ok" | "err"): void;
   /** The live worklet host, or undefined before Init / between game switches. */
   getHost(): WilliamsSoundHost | undefined;
+  /** Scrub mode is active (vs live). */
+  isScrubbing(): boolean;
+  /** The CPU is paused. */
+  isPaused(): boolean;
   /** The game selected in the segmented switcher. */
   currentGame(): GameKind;
   /** The loaded glossary (reassigned on game-switch — call each time). */

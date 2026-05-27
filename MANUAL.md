@@ -73,9 +73,28 @@ A **"Hide help"** button sits in the header (next to the game switcher).  Toggle
 | **Listen-then-look quiz** | Pattern 10 (Step 6.4). Random sound from the catalogue, MCQ engine identification, reveal with link into the explainer card. Tracks score per session. Collapsed by default. |
 | **A/B diff & genealogy** | Pick two `(game, cmd)` pairs and click Compare. The red band between the two byte tapes flashes where they disagree. Sound family chips below auto-load canonical comparisons. |
 
-### Keyboard shortcuts (where focused)
+### Keyboard shortcuts
 
-- **Cmd hex input**: type a 2-character hex code (e.g. `1D`) then click Fire.
+Global shortcuts (ignored while you're typing in the hex box or a dropdown — press <kbd>?</kbd> any time for this list as an on-screen overlay):
+
+| Key | Action |
+|---|---|
+| <kbd>Space</kbd> | Fire the current command (replay) |
+| <kbd>P</kbd> | Pause / Resume |
+| <kbd>←</kbd> <kbd>→</kbd> | Nudge time — seek while scrubbing, single-step one instruction when paused |
+| <kbd>↑</kbd> <kbd>↓</kbd> | Volume up / down |
+| <kbd>1</kbd>–<kbd>4</kbd> | Speed: 1× · ¼× · ¹⁄₁₀× · ¹⁄₁₀₀× |
+| <kbd>D</kbd> / <kbd>I</kbd> | Step to next DAC write / next IRQ |
+| <kbd>S</kbd> | Toggle Scrub / Live |
+| <kbd>L</kbd> / <kbd>R</kbd> | Scrub loop mode / Reset |
+| <kbd>G</kbd> | Cycle game (Defender → Stargate → Robotron) |
+| <kbd>/</kbd> | Focus the command box |
+| <kbd>H</kbd> | Toggle help text |
+| <kbd>?</kbd> | Show the shortcuts overlay |
+
+Context-specific (when an element has focus):
+
+- **Cmd hex input**: type a 2-character hex code (e.g. `1D`), then <kbd>Enter</kbd> (or click Fire) to fire it.
 - **Splitter handle**: ←/→ nudge 2%, Shift+←/→ nudge 5%, Home/End jump to extremes, Space/Enter = 50/50.
 
 ---
@@ -451,6 +470,7 @@ npx tsx tools/render_sound.ts robotron 0x1A out/x.wav     # SCREAM, 5 seconds
 | **2026 May (UI pass)** | Layout reorg to make the live view fit one screen: the Ear/Eye/Code triangle became a 2×2 **live grid** with the Stage swimlane pulled in beside the oscilloscope; spectrogram went full-width; RAM heatmap moved below it (open by default) with engine-aware cell-name tooltips; Glossary + Explainer card paired in a two-up (Explainer open); Log moved to the bottom of the left column (collapsed). Added a per-control **⬇ .wav export** (offline re-render of the current command), 15 more glossary terms (now 33), engine-pane titles, and explanatory tooltips on every Engine-view toggle / voice checkbox. |
 | **2026 May (ROMs)** | The explorer stopped bundling the copyrighted ROM bytes. A first-run **onboarding screen** takes user-supplied sound ROMs (validated by size + 6802 vectors + SHA-1 allowlist, stored in IndexedDB); the app runs with as few as one ROM, and games without one are locked in the switcher. This let the project be published MIT-licensed without distributing Williams' copyrighted data. |
 | **2026 May (engine-view pass)** | All five engine panes now show at once (ordered ORGAN · SCREAM · FNOISE · GWAVE · VARI, each titled with its engine-colour dot); the intro + freeze toggles ride in the first grid cell. Corrected a long-standing mislabel: **SCREAM (`$1A`) and ORGAN (`$1B`/`$1C`) are in all three games** — not Robotron-only — so their panes now animate on Defender and Stargate too, and both are cross-game comparable in the A/B diff / genealogy. GWAVE pane readouts wrap to two lines (no more truncated/overlapping text). |
+| **2026 May (keyboard + internals)** | Full **keyboard control** — <kbd>Space</kbd> fires, <kbd>1</kbd>–<kbd>4</kbd> set speed, arrows nudge time / adjust volume, <kbd>G</kbd> cycles game, <kbd>?</kbd> shows the overlay (typing in the hex box is never hijacked), plus <kbd>Enter</kbd>-to-fire in the command box. Under the hood the ~1900-line UI entry was split into focused per-feature modules and the page's inline CSS moved to its own file — no behaviour change. |
 
 The names you'll see in the ROM source — `SETUP`, `LITE`, `HBDV`, `WVDECA`, `GWAVE`, `ORGAN` — are the original labels Sam Dicker (and later Jarvis/DeMar) used in 1980-1982. The explorer's swimlane, byte tape, and Code panel surface these names directly so you can read the explorer and read the source side by side.
 
