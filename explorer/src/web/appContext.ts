@@ -26,6 +26,8 @@ export interface AppContext {
   getGlossary(): Glossary;
   /** Games whose ROM is available in the local store. */
   availableGames(): ReadonlySet<GameKind>;
+  /** The user-driven fire entry point (handles the $1B auto-pulse, etc.). */
+  fireUserCmd(cmd: number): void;
   /** Switch the active game (loads its worklet/ROM); shows onboarding if missing. */
   switchToGame(game: GameKind): Promise<void>;
   /** Fire a sequence of command bytes with a gap between each (genealogy compare). */
