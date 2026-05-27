@@ -6,7 +6,7 @@
  * (`shot`).  Edit a tutorial here and both update together.
  *
  * Selectors used are the app's existing stable IDs / data-attrs — see
- * `src/audio/main.ts`.  Nothing here is allowed to depend on ROM *bytes*;
+ * `src/web/main.ts`.  Nothing here is allowed to depend on ROM *bytes*;
  * the screenshots show the explorer's own visualisations only.
  */
 
