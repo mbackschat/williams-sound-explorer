@@ -43,12 +43,13 @@ import { FNOISEView } from "../viz/FNOISEView.ts";
 import { RAMHeatmap } from "../viz/RAMHeatmap.ts";
 import { ExplainerCardPanel } from "../viz/ExplainerCard.ts";
 import { QuizPanel } from "../viz/QuizPanel.ts";
-import { ABDiff, type ABDiffPick } from "../viz/ABDiff.ts";
-import { loadGenealogy, renderGenealogy } from "../viz/Genealogy.ts";
 import type { VizPanel } from "../viz/types.ts";
 import { els } from "./els.ts";
 import { dbToPct, meterTrack, escapeHtml } from "./format.ts";
 import { initLayout } from "./ui/layout.ts";
+import { initWavExport } from "./ui/wavExport.ts";
+import { initABDiff } from "./ui/abdiff.ts";
+import type { AppContext } from "./appContext.ts";
 
 let host: WilliamsSoundHost | undefined;
 let paused = false;
@@ -166,8 +167,8 @@ function loadExplainerForCmd(cmd: number): void {
  * view's `update()` still prevents intra-sound flicker — this only clears
  * between sounds.
  *
- * `panels` is populated lazily (after `loadGenealogy` etc.), so we use a
- * `forEach` with optional-chaining for the `resetIdle?()` interface.
+ * `resetIdle?()` is optional on the `VizPanel` interface, so we
+ * optional-chain it across the panel list.
  */
 function resetEnginePanels(): void {
   for (const p of panels) p.resetIdle?.();
@@ -477,66 +478,6 @@ function initChipLegend(): void {
   }
 }
 initChipLegend();
-
-// ---- WAV export -----------------------------------------------------------
-// Offline re-render of the current command to a downloadable .wav, reusing the
-// exact pipeline as tools/render_sound.ts (deterministic, clean ROM sound —
-// independent of the live worklet, so it works before Init too).
-const WAV_EXPORT_RATE = 48000;
-const exportRomCache = new Map<GameKind, Uint8Array>();
-
-function triggerDownload(bytes: Uint8Array, filename: string): void {
-  // Copy into a plain ArrayBuffer-backed view so Blob accepts it under
-  // strict lib types (encodeWav's buffer is typed ArrayBufferLike).
-  const blob = new Blob([new Uint8Array(bytes)], { type: "audio/wav" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function exportCurrentWav(): Promise<void> {
-  const cmd = Number.parseInt(els.cmd.value, 16);
-  if (Number.isNaN(cmd) || cmd < 0 || cmd > 0x3F) {
-    log(`Export: "${els.cmd.value}" is not a valid command ($00..$3F).`, "err");
-    return;
-  }
-  const game = currentGame();
-  const hh = cmd.toString(16).padStart(2, "0").toUpperCase();
-  els.exportWav.disabled = true;
-  try {
-    let rom = exportRomCache.get(game);
-    if (!rom) {
-      rom = await loadRomFromUrl(game);
-      exportRomCache.set(game, rom);
-    }
-    const result = runSoundWithRom(game, rom, cmd);
-    if (result.events.length === 0) {
-      log(`Export: $${hh} produced no DAC output (silent) — nothing to save.`, "err");
-      return;
-    }
-    const samples = renderDacEvents(result.events, {
-      totalCycles: result.cycles,
-      targetRate: WAV_EXPORT_RATE,
-    });
-    applyLpf(samples, { cutoffHz: 10000, sampleRate: WAV_EXPORT_RATE });
-    const wav = encodeWav(samples, WAV_EXPORT_RATE);
-    const routine = (lookup(glossary, game, cmd)?.routine ?? "")
-      .replace(/[^A-Za-z0-9]+/g, "") || "sound";
-    const ms = (result.cycles / 894_886 * 1000).toFixed(0);
-    triggerDownload(wav, `${game}_${hh}_${routine}.wav`);
-    log(`Exported ${game}_${hh}_${routine}.wav — ${ms} ms${result.reachedIdle ? "" : " (capped at 5 s)"}.`, "ok");
-  } catch (e) {
-    log(`Export failed: ${e instanceof Error ? e.message : String(e)}`, "err");
-  } finally {
-    els.exportWav.disabled = false;
-  }
-}
-els.exportWav.addEventListener("click", () => { void exportCurrentWav(); });
 
 function log(line: string, kind: "" | "ok" | "err" = ""): void {
   const t = new Date().toTimeString().slice(0, 8);
@@ -1111,9 +1052,7 @@ for (const btn of gamePickButtons) {
 // Re-evaluate availability whenever the ROM store changes (upload / remove).
 window.addEventListener("rom-store-changed", () => { void onRomStoreChanged(); });
 async function onRomStoreChanged(): Promise<void> {
-  // Drop cached ROM bytes so a replaced/removed ROM isn't served stale.
-  exportRomCache.clear();
-  abDiff.clearRomCache();
+  // ROM caches (wavExport, abdiff) self-invalidate via the rom-store-changed event.
   await refreshAvailability();
   // If the active game's ROM was removed, move to another available game, or
   // back to onboarding if none remain.
@@ -1698,46 +1637,17 @@ function syncParamRowsFromSnapshot(s: StateSnapshot): void {
   }
 }
 
-// Step 5.3 / 5.4 — A/B diff + Genealogy.  Both mount synchronously; the
-// genealogy data is fetched async and renders into the list when ready.
-const abDiff = new ABDiff({
-  container: els.abCanvas.parentElement as HTMLElement,
-  canvas: els.abCanvas,
-  summary: els.abSummary,
-});
-function readPickFromUi(slot: "a" | "b"): ABDiffPick {
-  const gameEl = slot === "a" ? els.abGameA : els.abGameB;
-  const cmdEl = slot === "a" ? els.abCmdA : els.abCmdB;
-  const cmdHex = cmdEl.value.trim();
-  const cmd = Number.parseInt(cmdHex, 16);
-  return {
-    game: gameEl.value as GameKind,
-    cmd: Number.isNaN(cmd) ? 0 : (cmd & 0x3F),
-  };
-}
-function writePickToUi(slot: "a" | "b", pick: ABDiffPick): void {
-  const gameEl = slot === "a" ? els.abGameA : els.abGameB;
-  const cmdEl = slot === "a" ? els.abCmdA : els.abCmdB;
-  gameEl.value = pick.game;
-  cmdEl.value = pick.cmd.toString(16).toUpperCase().padStart(2, "0");
-}
-els.abRun.addEventListener("click", async () => {
-  els.abRun.disabled = true;
-  try {
-    await abDiff.runAndRender(readPickFromUi("a"), readPickFromUi("b"));
-  } catch (e) {
-    log(`A/B diff failed: ${(e as Error).message}`, "err");
-  } finally {
-    els.abRun.disabled = false;
-  }
-});
-loadGenealogy().then((g) => {
-  renderGenealogy(els.genealogyList, g, abDiff, writePickToUi);
-  if (g.families.length > 0) {
-    log(`Loaded sound genealogy — ${g.families.length} families.`, "ok");
-  }
-});
+const ctx: AppContext = {
+  log,
+  currentGame,
+  getGlossary: () => glossary,
+  availableGames: () => availableGames,
+  switchToGame,
+  fireSequence,
+};
 
 initLayout(log);
+initWavExport(ctx);
+initABDiff(ctx);
 
 log("Loaded.");
