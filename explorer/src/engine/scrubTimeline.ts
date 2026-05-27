@@ -10,7 +10,7 @@
  * Kept free of DOM / module state so they're unit-testable — see
  * `tests/scrubTimeline.test.ts`, which pins the wrapped-ring regression.
  */
-import type { SoundSegment } from "./host.ts";
+import type { SoundSegment } from "./realtimeRunner.ts";
 
 /** Effective end cycle of a segment; an open segment ends at `newestCycle`. */
 export function segmentEnd(seg: SoundSegment, newestCycle: number): number {

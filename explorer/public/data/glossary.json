@@ -810,7 +810,7 @@
       "title": "LPF \u2014 low-pass filter",
       "what": "Audio filter that attenuates frequencies above its cutoff. On Williams hardware, a single-pole RC filter at ~10 kHz tames the DAC stair-step.",
       "how": "Single-pole IIR: y[n] = \u03b1\u00b7x[n] + (1\u2212\u03b1)\u00b7y[n\u22121]. \u03b1 derived from cutoff Hz + sample rate; cutoff ~10 kHz matches the 1458 op-amp's analogue tail.",
-      "where": "Both offline (`synth/lpf.ts`) and realtime (`audio/realtimeRunner.ts`) apply it inline. Doesn't kill DAC aliasing entirely \u2014 that's part of the iconic Williams grit."
+      "where": "Both offline (`synth/lpf.ts`) and realtime (`engine/realtimeRunner.ts`) apply it inline. Doesn't kill DAC aliasing entirely \u2014 that's part of the iconic Williams grit."
     },
     "WVDECA": {
       "title": "WVDECA \u2014 wavetable decay",

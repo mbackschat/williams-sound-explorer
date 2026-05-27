@@ -21,14 +21,14 @@
  *
  * Hover tooltip shows `$AA = $VV · last write N cycles ago`.
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 import type { GameKind } from "../board/soundboard.ts";
 import {
   describeCell,
   emptyZeroPageMap,
   type EngineTag,
   type ZeroPageMap,
-} from "../audio/zeroPageMap.ts";
+} from "../web/zeroPageMap.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

@@ -20,101 +20,16 @@
  */
 import type { SoundBoard, GameKind } from "../board/soundboard.ts";
 
-// ─── Engine-state slot shapes ─────────────────────────────────────────────────
+import type {
+  LfsrState, VariState, GWaveState, ScreamState, FNoiseState, OrganState, EngineSlots,
+} from "../data/protocol.ts";
 
-export interface LfsrState {
-  /** 16-bit shift register value (HI:LO). */
-  state: number;
-  /** The bit just shifted out (= LO & 1 — rotated into the DAC carry). */
-  bitOut: 0 | 1;
-  /** Frequency divider (LFREQ); decremented per output sample. */
-  lfreq: number;
-  /** Outer-loop cycle counter (CYCNT). */
-  cycnt: number;
-}
-
-export interface VariState {
-  loper: number; hiper: number;
-  locnt: number; hicnt: number;
-  lodt: number;  hidt: number;
-  lomod: number; hien: number;
-}
-
-export interface GWaveState {
-  echo: number;
-  gccnt: number;
-  gecdec: number;
-  gdfinc: number;
-  gdcnt: number;
-  gwfrm: number;
-  prdeca: number;
-  gwfrq: number;
-  gper: number;
-  gecnt: number;
-  fofset: number;
-  /** Live wavetable RAM copy (72 bytes).  Mutates per WVDECA. */
-  waveTable: Uint8Array;
-  /** Current sample cursor = X − GWTAB base, or -1 when X is outside the table. */
-  sampleIndex: number;
-}
-
-/**
- * SCREAM (Robotron) — 4 detuned voices summed at the DAC, each storing a
- * `{freq, timer}` pair in zero-page RAM at STABLE..STABLE+7.
- *
- * Pedagogically: the canonical Robotron "scream" sound has each voice
- * decaying at a different rate; watching the 4 amplitude bars drift apart
- * is the whole point.
- */
-export interface ScreamState {
-  /** Per-voice `(freq, timer)` pairs, oldest→newest by voice index. */
-  voices: { freq: number; timer: number }[];
-}
-
-/**
- * FNOISE — filtered-noise engine used for cannon, thrust, BG1 (background
- * music 1) and similar percussion-y sounds across all three games.  A
- * 16-bit FHI:FLO frequency accumulator slopes up then back down between
- * 0 and FMAX, with DSFLG enabling random-distortion modulation along the
- * way.  SAMPC counts down samples remaining.
- */
-export interface FNoiseState {
-  /** FMAX — peak frequency this run is allowed to reach. */
-  fmax: number;
-  /** FHI:FLO — current 16-bit frequency accumulator value. */
-  freq: number;
-  /** SAMPC — 16-bit sample countdown (sound ends when this hits 0). */
-  sampc: number;
-  /** FDFLG — non-zero = decreasing (slope down); 0 = increasing. */
-  fdflg: number;
-  /** DSFLG — non-zero = distortion (random-driven HI byte). */
-  dsflg: number;
-}
-
-/**
- * ORGAN (Robotron — also used on Defender, but Robotron's implementation is
- * the canonical multi-voice one).  An oscillator bitmask, a duration counter,
- * and the RDELAY scratchpad (60 bytes of self-modifying delay table).
- */
-export interface OrganState {
-  /** DUR ($12:$13) — 16-bit note duration counter. */
-  dur: number;
-  /** OSCIL ($14) — bitmask of active oscillators (popcount = number of voices). */
-  oscil: number;
-  /** Number of active oscillators (cached popcount of `oscil`). */
-  oscilCount: number;
-  /** Live snapshot of the 60-byte RDELAY scratchpad ($15..$50). */
-  rdelay: Uint8Array;
-}
-
-export interface EngineSlots {
-  lfsr?: LfsrState;
-  vari?: VariState;
-  gwave?: GWaveState;
-  scream?: ScreamState;
-  organ?: OrganState;
-  fnoise?: FNoiseState;
-}
+// ─── Engine-state slot shapes (defined once in data/protocol.ts) ─────────
+// Re-exported here so this module’s producers and existing importers keep a
+// stable import site.
+export type {
+  LfsrState, VariState, GWaveState, ScreamState, FNoiseState, OrganState, EngineSlots,
+};
 
 // ─── Per-engine, per-game specs ───────────────────────────────────────────────
 

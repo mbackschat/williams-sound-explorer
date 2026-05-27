@@ -15,7 +15,7 @@
  *
  * Idle state: a caption pointing the user at cannon / thrust / BG1.
  */
-import type { StateSnapshot, FNoiseState } from "../audio/worklet.ts";
+import type { StateSnapshot, FNoiseState } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

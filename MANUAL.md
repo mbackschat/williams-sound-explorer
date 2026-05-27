@@ -218,7 +218,7 @@ What's happening: LITE's inner loop reads `LO`, shifts/EORs it, writes back `HI`
 
 This *proves* that the shift is what makes LITE sound like noise. Take it away and you get a square-ish tone.
 
-**Context**: Pattern 3 (solo / mute / freeze) from [`docs/pedagogical_design.md`](docs/pedagogical_design.md). The implementation is in `explorer/src/audio/engineToggles.ts` — a tiny predicate that gates specific zero-page addresses per engine.
+**Context**: Pattern 3 (solo / mute / freeze) from [`docs/pedagogical_design.md`](docs/pedagogical_design.md). The implementation is in `explorer/src/engine/engineToggles.ts` — a tiny predicate that gates specific zero-page addresses per engine.
 
 Try the other toggles too:
 - **Freeze VARI period** + fire `$1D SAW` → no descending pitch, steady square wave with the fire-time duty cycle.

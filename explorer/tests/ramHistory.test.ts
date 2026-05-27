@@ -13,9 +13,9 @@ import {
   RamHistory,
   RAM_HISTORY_DEFAULT_INTERVAL,
   RAM_SNAPSHOT_SIZE,
-} from "../src/audio/ramHistory.ts";
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
-import { loadROM } from "../src/board/rom.ts";
+} from "../src/engine/ramHistory.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 describe("RamHistory — ring buffer", () => {
   it("returns undefined when empty", () => {

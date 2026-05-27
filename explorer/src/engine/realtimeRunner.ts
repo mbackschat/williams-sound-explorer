@@ -34,7 +34,7 @@
  *   because per-sample work needs to stay tight in the worklet hot path.
  *
  * - This file imports `cpu/*` and `board/*` only.  It does NOT import
- *   `board/rom.ts` (which reads from `node:fs`) — the worklet must be free
+ *   `node/rom.ts` (which reads from `node:fs`) — the worklet must be free
  *   of Node-isms.  ROM bytes are passed in by the host.
  */
 import type { CPUState } from "../cpu/types.ts";

@@ -19,7 +19,7 @@ import {
   indexCells,
   type ZeroPageCell,
   type ZeroPageMap,
-} from "../src/audio/zeroPageMap.ts";
+} from "../src/web/zeroPageMap.ts";
 
 const REPO = pathResolve(__dirname, "..");
 

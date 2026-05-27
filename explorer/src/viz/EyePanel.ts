@@ -17,11 +17,11 @@
  * event indices for the hover lookup.  Smarter than re-scanning the events
  * on every mouse move.
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
-import type { LabelMap } from "../audio/labelMap.ts";
+import type { LabelMap } from "../web/labelMap.ts";
 import type { GameKind } from "../board/soundboard.ts";
-import { resolve, formatLabel } from "../audio/labelMap.ts";
+import { resolve, formatLabel } from "../web/labelMap.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 
 /** Pattern 8 hover hook — emits the cycle the user is pointing at. */

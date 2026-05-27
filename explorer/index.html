@@ -705,7 +705,7 @@
         transition: left 60ms linear;
       }
 
-      /* ── Onboarding overlay (audio/onboarding.ts) ───────────────────────── */
+      /* ── Onboarding overlay (web/onboarding.ts) ───────────────────────── */
       #onboarding {
         display: none;            /* shown by main.ts when no ROM is stored */
         position: fixed; inset: 0; z-index: 1000;
@@ -754,7 +754,7 @@
   <body>
     <!-- Onboarding overlay (shown by main.ts when no ROM is stored).  The app
          ships no copyrighted ROM bytes; the user supplies their own, stored
-         locally in IndexedDB.  Slots are built by audio/onboarding.ts. -->
+         locally in IndexedDB.  Slots are built by web/onboarding.ts. -->
     <div id="onboarding">
       <div class="onboarding-card">
         <h1>Williams Sound Explorer</h1>
@@ -1247,6 +1247,6 @@
       </div>
     </div>
 
-    <script type="module" src="/src/audio/main.ts"></script>
+    <script type="module" src="/src/web/main.ts"></script>
   </body>
 </html>

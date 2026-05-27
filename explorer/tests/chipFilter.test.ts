@@ -7,7 +7,7 @@ import {
   allEnabled,
   chipEngineKey,
   isChipVisible,
-} from "../src/audio/chipFilter.ts";
+} from "../src/engine/chipFilter.ts";
 
 describe("chipEngineKey()", () => {
   it("upper-cases a present engine attribute", () => {

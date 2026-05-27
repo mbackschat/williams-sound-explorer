@@ -24,8 +24,8 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import { SoundBoard, type GameKind } from "../explorer/src/board/soundboard.ts";
-import { bootToIdle, tick } from "../explorer/src/runner.ts";
-import { loadROM } from "../explorer/src/board/rom.ts";
+import { bootToIdle, tick } from "../explorer/src/engine/runner.ts";
+import { loadROM } from "../explorer/src/node/rom.ts";
 import { renderDacEvents } from "../explorer/src/synth/DacSampler.ts";
 import { applyLpf } from "../explorer/src/synth/lpf.ts";
 import { encodeWav } from "../explorer/src/synth/wav.ts";

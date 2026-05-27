@@ -23,9 +23,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
-import { loadROM } from "../src/board/rom.ts";
-import { runSound } from "../src/runnerNode.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
+import { loadROM } from "../src/node/rom.ts";
+import { runSound } from "../src/node/runnerNode.ts";
 
 const SAMPLE_RATE = 48000;
 const CPU_RATE = 894_886;

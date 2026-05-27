@@ -21,7 +21,7 @@ import {
   shouldDiscardWrite,
   transformWriteValue,
   type EngineToggles,
-} from "../audio/engineToggles.ts";
+} from "../engine/engineToggles.ts";
 
 /** Which Williams sound ROM family is loaded. */
 export type GameKind = "defender" | "stargate" | "robotron";

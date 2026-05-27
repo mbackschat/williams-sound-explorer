@@ -16,7 +16,7 @@
  * the history ring → these are the *scrub-replay* samples → the same panel
  * works for both live and scrub modes, no special branching.
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

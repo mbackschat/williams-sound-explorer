@@ -18,8 +18,8 @@ import { describe, expect, it } from "vitest";
 
 import { SoundBoard } from "../src/board/soundboard.ts";
 import { createCPU } from "../src/cpu/m6800.ts";
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
-import { loadROM } from "../src/board/rom.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 describe("SoundBoard.lastWriteCycle — Step 6.6 stamp behaviour", () => {
   it("a fresh board reports every cell as never-written (cycle = 0)", async () => {

@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { runSound } from "../src/runnerNode.ts";
+import { runSound } from "../src/node/runnerNode.ts";
 
 const LITE = 0x11;
 const SILENCE = 0x00;

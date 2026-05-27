@@ -7,11 +7,11 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json --noEmit",
     "prepare:public": "mkdir -p public/roms public/data && python3 ../tools/build_glossary.py && python3 ../tools/build_labelmap.py && python3 ../tools/build_explainer_cards.py && python3 ../tools/build_zeropage.py",
     "dev:roms": "mkdir -p public/roms && cp ../research/roms/defender_sound.bin ../research/roms/stargate_sound.bin ../research/roms/robotron_sound.bin public/roms/",
-    "build:worklet": "esbuild src/audio/worklet.ts --bundle --format=esm --target=es2022 --outfile=public/williams-sound-explorer-worklet.js --sourcemap",
-    "watch:worklet": "esbuild src/audio/worklet.ts --bundle --format=esm --target=es2022 --outfile=public/williams-sound-explorer-worklet.js --sourcemap --watch=forever",
+    "build:worklet": "esbuild src/web/worklet.ts --bundle --format=esm --target=es2022 --outfile=public/williams-sound-explorer-worklet.js --sourcemap",
+    "watch:worklet": "esbuild src/web/worklet.ts --bundle --format=esm --target=es2022 --outfile=public/williams-sound-explorer-worklet.js --sourcemap --watch=forever",
     "dev": "npm run prepare:public && npm run build:worklet && concurrently --kill-others --names \"worklet,vite\" --prefix-colors \"yellow,cyan\" \"npm run watch:worklet\" \"vite\"",
     "build": "npm run prepare:public && npm run build:worklet && vite build",
     "preview": "vite preview"

@@ -17,7 +17,7 @@
  * The panel is fed by `snapshot.vari`; when undefined it shows an idle
  * caption so the layout doesn't jump as sounds start / stop.
  */
-import type { StateSnapshot, VariState } from "../audio/worklet.ts";
+import type { StateSnapshot, VariState } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

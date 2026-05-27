@@ -17,12 +17,12 @@
  * still lives in `tools/render_sound.ts`.
  */
 import type { GameKind } from "../board/soundboard.ts";
-import type { StateSnapshot, WorkletInMsg, WorkletOutMsg } from "./worklet.ts";
-import type { ScrubLoopMode } from "./realtimeRunner.ts";
-import type { EngineToggleKey } from "./engineToggles.ts";
+import type { StateSnapshot, WorkletInMsg, WorkletOutMsg } from "../data/protocol.ts";
+import type { ScrubLoopMode } from "../engine/realtimeRunner.ts";
+import type { EngineToggleKey } from "../engine/engineToggles.ts";
 import { loadRomBytes } from "./romStore.ts";
 
-export type { StateSnapshot, ScrubLoopMode, SoundSegment, EngineToggleKey } from "./worklet.ts";
+export type { StateSnapshot, ScrubLoopMode, SoundSegment, EngineToggleKey } from "../data/protocol.ts";
 
 /** Callback fired whenever the worklet posts a fresh state snapshot. */
 export type StateListener = (snapshot: StateSnapshot) => void;

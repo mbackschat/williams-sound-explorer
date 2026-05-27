@@ -1,5 +1,5 @@
 /**
- * Tape-scrubber timeline math (`src/audio/scrubTimeline.ts`).
+ * Tape-scrubber timeline math (`src/engine/scrubTimeline.ts`).
  *
  * Regression focus: the DAC-history ring is finite and evicts oldest-first, so
  * on long recordings `oldestCycle` advances past early segments whose sample
@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import type { SoundSegment } from "../src/audio/host.ts";
+import type { SoundSegment } from "../src/data/protocol.ts";
 import {
   clipSegmentsToRange,
   compactDuration,
@@ -17,7 +17,7 @@ import {
   compactOffsetToCycle,
   scrubReadout,
   segmentEnd,
-} from "../src/audio/scrubTimeline.ts";
+} from "../src/engine/scrubTimeline.ts";
 
 const seg = (cmd: number, startCycle: number, endCycle: number | null): SoundSegment =>
   ({ cmd, startCycle, endCycle });

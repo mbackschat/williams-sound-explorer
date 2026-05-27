@@ -16,7 +16,7 @@
  * label-map dispatch ignores its self-modifying nature.  The panel itself
  * just reads RAM, so it's correct regardless.
  */
-import type { StateSnapshot, OrganState } from "../audio/worklet.ts";
+import type { StateSnapshot, OrganState } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

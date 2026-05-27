@@ -23,7 +23,7 @@
  *
  * When no GWAVE sound is running the panel shows an idle caption.
  */
-import type { StateSnapshot, GWaveState } from "../audio/worklet.ts";
+import type { StateSnapshot, GWaveState } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

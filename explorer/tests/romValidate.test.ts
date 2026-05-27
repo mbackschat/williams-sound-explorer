@@ -13,7 +13,7 @@ import {
   expectedSize,
   trimTrailingPadding,
   validateRom,
-} from "../src/audio/romValidate.ts";
+} from "../src/web/romValidate.ts";
 
 const REPO = pathResolve(__dirname, "../..");
 const hasCrypto = !!globalThis.crypto?.subtle;

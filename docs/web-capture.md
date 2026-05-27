@@ -76,7 +76,7 @@ The driver understands a fixed, small vocabulary. Adding a tutorial is a data ed
 
 ### Stable selectors the app already exposes
 
-No `data-testid`s were added — the app's existing IDs/data-attrs cover everything a tutorial touches (see `explorer/src/audio/main.ts`):
+No `data-testid`s were added — the app's existing IDs/data-attrs cover everything a tutorial touches (see `explorer/src/web/main.ts`):
 
 - Game switch: `#gameSwitcher button[data-game="defender"|"stargate"|"robotron"]` (scope to `#gameSwitcher` — genealogy/onboarding also carry `data-game`).
 - Sound chips: `#cmdChips button.chip[data-cmd="XX"]` (clicking fires immediately).

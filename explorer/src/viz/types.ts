@@ -9,7 +9,7 @@
  * cursor" mentioned in the plan emerges from every panel reading the same
  * `cycles` / `scrubCycle` value from the snapshot.
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 
 export interface VizPanel {
   /** Render the latest state.  Cheap — called at ~10 Hz from the host poll. */

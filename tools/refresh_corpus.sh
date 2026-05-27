@@ -5,8 +5,8 @@
 #   • `tools/build_roms.sh` produces different *_sound.bin (preprocessor
 #     fix, source rev bump).  Check via `tools/verify_roms.sh`.
 #   • Changes to explorer's runner / synth pipeline:
-#       explorer/src/runner.ts
-#       explorer/src/runnerNode.ts
+#       explorer/src/engine/* (runner.ts, realtimeRunner.ts, …)
+#       explorer/src/node/runnerNode.ts
 #       explorer/src/cpu/* (opcodes, ALU)
 #       explorer/src/synth/* (DacSampler, lpf, wav)
 #   • Changes to `tools/render_all.ts` itself (sample rate, cycle cap, sequence handling).

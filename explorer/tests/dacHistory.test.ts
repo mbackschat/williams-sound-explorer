@@ -6,7 +6,7 @@
  * that overwrite many old entries.
  */
 import { describe, expect, it } from "vitest";
-import { DacHistory, DAC_SILENCE } from "../src/audio/dacHistory.ts";
+import { DacHistory, DAC_SILENCE } from "../src/engine/dacHistory.ts";
 
 describe("DacHistory — empty buffer", () => {
   it("range() returns zeros when nothing has been pushed", () => {

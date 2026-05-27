@@ -16,8 +16,8 @@
  * one canvas; the parent section drives layout.
  */
 import type { GameKind } from "../board/soundboard.ts";
-import { runSoundWithRom, type RunSoundResult } from "../runner.ts";
-import { loadRomFromUrl } from "../board/romFetch.ts";
+import { runSoundWithRom, type RunSoundResult } from "../engine/runner.ts";
+import { loadRomFromUrl } from "../web/romFetch.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 
 const BG_COLOR = "#0c0e12";

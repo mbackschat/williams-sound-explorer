@@ -23,7 +23,7 @@ import {
   formatLabel,
   type LabelMap,
   type LabelEntry,
-} from "../src/audio/labelMap.ts";
+} from "../src/web/labelMap.ts";
 
 const REPO = pathResolve(__dirname, "..");
 

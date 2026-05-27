@@ -9,12 +9,12 @@
  * scrub cycle goes in the Eye panel; the CPU cycle stays here so the user
  * can see that the CPU is genuinely frozen during scrub).
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { formatDisassembly } from "../cpu/disasm.ts";
-import type { LabelMap } from "../audio/labelMap.ts";
+import type { LabelMap } from "../web/labelMap.ts";
 import type { GameKind } from "../board/soundboard.ts";
-import { resolve as resolveLabel, formatLabel } from "../audio/labelMap.ts";
+import { resolve as resolveLabel, formatLabel } from "../web/labelMap.ts";
 
 /** Pattern 8 — what the user is currently hovering across panels. */
 export interface InspectCursor {

@@ -215,7 +215,7 @@ TERMS: dict[str, dict[str, str]] = {
         "title": "LPF — low-pass filter",
         "what": "Audio filter that attenuates frequencies above its cutoff. On Williams hardware, a single-pole RC filter at ~10 kHz tames the DAC stair-step.",
         "how": "Single-pole IIR: y[n] = α·x[n] + (1−α)·y[n−1]. α derived from cutoff Hz + sample rate; cutoff ~10 kHz matches the 1458 op-amp's analogue tail.",
-        "where": "Both offline (`synth/lpf.ts`) and realtime (`audio/realtimeRunner.ts`) apply it inline. Doesn't kill DAC aliasing entirely — that's part of the iconic Williams grit.",
+        "where": "Both offline (`synth/lpf.ts`) and realtime (`engine/realtimeRunner.ts`) apply it inline. Doesn't kill DAC aliasing entirely — that's part of the iconic Williams grit.",
     },
     "WVDECA": {
         "title": "WVDECA — wavetable decay",

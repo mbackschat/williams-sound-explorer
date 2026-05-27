@@ -13,12 +13,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
 import {
   shouldDiscardWrite,
   transformWriteValue,
-} from "../src/audio/engineToggles.ts";
-import { loadROM } from "../src/board/rom.ts";
+} from "../src/engine/engineToggles.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 const SAMPLE_RATE = 48000;
 

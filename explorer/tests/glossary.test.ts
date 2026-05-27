@@ -6,7 +6,7 @@
  * "mid-rail", "phase accumulator", and even the long-standing "BRA-self".
  */
 import { describe, expect, it } from "vitest";
-import { lookupTerm, type Glossary, type TermEntry } from "../src/audio/glossary.ts";
+import { lookupTerm, type Glossary, type TermEntry } from "../src/web/glossary.ts";
 
 const term = (title: string): TermEntry => ({ title, what: "w", how: "h", where: "e" });
 

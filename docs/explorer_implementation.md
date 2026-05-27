@@ -4,7 +4,7 @@
 
 ## Current state
 
-**Phases 1-6 are COMPLETE — all 12 UX patterns shipped.**  Highlights: dual-trace oscilloscope, scrolling FFT spectrogram (with AC-coupling DC blocker upstream), DAC byte tape with PC capture, stage swimlane backed by an assembler-derived label map, **all six engine slots live** (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with per-engine viz panels, Pattern 3 freeze toggles, Pattern 4 SCREAM + ORGAN voice-mute + Build-up/Tear-down sequencer, Pattern 5 parameter-override sliders (VARI LOPER/HIPER), Pattern 6 A/B diff, Pattern 7 cross-game genealogy, Pattern 8 causal hover trace, **Pattern 9 annotated explainer cards** (`viz/ExplainerCard.ts` + 63 routine-keyed JSON cards covering every catalogued sound), **Pattern 10 listen-then-look quiz**, **Pattern 12 hide-help toggle**, **RAM heatmap viz** (16×8 zero-page grid, 1 s decay, engine-aware cell-name tooltip), **scrub-mode RAM time-travel** (`audio/ramHistory.ts` snapshots every ~512 cycles), responsive two-column layout with draggable splitter + sticky controls + per-game chip browser + segmented game switcher.
+**Phases 1-6 are COMPLETE — all 12 UX patterns shipped.**  Highlights: dual-trace oscilloscope, scrolling FFT spectrogram (with AC-coupling DC blocker upstream), DAC byte tape with PC capture, stage swimlane backed by an assembler-derived label map, **all six engine slots live** (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with per-engine viz panels, Pattern 3 freeze toggles, Pattern 4 SCREAM + ORGAN voice-mute + Build-up/Tear-down sequencer, Pattern 5 parameter-override sliders (VARI LOPER/HIPER), Pattern 6 A/B diff, Pattern 7 cross-game genealogy, Pattern 8 causal hover trace, **Pattern 9 annotated explainer cards** (`viz/ExplainerCard.ts` + 63 routine-keyed JSON cards covering every catalogued sound), **Pattern 10 listen-then-look quiz**, **Pattern 12 hide-help toggle**, **RAM heatmap viz** (16×8 zero-page grid, 1 s decay, engine-aware cell-name tooltip), **scrub-mode RAM time-travel** (`engine/ramHistory.ts` snapshots every ~512 cycles), responsive two-column layout with draggable splitter + sticky controls + per-game chip browser + segmented game switcher.
 
 Two ways to hear a sound today:
 
@@ -20,7 +20,7 @@ cd explorer && npm run dev
 
 | Metric | Value |
 |---|---|
-| TypeScript modules | ~50 (CPU 6, board 4, synth 3, audio 17, viz 17, + runner/runnerNode — incl. ramHistory, scrubTimeline, zeroPageMap, chipFilter, romStore, romValidate, onboarding, FNOISEView, resizeObserver, runnerNode, romFetch, ABDiff, Genealogy, SCREAMView, ORGANView, RAMHeatmap, ExplainerCard, QuizPanel, SCREAM + ORGAN voice-mute toggles, paramOverride wiring) |
+| TypeScript modules | ~50 across 8 layers: **cpu** 6, **board** 2, **synth** 3 (headless); **engine** 8 + **data** 1 (headless logic + shared contract); **web** 11, **viz** 17 (browser); **node** 2 (Node-only loaders). `engine`/`data`/`cpu`/`board`/`synth` are gated DOM-free by `tsconfig.core.json`. |
 | Implemented 6800 opcodes | ~160 (every addressing mode of every common op) |
 | Test files | 24 |
 | Tests passing | **367 / 367** |
@@ -36,6 +36,7 @@ cd explorer && npm run dev
 explorer/
 ├── package.json                    # Vite + esbuild + Vitest dev deps
 ├── tsconfig.json                   # strict; ES2022; allowImportingTsExtensions
+├── tsconfig.core.json              # headless-core gate: lib ES2022 only, no DOM/Node — enforces the split
 ├── vite.config.ts                  # dev server + production build
 ├── vitest.config.ts
 ├── index.html                      # Phase 2.1 browser harness
@@ -47,34 +48,37 @@ explorer/
 │   │   ├── instructions.ts         # opcode dispatch table (~160 opcodes)
 │   │   ├── disasm.ts               # Step 2.2+ disassembler (mnemonics + format)
 │   │   └── m6800.ts                # CPU class: createCPU, reset, step, takeInterrupt
-│   ├── board/
+│   ├── board/                      # pure 6802 peripherals (headless)
 │   │   ├── pia.ts                  # MC6821 stub: DAC events, CA1-IRQ flag, setCommand
-│   │   ├── soundboard.ts           # memory map per game + paramOverrides (Step 6.2)
-│   │   ├── rom.ts                  # Node ROM loader (reads tools/*_sound.bin)
-│   │   └── romFetch.ts             # Browser ROM loader (fetch /roms/*.bin) — Step 5.3
+│   │   └── soundboard.ts           # memory map per game + paramOverrides (Step 6.2)
 │   ├── synth/
 │   │   ├── DacSampler.ts           # zero-order-hold 894886 Hz → target Hz
 │   │   ├── lpf.ts                  # single-pole biquad (~10 kHz)
 │   │   └── wav.ts                  # 16-bit PCM WAV encoder
-│   ├── audio/                      # NEW in Phase 2.1
+│   ├── engine/                     # headless logic — DOM-free, gated by tsconfig.core.json
 │   │   ├── realtimeRunner.ts       # Node-testable CPU+DAC realtime driver
+│   │   ├── engineState.ts          # per-engine state populator — all six engines wired
+│   │   ├── engineToggles.ts        # Step 4.4 Pattern 3 RAM-write gates
+│   │   ├── scrubTimeline.ts        # pure scrubber math: clip segments to the live ring range + compact-axis mapping
+│   │   ├── dacHistory.ts           # Step 2.3 DAC event ring buffer
+│   │   ├── ramHistory.ts           # periodic CPU+RAM snapshots for scrub time-travel
+│   │   ├── chipFilter.ts           # Try-list engine filter (legend swatches double as toggles)
+│   │   └── runner.ts               # browser-safe: tick(), bootToIdle(), runSoundWithRom()
+│   ├── data/                       # shared pure data contract (headless)
+│   │   └── protocol.ts             # StateSnapshot + worklet messages + the 6 engine-state shapes
+│   ├── web/                        # browser layer — DOM / Web Audio / IndexedDB / fetch
 │   │   ├── worklet.ts              # AudioWorkletProcessor wrapper
 │   │   ├── worklet-globals.d.ts    # AudioWorkletProcessor / sampleRate decls
 │   │   ├── host.ts                 # Main-thread WilliamsSoundHost
-│   │   ├── glossary.ts             # Step 2.2+ glossary loader/lookup
-│   │   ├── dacHistory.ts           # Step 2.3 DAC event ring buffer
-│   │   ├── ramHistory.ts           # NEW: periodic CPU+RAM snapshots for scrub time-travel
-│   │   ├── scrubTimeline.ts        # pure scrubber math: clip segments to the live ring range + compact-axis mapping
-│   │   ├── labelMap.ts             # Step 3.4 label-map loader + PC resolver
-│   │   ├── engineState.ts          # per-engine state populator — all six engines wired
-│   │   ├── engineToggles.ts        # Step 4.4 Pattern 3 RAM-write gates
-│   │   ├── zeroPageMap.ts          # RAM-heatmap cell descriptors loader + engine-aware resolver
-│   │   ├── chipFilter.ts           # Try-list engine filter (legend swatches double as toggles)
-│   │   ├── romStore.ts             # user-uploaded ROMs in IndexedDB + loadRomBytes (single ROM source)
-│   │   ├── romValidate.ts          # tiered upload validation (size + 6802 vectors + SHA-1 allowlist)
+│   │   ├── main.ts                 # HTML harness wiring
 │   │   ├── onboarding.ts           # first-run upload overlay (3 slots, drag-drop, tier feedback)
-│   │   └── main.ts                 # HTML harness wiring
-│   ├── viz/                        # Step 3.1+ visualisation panels
+│   │   ├── romStore.ts             # user-uploaded ROMs in IndexedDB + loadRomBytes (single ROM source)
+│   │   ├── romFetch.ts             # browser ROM loader — thin wrapper over romStore (A/B diff + WAV export) — Step 5.3
+│   │   ├── romValidate.ts          # tiered upload validation (size + 6802 vectors + SHA-1 allowlist)
+│   │   ├── glossary.ts             # Step 2.2+ glossary loader/lookup
+│   │   ├── labelMap.ts             # Step 3.4 label-map loader + PC resolver
+│   │   └── zeroPageMap.ts          # RAM-heatmap cell descriptors loader + engine-aware resolver
+│   ├── viz/                        # Step 3.1+ visualisation panels  (browser)
 │   │   ├── types.ts                # VizPanel interface (update(snapshot))
 │   │   ├── resizeObserver.ts       # NEW: shared ResizeObserver helper for canvases
 │   │   ├── EarPanel.ts             # Dual-trace oscilloscope (raw DAC + LPF) — Step 3.2
@@ -90,8 +94,9 @@ explorer/
 │   │   ├── RAMHeatmap.ts           # Step 6.6 — 16×8 zero-page grid, cold→hot over 1 s decay; tooltip names each cell (engine-aware)
 │   │   ├── ABDiff.ts               # Step 5.3 — two-tape diff with red divergence band
 │   │   └── Genealogy.ts            # Step 5.4 — family chips that auto-fill A/B diff
-│   ├── runner.ts                   # browser-safe: tick(), bootToIdle(), runSoundWithRom()
-│   └── runnerNode.ts               # Node-only: runSound() wraps loadROM (split for Vite)
+│   └── node/                       # Node-only loaders (node:fs) — CLI + tests, never bundled
+│       ├── rom.ts                  # Node ROM loader (reads research/roms/*_sound.bin)
+│       └── runnerNode.ts           # runSound() wraps loadROM (split out so Vite skips node:fs)
 ├── public/                         # NEW — served as static assets by Vite
 │   ├── williams-sound-explorer-worklet.js   # generated by `build:worklet` (esbuild)
 │   ├── roms/*.bin                  # gitignored DEV-ONLY fallback; opt-in `npm run dev:roms` (NOT prepare:public) — dist/ ships zero ROM bytes
@@ -344,7 +349,7 @@ Output:
 Notes:
 - The script wraps everything in an `async main()` because `tsx` defaults to CJS at the project root and CJS doesn't support top-level await.
 - `out/` is gitignored at the project root.
-- The same CPU+PIA core also powers the AudioWorklet — this CLI is the Node sibling of `src/audio/realtimeRunner.ts`.
+- The same CPU+PIA core also powers the AudioWorklet — this CLI is the Node sibling of `src/engine/realtimeRunner.ts`.
 
 ## Real-time pipeline (Phase 2.1)
 
@@ -356,19 +361,19 @@ The browser path replaces the offline `runSound() → renderDacEvents() → appl
        index.html
            │
            ▼
-   src/audio/main.ts ──── DOM event wiring (Init / Fire / Speed / Mute)
+   src/web/main.ts ──── DOM event wiring (Init / Fire / Speed / Mute)
            │
            ▼
-   src/audio/host.ts ──── WilliamsSoundHost: AudioContext + AudioWorkletNode,
+   src/web/host.ts ──── WilliamsSoundHost: AudioContext + AudioWorkletNode,
            │              fetches ROMs, postMessage({type:"load"|"fire"|…})
            │
        (postMessage)
            │
            ▼
-   src/audio/worklet.ts ──── WilliamsSoundProcessor (audio thread)
+   src/web/worklet.ts ──── WilliamsSoundProcessor (audio thread)
            │
            ▼
-   src/audio/realtimeRunner.ts ──── RealtimeRunner: Node-testable core
+   src/engine/realtimeRunner.ts ──── RealtimeRunner: Node-testable core
            │
            ▼
    src/cpu/* + src/board/*  ──── unchanged from Phase 1
@@ -402,7 +407,7 @@ The browser path replaces the offline `runSound() → renderDacEvents() → appl
 
 The `rom` ArrayBuffer is transferred (zero-copy) by including it in the `postMessage` transfer list.
 
-### RealtimeRunner (`src/audio/realtimeRunner.ts`)
+### RealtimeRunner (`src/engine/realtimeRunner.ts`)
 
 The Node-testable core of the worklet. Owns the CPU + board + PIA + LPF state. Key methods:
 
@@ -440,7 +445,7 @@ This makes `Step ▸ / ▸ DAC / ▸ IRQ` genuinely useful: each click shows the
 1. **Per-game sound commands** parsed from the catalogue docs — each entry is `{name, routine, engine, blurb?}`. 128 entries total (Defender 32 + Stargate 32 + Robotron 64). Stargate inherits Defender's data with `$1B` (ORGANT) and `$1C` (ORGANN) overridden per `docs/stargate_sound_catalogue.md`.
 2. **Engine / technique terms** — a hand-curated `TERMS` dict in the generator (sourced from `docs/synthesis_techniques.md` + `docs/sound_hardware_model.md`). Each entry is `{title, what, how, where}`. 41 entries: the six engines + LITEN, RADIO, HYPER, BG, plus hardware (DAC, PIA, IRQ, CA1, 6802, mid-rail, AC-coupling), technique (PWM, ZOH, LPF, phase accumulator, duty cycle, popcount, envelope), engine-state (WVDECA, OSCIL, GPER + the GWAVE fields GECHO / GECNT / GECDEC / GWFRM / GWFRQ / FOFSET / GDFINC / PRDECA, LOPER, HIPER), control-flow (BRA-self, SETUP, RTI), and analysis (FFT). Several (the six engine names, duty cycle, OSCIL, FFT, LOPER, HIPER, and the full GWAVE field set — GPER / GECHO / GECNT / GWFRM / GWFRQ / FOFSET / GDFINC / PRDECA / GECDEC in the GWAVE pane's readout rows) are wired as clickable `term-link`s in the engine-pane titles / param labels and the spectrogram. **Every `[data-term]` element also gets a one-line hover `title`** (the term's "what") via `annotateTermLinks()` in `main.ts`, run after the glossary loads + after each cmdInfo re-render.
 
-The browser harness (`src/audio/glossary.ts` + `main.ts`):
+The browser harness (`src/web/glossary.ts` + `main.ts`):
 - Fetches the JSON on load.
 - **Command info panel** updates live as the user types a hex code: routine + engine + name + 1-line blurb. The engine name (e.g. "LFSR") is rendered as a `term-link` if a `TERMS` entry exists for it — click to reveal the explanation.
 - **Quick-shortcut chips** (`11`, `15`, `1D`, …) with hover tooltips drawn from the same glossary.
@@ -575,7 +580,7 @@ Each toggle gates a single, surgical RAM write so the user can hear what happens
 | **Freeze GWAVE pitch** | Discards writes to `$21` (GPER) | HBDV's pattern-step pitch contour is bypassed |
 | **Skip WVDECA** | Discards writes to `$24..$6B` when PC ∈ [WVDECA, WVDCX) | Wavetable doesn't decay across echoes — the heartbeat keeps full amplitude forever |
 
-**Implementation.**  `src/audio/engineToggles.ts` exports a pure `shouldDiscardWrite(toggles, addr, game, pc)` predicate consulted from `SoundBoard.write()` immediately before each RAM byte goes through.  PIA writes are never gated (DAC + command latch are externally observable hardware behaviour, not engine state).  PC-gating uses the post-advance `cpu.pc`, which always lands 1-2 bytes after the writing instruction — still inside the same routine range.
+**Implementation.**  `src/engine/engineToggles.ts` exports a pure `shouldDiscardWrite(toggles, addr, game, pc)` predicate consulted from `SoundBoard.write()` immediately before each RAM byte goes through.  PIA writes are never gated (DAC + command latch are externally observable hardware behaviour, not engine state).  PC-gating uses the post-advance `cpu.pc`, which always lands 1-2 bytes after the writing instruction — still inside the same routine range.
 
 **Protocol.**  New worklet message `{ type: "engine-toggle", key, value }`; runner method `setToggle(key, value)` writes through to `board.toggles`.  Host method `setEngineToggle(key, value)` posts the message.
 
@@ -629,7 +634,7 @@ Phase 3's closer. Adds a full-width panel below the spectrogram that shows **whi
    ```
    Counts as of this writing: Defender 181 labels, Stargate 179, Robotron 364.
 3. The Python invocation runs inside `prepare:public` so dev/build flows pick it up automatically. Listing files are already covered by `.gitignore`'s `tools/build/`; generated JSON files are added under `explorer/.gitignore` as `public/data/*_labelmap.json`.
-4. `src/audio/labelMap.ts` fetches all three JSON files in parallel, exposes a binary-search `resolve(map, game, pc) → { label, src_line, offset } | null`, and degrades silently to empty arrays when the static assets aren't there (so the explorer remains functional even before `prepare:public` has run once).
+4. `src/web/labelMap.ts` fetches all three JSON files in parallel, exposes a binary-search `resolve(map, game, pc) → { label, src_line, offset } | null`, and degrades silently to empty arrays when the static assets aren't there (so the explorer remains functional even before `prepare:public` has run once).
 
 **Swimlane viz** (`src/viz/StageSwimlane.ts`).
 
@@ -663,7 +668,7 @@ interface VizPanel { update(snapshot: StateSnapshot): void; }
 
 `main.ts` instantiates the three panels once at module load and pushes every received snapshot to all three. The "shared timeline cursor" is implicit — each panel reads `cycles` / `scrubCycle` from the same snapshot, so they advance together. Pausing and dragging the scrubber updates the Ear waveform, the Eye gauge, and the Code cycle counter in lockstep.
 
-**`lastSamples` ring** (`audio/realtimeRunner.ts`):
+**`lastSamples` ring** (`engine/realtimeRunner.ts`):
 - A `Float32Array(outputRingSize ?? 512)` ring tracks the most recent audio output samples written by any fill path (live, paused-with-queue, scrub).
 - `snapshot()` linearises it as a fresh `Float32Array` (oldest → newest) so the Ear panel can plot it directly.
 - ~1 KB per snapshot × 10 Hz = 10 KB/s message bandwidth — negligible.
@@ -717,9 +722,9 @@ The active marker (containing the scrub head) goes pink. Hover shows `$XX  ROUTI
 
 Closes out Phase 2: pause the live CPU and drag through the recorded DAC history at any speed (forward, reverse, or frozen).
 
-**Always-on DAC history.** `src/audio/dacHistory.ts` is a typed-array ring buffer that captures every Port-A write the CPU makes alongside its cycle timestamp and the producing instruction's PC. Both drain sites in `RealtimeRunner` (`fillBlock` and `syncAfterStep`) push into the history before discarding the live events array. Default capacity 50 000 events ≈ 90 s of LITE-density audio or ≈ 5 s of Robotron-density audio. Binary search on cycles (O(log n)) for ZOH `valueAt()` and `pcAt()` lookups. 16 dedicated tests in `tests/dacHistory.test.ts` cover empty, wrap, clamp-to-range, ZOH semantics, and a 10 k push + 10 k lookup stress.
+**Always-on DAC history.** `src/engine/dacHistory.ts` is a typed-array ring buffer that captures every Port-A write the CPU makes alongside its cycle timestamp and the producing instruction's PC. Both drain sites in `RealtimeRunner` (`fillBlock` and `syncAfterStep`) push into the history before discarding the live events array. Default capacity 50 000 events ≈ 90 s of LITE-density audio or ≈ 5 s of Robotron-density audio. Binary search on cycles (O(log n)) for ZOH `valueAt()` and `pcAt()` lookups. 16 dedicated tests in `tests/dacHistory.test.ts` cover empty, wrap, clamp-to-range, ZOH semantics, and a 10 k push + 10 k lookup stress.
 
-**Ring-wrap + the scrubber.** Because the ring evicts oldest-first, on a long/dense recording `recordedRange().oldestCycle` advances *forward* past early segments whose sample data is gone. The segment list (markers) is bounded only by `MAX_SEGMENTS` (count), so it can outlive the ring. `main.ts` therefore clips the segment list to `[oldestCycle, newestCycle]` via `audio/scrubTimeline.ts` (`clipSegmentsToRange`) before it feeds the markers + compact-axis mapping — dropping fully-evicted segments and clamping a straddler's start up to `oldestCycle`. Without this the scrub thumb stranded mid-track at "0.0 ms" with phantom markers to its left (fixed 2026-05; regression-pinned in `tests/scrubTimeline.test.ts`). `scrubTimeline.ts` also holds the now-extracted, unit-tested compact-axis math (`compactDuration` / `cycleToCompactOffset` / `compactOffsetToCycle`) and `scrubReadout()`, which reports the head position in whichever axis the slider uses — sound-only elapsed in **compact** mode, wall-clock in **realtime**. (Reporting wall-clock in compact mode was a second bug: the slider's left edge is the first *sound*, which can be hundreds of ms after `oldestCycle` thanks to skipped pre-roll, so the readout showed e.g. "450.6 ms" at the far left instead of "0.0".)
+**Ring-wrap + the scrubber.** Because the ring evicts oldest-first, on a long/dense recording `recordedRange().oldestCycle` advances *forward* past early segments whose sample data is gone. The segment list (markers) is bounded only by `MAX_SEGMENTS` (count), so it can outlive the ring. `main.ts` therefore clips the segment list to `[oldestCycle, newestCycle]` via `engine/scrubTimeline.ts` (`clipSegmentsToRange`) before it feeds the markers + compact-axis mapping — dropping fully-evicted segments and clamping a straddler's start up to `oldestCycle`. Without this the scrub thumb stranded mid-track at "0.0 ms" with phantom markers to its left (fixed 2026-05; regression-pinned in `tests/scrubTimeline.test.ts`). `scrubTimeline.ts` also holds the now-extracted, unit-tested compact-axis math (`compactDuration` / `cycleToCompactOffset` / `compactOffsetToCycle`) and `scrubReadout()`, which reports the head position in whichever axis the slider uses — sound-only elapsed in **compact** mode, wall-clock in **realtime**. (Reporting wall-clock in compact mode was a second bug: the slider's left edge is the first *sound*, which can be hundreds of ms after `oldestCycle` thanks to skipped pre-roll, so the readout showed e.g. "450.6 ms" at the far left instead of "0.0".)
 
 **What scrub does NOT replay.**  Only the DAC byte stream is recorded; RAM is not.  So during scrub, the byte tape + audio + swimlane + engine-slot *identity* are all correct, but the Code panel's A/B/X registers and the engine slot's *values* stay frozen at the scrub-entry RAM state.  Same caveat applies everywhere live state is shown.  See §"Known caveats and deferred follow-ups" for the planned per-IRQ-tick RAM-snapshot ring fix.
 
@@ -766,9 +771,9 @@ The "decoupled snapshot animation" approach from `docs/explorer_architecture.md`
 
 The app ships no copyrighted ROM bytes — the user supplies the Williams *sound* ROMs, stored locally in IndexedDB.  The pipeline:
 
-- **`audio/romValidate.ts`** (pure) — `validateRom(game, bytes)` returns a tier: `ok` (SHA-1 in `KNOWN_GOOD_SHA1` — the 3 MAME production hashes + the from-source Defender build), `warn` (unknown SHA but right size + the 6802 reset/IRQ vectors at the top of the image point into ROM), or `reject`.  Trims uniform `0x00`/`0xFF` trailing padding to the exact size the `SoundBoard` constructor demands.
-- **`audio/romStore.ts`** — raw-IndexedDB store (`get/put/has/list/delete`) keyed by game, plus `loadRomBytes(game)`: store first, else a gitignored `/roms/<game>_sound.bin` dev fallback (validated + seeded into the store), else throws.  This is the single ROM-bytes source; both browser entry points reroute through it — `WilliamsSoundHost.fetchRom` (host.ts) and `loadRomFromUrl` (board/romFetch.ts).  Each call returns a fresh copy, so transferring the buffer to the worklet never neuters a cached one.
-- **`audio/onboarding.ts`** + the `#onboarding` overlay — three labeled slots (the slot fixes the game; Defender/Stargate are both 2 KB and otherwise indistinguishable), drag-drop / file-pick, per-slot tier feedback **with the SHA-1 shown** (so an unrecognized-but-working dump reveals its hash for the allowlist), Replace/Remove.  Emits a `rom-store-changed` window event.
+- **`web/romValidate.ts`** (pure) — `validateRom(game, bytes)` returns a tier: `ok` (SHA-1 in `KNOWN_GOOD_SHA1` — the 3 MAME production hashes + the from-source Defender build), `warn` (unknown SHA but right size + the 6802 reset/IRQ vectors at the top of the image point into ROM), or `reject`.  Trims uniform `0x00`/`0xFF` trailing padding to the exact size the `SoundBoard` constructor demands.
+- **`web/romStore.ts`** — raw-IndexedDB store (`get/put/has/list/delete`) keyed by game, plus `loadRomBytes(game)`: store first, else a gitignored `/roms/<game>_sound.bin` dev fallback (validated + seeded into the store), else throws.  This is the single ROM-bytes source; both browser entry points reroute through it — `WilliamsSoundHost.fetchRom` (host.ts) and `loadRomFromUrl` (web/romFetch.ts).  Each call returns a fresh copy, so transferring the buffer to the worklet never neuters a cached one.
+- **`web/onboarding.ts`** + the `#onboarding` overlay — three labeled slots (the slot fixes the game; Defender/Stargate are both 2 KB and otherwise indistinguishable), drag-drop / file-pick, per-slot tier feedback **with the SHA-1 shown** (so an unrecognized-but-working dump reveals its hash for the allowlist), Replace/Remove.  Emits a `rom-store-changed` window event.
 - **`main.ts`** — `autoInit` seeds the dev fallback, then shows onboarding if no ROM is stored, else boots the first available game (preferring Defender).  `availableGames` (from `listRoms()`) drives the switcher's 🔒 locked state, guards `switchToGame`, and gates A/B-diff comparisons; the app runs with **as few as one** ROM.  `rom-store-changed` re-evaluates availability and clears the WAV-export + A/B ROM caches.
 
 Tests: `tests/romValidate.test.ts` covers the pure size/vector/tier logic (SHA tiers guarded by `it.runIf(!!crypto.subtle)`, "ok" checked against the real `tools/defender_sound.bin` when present).  `romStore` needs IndexedDB, absent in the Node test env — covered by manual browser E2E.
@@ -786,7 +791,7 @@ npm run dev             # prepare + build:worklet + concurrently(watch:worklet, 
 npm run build           # prepare + build:worklet + vite build → dist/  (no ROM bytes)
 ```
 
-`public/williams-sound-explorer-worklet.js` is gitignored (derived from `src/audio/worklet.ts`, rebuilt each run).  `public/roms/*.bin` is gitignored too but **not** produced by `prepare:public` — the app ships no ROM bytes; users upload their own (stored in IndexedDB, see §User-supplied ROMs).  `npm run dev:roms` is the opt-in local-dev fallback.
+`public/williams-sound-explorer-worklet.js` is gitignored (derived from `src/web/worklet.ts`, rebuilt each run).  `public/roms/*.bin` is gitignored too but **not** produced by `prepare:public` — the app ships no ROM bytes; users upload their own (stored in IndexedDB, see §User-supplied ROMs).  `npm run dev:roms` is the opt-in local-dev fallback.
 
 ### Verifying in the browser
 
@@ -867,7 +872,7 @@ Recorded here so future-me doesn't re-derive them:
 
 8. **Vite pulled forward from Phase 3.1 to Phase 2.1.** The AudioWorklet needs ES-module bundling that `tsx` cannot provide. Vite is now the default dev server; Step 3.1's "add Vite + canvas panels" reduces to "add canvas panels."
 
-9. **AudioWorklet bundling: esbuild, not Vite plugins.** Vite has no first-class `?worklet` query as of v7. We pre-bundle `src/audio/worklet.ts` → `public/williams-sound-explorer-worklet.js` with esbuild (already a transitive dep), which produces a single self-contained ES module the browser can `addModule()` directly.
+9. **AudioWorklet bundling: esbuild, not Vite plugins.** Vite has no first-class `?worklet` query as of v7. We pre-bundle `src/web/worklet.ts` → `public/williams-sound-explorer-worklet.js` with esbuild (already a transitive dep), which produces a single self-contained ES module the browser can `addModule()` directly.
 
 ## What's built in Phase 6
 
@@ -878,10 +883,10 @@ Phases 1–6 are closed.  All six engines live (LFSR / VARI / GWAVE / FNOISE / S
 - **Step 6.5** — No-explanation toggle (Pattern 12): `body.hide-help` CSS class, persisted to localStorage.
 - **Step 6.3** — Annotated explainer cards (Pattern 9): `viz/ExplainerCard.ts` + **63 routine cards covering every catalogued sound**.  Source of truth: [`docs/explainer_cards.md`](../docs/explainer_cards.md) (one `## ROUTINE — Title` section per card).  `tools/build_explainer_cards.py` (auto-run via `prepare:public`) emits per-routine JSON to `explorer/public/data/explainer/`.  Loaded on every user-driven fire via `loadExplainerForCmd()`; runtime `sanitiseRoutine()` matches the tool's sanitisation so e.g. `"SP1 / CABSHK"` and `"PERK$$"` both resolve to single-key files.
 - **Step 6.4** — Listen-then-look quiz (Pattern 10): `viz/QuizPanel.ts` — collapsible right-column section, random sound from a ~96-entry pool (6 canonical engines), MCQ engine-identification, reveal with link into the explainer card.  Closes Pattern 10 — **all 12 UX patterns now delivered**.
-- **Step 6.6** — RAM heatmap: `SoundBoard.lastWriteCycle` + `viz/RAMHeatmap.ts` (16×8 grid, cold→hot over 1 s decay).  Hover tooltip names the cell's function via `tools/build_zeropage.py` → `{game}_zeropage.json` + `audio/zeroPageMap.ts`.  The 128-byte zero page is `ORG LOCRAM`-overlaid by every engine, so a single address (e.g. `$13`) maps to GECHO / LOPER / DECAY / FMAX / STABLE / DUR — `describeCell()` picks the meaning for the active engine and reports the overlap depth.
+- **Step 6.6** — RAM heatmap: `SoundBoard.lastWriteCycle` + `viz/RAMHeatmap.ts` (16×8 grid, cold→hot over 1 s decay).  Hover tooltip names the cell's function via `tools/build_zeropage.py` → `{game}_zeropage.json` + `web/zeroPageMap.ts`.  The 128-byte zero page is `ORG LOCRAM`-overlaid by every engine, so a single address (e.g. `$13`) maps to GECHO / LOPER / DECAY / FMAX / STABLE / DUR — `describeCell()` picks the meaning for the active engine and reports the overlap depth.
 - **Auto-pulse for `$1B` ORGANT** — `fireUserCmd()` wraps Fire / chip clicks; arm-only audit confirmed only ORGANT and ORGANN qualify across all 3 ROMs.
-- **FNOISE engine slot** wired (cannon / thrust / BG1) — `audio/engineState.ts` populator + `viz/FNOISEView.ts`.
-- **Scrub-mode RAM time-travel** — `audio/ramHistory.ts` snapshots every ~512 cycles; engine views, wavetable, and heatmap all animate as the scrub head moves.
+- **FNOISE engine slot** wired (cannon / thrust / BG1) — `engine/engineState.ts` populator + `viz/FNOISEView.ts`.
+- **Scrub-mode RAM time-travel** — `engine/ramHistory.ts` snapshots every ~512 cycles; engine views, wavetable, and heatmap all animate as the scrub head moves.
 - **UI restructure** — two-column sticky layout with draggable splitter, segmented game switcher, per-game chip browser, responsive auto-fit engine grid, ResizeObservers on every canvas.  The **2026-05 UI pass** reworked the live area into a 2×2 grid (Ear · Code / Eye · Swimlane), made the spectrogram full-width with the RAM heatmap (open) directly below, paired Glossary + Explainer two-up, and moved the Log to the bottom of the left column (collapsed).
 - **WAV export** — a `⬇ .wav` button next to Fire re-renders the current command offline in the browser (`runSoundWithRom` → `renderDacEvents` → `applyLpf` → `encodeWav` → `Blob` download), byte-identical to `tools/render_sound.ts`.  Inline in `main.ts`, no new module; works before Init.
 - **MANUAL.md** — 12-tutorial user manual at repo root.
@@ -895,7 +900,7 @@ The CPU has enough opcodes for every sound brought up so far; if a new sound exe
 A single canonical list of "things that work, but with a known limitation".  Anything here is a deliberate trade-off, not a bug.  Most are easy to fix once a consumer needs more — listed roughly by impact.
 
 **Scrub mode time-travels engine-slot values** *(✅ FIXED — Phase 6 follow-on)*
-~~Previously the engine-slot values were frozen at scrub-entry RAM; only the *identity* (which engine was running) was recovered via historical PC.~~  `audio/ramHistory.ts` is a parallel ring to `DacHistory` that captures zero-page RAM (`$00..$7F`) + the X register every ~512 CPU cycles.  Scrub mode binary-searches by cycle and feeds the snapshot to `engineStateForPc()` via a `ramOverride` parameter, so the engine-slot's *values* (LOCNT/HICNT bars, GWAVE wavetable, SCREAM voices, …) animate as the user drags the scrub head.
+~~Previously the engine-slot values were frozen at scrub-entry RAM; only the *identity* (which engine was running) was recovered via historical PC.~~  `engine/ramHistory.ts` is a parallel ring to `DacHistory` that captures zero-page RAM (`$00..$7F`) + the X register every ~512 CPU cycles.  Scrub mode binary-searches by cycle and feeds the snapshot to `engineStateForPc()` via a `ramOverride` parameter, so the engine-slot's *values* (LOCNT/HICNT bars, GWAVE wavetable, SCREAM voices, …) animate as the user drags the scrub head.
 
 Default capacity: 10 000 snapshots × 128 bytes ≈ 1.3 MB → ~5.7 s of capture window at the default interval.  Scrubs older than that fall back to live RAM (slot still populates with current values).
 

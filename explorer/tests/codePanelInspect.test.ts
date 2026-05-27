@@ -14,8 +14,8 @@
  */
 import { describe, expect, it, beforeEach } from "vitest";
 import { CodePanel } from "../src/viz/CodePanel.ts";
-import { emptyLabelMap, type LabelMap } from "../src/audio/labelMap.ts";
-import type { StateSnapshot } from "../src/audio/worklet.ts";
+import { emptyLabelMap, type LabelMap } from "../src/web/labelMap.ts";
+import type { StateSnapshot } from "../src/data/protocol.ts";
 
 /**
  * Minimal HTMLPreElement stand-in.  CodePanel only ever sets `.textContent`

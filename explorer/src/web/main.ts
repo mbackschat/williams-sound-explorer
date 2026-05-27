@@ -10,24 +10,24 @@ import {
   cycleToCompactOffset,
   compactOffsetToCycle,
   scrubReadout,
-} from "./scrubTimeline.ts";
+} from "../engine/scrubTimeline.ts";
 import {
   ENGINE_TOGGLE_KEYS,
   ENGINE_TOGGLE_META,
   SCREAM_VOICE_TOGGLE_KEYS,
   ORGAN_VOICE_TOGGLE_KEYS,
   type EngineToggleKey,
-} from "./engineToggles.ts";
+} from "../engine/engineToggles.ts";
 import type { GameKind } from "../board/soundboard.ts";
 import { loadGlossary, lookup, lookupTerm, summarize, type Glossary } from "./glossary.ts";
 import { loadLabelMaps, emptyLabelMap, type LabelMap } from "./labelMap.ts";
 import { loadZeroPageMaps } from "./zeroPageMap.ts";
-import { allEnabled, chipEngineKey, isChipVisible } from "./chipFilter.ts";
-import { runSoundWithRom } from "../runner.ts";
+import { allEnabled, chipEngineKey, isChipVisible } from "../engine/chipFilter.ts";
+import { runSoundWithRom } from "../engine/runner.ts";
 import { renderDacEvents } from "../synth/DacSampler.ts";
 import { applyLpf } from "../synth/lpf.ts";
 import { encodeWav } from "../synth/wav.ts";
-import { loadRomFromUrl } from "../board/romFetch.ts";
+import { loadRomFromUrl } from "./romFetch.ts";
 import { listRoms, hasRom, loadRomBytes } from "./romStore.ts";
 import { mountOnboarding, showOnboarding, hideOnboarding } from "./onboarding.ts";
 import { EarPanel } from "../viz/EarPanel.ts";

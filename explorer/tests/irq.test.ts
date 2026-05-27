@@ -17,8 +17,8 @@ import { describe, expect, it } from "vitest";
 import { createCPU, reset, step } from "../src/cpu/m6800.ts";
 import { CCR_BITS, ccrHas } from "../src/cpu/flags.ts";
 import { SoundBoard, type GameKind } from "../src/board/soundboard.ts";
-import { loadROM } from "../src/board/rom.ts";
-import { tick } from "../src/runner.ts";
+import { loadROM } from "../src/node/rom.ts";
+import { tick } from "../src/engine/runner.ts";
 
 /** Boot a fresh sound board to the BRA-self idle loop and return the live state. */
 async function bootToIdle(game: GameKind) {

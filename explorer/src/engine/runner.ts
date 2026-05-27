@@ -13,10 +13,10 @@
  *     command via the PIA, run until the IRQ handler returns to idle (or a
  *     timeout).  Returns the recorded `DACEvent[]` stream.
  */
-import { createCPU, reset, step } from "./cpu/m6800.ts";
-import type { CPUState } from "./cpu/types.ts";
-import { SoundBoard, type GameKind } from "./board/soundboard.ts";
-import type { DACEvent } from "./board/pia.ts";
+import { createCPU, reset, step } from "../cpu/m6800.ts";
+import type { CPUState } from "../cpu/types.ts";
+import { SoundBoard, type GameKind } from "../board/soundboard.ts";
+import type { DACEvent } from "../board/pia.ts";
 // NOTE: this module is browser-safe.  The Node-only `runSound()` (which
 // loads ROMs from `node:fs`) lives in `runnerNode.ts`; the browser path
 // uses `runSoundWithRom()` with bytes fetched via `loadRomFromUrl()`.

@@ -9,9 +9,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
 import { SoundBoard } from "../src/board/soundboard.ts";
-import { loadROM } from "../src/board/rom.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 describe("paramOverride — SoundBoard.write()", () => {
   it("override forces the value the CPU tries to write", async () => {

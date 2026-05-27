@@ -16,10 +16,10 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { RealtimeRunner } from "../src/audio/realtimeRunner.ts";
-import { engineStateForPc } from "../src/audio/engineState.ts";
+import { RealtimeRunner } from "../src/engine/realtimeRunner.ts";
+import { engineStateForPc } from "../src/engine/engineState.ts";
 import { SoundBoard } from "../src/board/soundboard.ts";
-import { loadROM } from "../src/board/rom.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 const SAMPLE_RATE = 48000;
 const LITE = 0x11;

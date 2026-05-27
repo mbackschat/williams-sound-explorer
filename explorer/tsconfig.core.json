@@ -1,0 +1,25 @@
+{
+  // Headless-core gate.  These layers must compile with NO browser (DOM /
+  // Web Audio) and NO Node types — they are the portable emulator + synthesis
+  // logic that the Node test suite and the AudioWorklet both depend on.
+  //
+  // `lib` drops "DOM" and `types: []` drops @types/node, so any stray
+  // `document` / `window` / `fetch` / `indexedDB` / `import.meta.env` here
+  // fails to compile.  Because tsc follows imports, importing a `web/` (or
+  // `node/`) module also fails — that module pulls in DOM/Node types the core
+  // project doesn't provide.  This is what keeps the headless boundary from
+  // quietly rotting; `npm run typecheck` runs it alongside the full project.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": [
+    "src/cpu",
+    "src/board/pia.ts",
+    "src/board/soundboard.ts",
+    "src/synth",
+    "src/engine",
+    "src/data"
+  ]
+}

@@ -17,11 +17,11 @@
  * produced, which is exactly when the pedagogical question "which routine
  * is currently running?" is interesting.
  */
-import type { StateSnapshot } from "../audio/worklet.ts";
+import type { StateSnapshot } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
-import type { LabelMap } from "../audio/labelMap.ts";
+import type { LabelMap } from "../web/labelMap.ts";
 import type { GameKind } from "../board/soundboard.ts";
-import { resolve, formatLabel } from "../audio/labelMap.ts";
+import { resolve, formatLabel } from "../web/labelMap.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 
 const BG_COLOR = "#0c0e12";

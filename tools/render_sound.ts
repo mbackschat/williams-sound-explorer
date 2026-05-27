@@ -16,7 +16,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import { runSound } from "../explorer/src/runnerNode.ts";
+import { runSound } from "../explorer/src/node/runnerNode.ts";
 import { renderDacEvents } from "../explorer/src/synth/DacSampler.ts";
 import { applyLpf } from "../explorer/src/synth/lpf.ts";
 import { encodeWav } from "../explorer/src/synth/wav.ts";

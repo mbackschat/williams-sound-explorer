@@ -9,11 +9,11 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-import type { GameKind } from "./soundboard.ts";
+import type { GameKind } from "../board/soundboard.ts";
 
 /** Path to the repo root (the directory that contains `tools/` and `explorer/`). */
 function repoRoot(): string {
-  // This file is at explorer/src/board/rom.ts → three levels above is the repo root.
+  // This file is at explorer/src/node/rom.ts → three levels above is the repo root.
   return resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 }
 

@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
 
 import { createCPU, reset, step } from "../src/cpu/m6800.ts";
 import { SoundBoard, type GameKind } from "../src/board/soundboard.ts";
-import { loadROM } from "../src/board/rom.ts";
+import { loadROM } from "../src/node/rom.ts";
 
 const GAMES: GameKind[] = ["defender", "stargate", "robotron"];
 

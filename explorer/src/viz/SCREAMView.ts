@@ -14,7 +14,7 @@
  *
  * When `snapshot.scream` is undefined the panel shows an idle caption.
  */
-import type { StateSnapshot, ScreamState } from "../audio/worklet.ts";
+import type { StateSnapshot, ScreamState } from "../data/protocol.ts";
 import type { VizPanel } from "./types.ts";
 import { attachResizeRedraw } from "./resizeObserver.ts";
 

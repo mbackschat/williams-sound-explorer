@@ -8,8 +8,8 @@
  * unchanged.  The Node-only `rom.ts` (`node:fs`) stays separate; the worklet
  * receives bytes via the `load` message.
  */
-import type { GameKind } from "./soundboard.ts";
-import { loadRomBytes } from "../audio/romStore.ts";
+import type { GameKind } from "../board/soundboard.ts";
+import { loadRomBytes } from "./romStore.ts";
 
 /**
  * ROM bytes for `game` as a fresh `Uint8Array`, from the user-supplied store.

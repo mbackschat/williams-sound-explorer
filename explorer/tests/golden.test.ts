@@ -12,7 +12,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runSound } from "../src/runnerNode.ts";
+import { runSound } from "../src/node/runnerNode.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_DIR = resolve(HERE, "golden");
