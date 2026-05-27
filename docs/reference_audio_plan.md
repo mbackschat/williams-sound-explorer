@@ -1,6 +1,8 @@
 # Reference Audio Acquisition Plan
 
-> How to obtain reference recordings of every sound effect in Defender, **Defender II** (= Stargate), and Robotron. These recordings serve two purposes: (1) a "ground truth" the user can A/B against the emulator, (2) a regression-test surface so emulator drift is detectable.
+> How to obtain reference recordings of every sound effect in Defender, **Defender II** (= Stargate), and Robotron. These recordings serve two purposes: (1) a "ground truth" to A/B against the emulator, (2) a regression-test surface so emulator drift is detectable.
+>
+> **Status (2026-05) — plan partly executed.** **Path B was built**: the TypeScript 6802 emulator drives every command code and renders a browsable WAV corpus (`out/corpus/`, refreshed by `tools/refresh_corpus.sh`). The other half — acquiring *real-cabinet* recordings and the **reference-comparison panel** (`pedagogical_design.md` "Reference-audio integration") — was **not built and is superseded**: fidelity and regression are guarded by the golden DAC fixtures in `explorer/tests/golden/` plus ear + spectrogram checks, with the assembled-from-source ROMs (verified against MAME) as ground truth. Paths A and C below were never executed; they remain here as a record of the options.
 
 ## Naming note: Defender II = Stargate
 
@@ -80,11 +82,7 @@ Daniel Lopez's [Defender Sound Studio](https://zapspace.net/defender_sound/) alr
 
 ## Recommended approach
 
-**Short term (this week)**: Path A. Capture three MAME sessions. Manually extract a handful of the iconic sounds (heartbeat, lander die, scream, hyperspace, smart bomb). Total: ~15 named WAVs, ~30 min of work.
-
-**Medium term (when the emulator works)**: Path B. Once Phase 1 of the explorer architecture exists, write a 200-line driver around it that loops command codes 0x00..0x3F, dumps WAVs, names them from the catalogue tables. Total: a full 128-WAV reference corpus.
-
-**Stretch**: Path C to validate the Defender subset of Path B against an independent implementation.
+**Path B is the canonical path, and it is the one that was built.** The TypeScript 6802 emulator (Phase 1 of `explorer_architecture.md`) renders an isolated WAV per command code per game into `out/corpus/`; `tools/render_sound.ts` renders any single sound and `tools/refresh_corpus.sh` refreshes the whole set. Path A (MAME capture) and Path C (Defender Sound Studio bulk-render) were not pursued — they stay documented above as alternatives. Real-cabinet reference recordings were never acquired; see the status note at the top for how fidelity is validated instead.
 
 ---
 
@@ -131,15 +129,15 @@ Already identified and unlikely to fully replace Paths A/B:
 
 ---
 
-## What I can do for you right now
+## Implementation status
 
-I can't run MAME or assemble ROMs in this conversation (no MAME binary, no assembler installed, ROMs not present). But I can:
+The pieces this plan describes now exist:
 
-1. **Write the driver script** (Path B) once you've decided on the host language for the explorer (TypeScript? JavaScript? Rust+WASM?) — that decision lives in `docs/explorer_architecture.md`'s "Implementation phases" section.
-2. **Write a MAME capture script** (Path A) — a shell wrapper that runs MAME with the right flags and post-processes the WAV by silence-detection. Useful if you want to start with iconic-sound captures today.
-3. **Catalogue every sound by hex code and human name** for both Defender and Robotron — already done in `docs/defender_sound_catalogue.md` and `docs/robotron_sound_catalogue.md`. Stargate's catalogue isn't written yet; ~250 lines of source-line analysis would produce it.
+- **The assembler** is installed and wired: `tools/vasm6800_oldstyle` (vasm 2.0e) + `tools/williams_preproc.py` assemble all three `.SRC` files via `tools/build_roms.sh` (see `docs/vasm_install_notes.md`).
+- **The Path B driver** is the explorer's TypeScript 6802 emulator. `tools/render_sound.ts` renders any single sound to WAV; `tools/render_all.ts` (wrapped by `tools/refresh_corpus.sh`) renders the full `out/corpus/` set.
+- **Every sound is catalogued by hex code and human name** for all three games: `docs/defender_sound_catalogue.md`, `docs/stargate_sound_catalogue.md`, `docs/robotron_sound_catalogue.md`.
 
-Pick what you want first and I'll execute.
+Path A (MAME capture) and Path C (Defender Sound Studio bulk-render) were never executed; they remain above as documented alternatives.
 
 ---
 

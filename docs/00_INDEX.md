@@ -12,12 +12,12 @@
 4. **Pedagogy** — `pedagogical_design.md` — *how to explain these sounds* — design principles + UX patterns
 5. **Prior art** — `sound_studio_reference.md` — what zapspace's Defender Sound Studio teaches
 6. **Architecture** — `explorer_architecture.md` — the 6-phase plan and snapshot schema
-7. **Implementation** — `explorer_implementation.md` — **what's actually built** (Phases 1–5 done; Phase 6 in progress through Step 6.2)
+7. **Implementation** — `explorer_implementation.md` — **what's actually built** (Phases 1–6 done; all 12 UX patterns shipped)
 8. **Reference audio** — `reference_audio_plan.md` — how to obtain WAVs of every effect
 
 If you need only one document: read `explorer_implementation.md` (it links to everything else as you need it).
 
-> **Naming note:** *Defender II* is the home/console name for arcade **Stargate** (1981). Same sounds. ROM source is `VSNDRM2.SRC`.
+> **Naming note:** *Defender II* is the home/console name for arcade **Stargate** (1981). Same sounds.
 
 ---
 
@@ -36,31 +36,16 @@ If you need only one document: read `explorer_implementation.md` (it links to ev
 | **`pedagogical_design.md`** | **How to explain** the sounds. 5 design principles + 12 concrete UX patterns. Read this before building UI. | ~250 lines |
 | **`sound_studio_reference.md`** | What msarnoff's Defender Sound Studio does, what to copy, what to do differently. | ~150 lines |
 | **`explorer_architecture.md`** | Architecture sketch — CPU emulator vs hand-port, layers, visualization spec, 6-phase plan. | ~200 lines |
-| **`explorer_implementation.md`** | **What's actually built** in `explorer/`: module dependency graph, design decisions, runner API, real-time AudioWorklet pipeline, six engine slots + viz panels, live grid (Ear·Swimlane/Eye·Code), scrubber + RAM time-travel, A/B diff + Genealogy, label-map, parameter overrides, known caveats. Phases 1–5 + Step 6.2 covered. | ~900 lines |
+| **`explorer_implementation.md`** | **What's actually built** in `explorer/`: module dependency graph, design decisions, runner API, real-time AudioWorklet pipeline, six engine slots + viz panels, live grid (Ear·Swimlane/Eye·Code), scrubber + RAM time-travel, A/B diff + Genealogy, label-map, parameter overrides, known caveats. Phases 1–6 covered (all 12 UX patterns). | ~900 lines |
 | **`explainer_cards.md`** | **Source of truth** for Pattern 9 annotated explainer cards.  One `## ROUTINE — Title` section per card; `tools/build_explainer_cards.py` emits per-routine JSON to `explorer/public/data/explainer/`.  All 63 catalogued routines covered. | ~1400 lines |
 | **`reference_audio_plan.md`** | How to acquire WAV recordings of every effect (MAME, assemble-and-drive, prerecorded). | ~150 lines |
 | **`assemble_drive_pipeline.md`** | The chosen audio strategy (Path B) — concrete build plan for assembler + 6800 emulator + driver. ~3-day project. | ~200 lines |
-| **`vasm_install_notes.md`** | Complete record of building vasm 2.0e and bridging the Williams Motorola dialect: 17-item fix table, chronology of how each was discovered, structural findings about each source. All three ROMs build via `tools/build_roms.sh`. | ~150 lines |
+| **`vasm_install_notes.md`** | Low-level build-tooling install + dialect-bridging notes: 17-item fix table, chronology, structural findings. (Build pipeline itself documented privately.) | ~150 lines |
 | **`defender_hardware_and_programming.md`** | (Pre-existing) Deep dive on Defender's **main** CPU + video pipeline. Background reading; sound is the small last section. | ~400 lines |
 
-### `research/` — raw working notes (dense, citation-heavy)
+### `research/` — raw working notes (private)
 
-| File | What's in it |
-|---|---|
-| **`findings_defender_sound.md`** | Line-by-line breakdown of `VSNDRM1.SRC` (Defender). Every SVTAB, VVECT, GFRTAB entry. Sample-rate evidence. RAM overlays. |
-| **`findings_stargate_sound.md`** | Same for `VSNDRM2.SRC` (Stargate / Defender II). Tagged byte-identical regions; full delta vs Defender. |
-| **`findings_robotron_sound.md`** | Same for `VSNDRM3.SRC` (Robotron). All 63 commands. New engines explained. Source-line index. |
-| **`findings_sound_studio.md`** | zapspace.net source code analysis. All UI tabs, all preset records, the JS class shape, `DacSampler` algorithm. |
-| **`findings_hardware_extra.md`** | MAME source citations (`SOUND_CLOCK`, `M6808`, `MC1408`), board variants, filter estimates, priority/preemption rules, JS/6800-emulator situation. |
-
-### `research/williams-soundroms/` — cloned source
-
-| File | Game | Lines |
-|---|---|---|
-| `VSNDRM1.SRC` | **Defender** (Sam Dicker, 1980) | 1162 |
-| `VSNDRM2.SRC` | Stargate (Phred Jarvis, 1981) | 1181 |
-| `VSNDRM3.SRC` | **Robotron 2084** (Jarvis et al, 1982) | 2074 |
-| `VSNDRM4.SRC` | Joust (1982) | 2586 |
+The dense low-level working notes and their file map are kept in the access-restricted `research/` submodule (not part of public checkouts).  Contributors with access: see [`research/00_INDEX_research.md`](../research/00_INDEX_research.md).
 
 ---
 
@@ -117,44 +102,15 @@ If you need only one document: read `explorer_implementation.md` (it links to ev
 | Test coverage summary | `explorer_implementation.md` | "Test surface" |
 | Defender vs Stargate 10-cycle offset finding | `explorer_implementation.md` | "Verified findings" |
 | What's deliberately NOT modelled | `explorer_implementation.md` | "Things deliberately not modelled" |
-| What's not built yet (Phase 2+) | `explorer_implementation.md` | "What's NOT yet built" |
 
-### "I need a source-line citation in the ROM"
+### Source-line citations
 
-| Want | File | Lines |
-|---|---|---|
-| Defender IRQ dispatcher | VSNDRM1.SRC | 909–953 |
-| Stargate IRQ dispatcher | VSNDRM2.SRC | 871–914 |
-| Stargate FIFTH tune (CE3K) | VSNDRM2.SRC | 1025–1033 |
-| Stargate NINTH tune | VSNDRM2.SRC | 1034–1078 |
-| Stargate gutted ORGANN | VSNDRM2.SRC | 540 (single `RTS`) |
-| Stargate ORGAN ×2 gain | VSNDRM2.SRC | 591–596 (extra `ASLA`) |
-| Defender GWAVE engine | VSNDRM1.SRC | 785–862 |
-| Defender LFSR update | VSNDRM1.SRC | 270–277 |
-| Defender FNOISE | VSNDRM1.SRC | 364–426 |
-| Defender SCREAM | VSNDRM1.SRC | 475–515 |
-| Defender ORGAN | VSNDRM1.SRC | 609–638 |
-| Defender SVTAB | VSNDRM1.SRC | 1101–1116 |
-| Defender GFRTAB | VSNDRM1.SRC | 1120–1153 |
-| Defender GWVTAB | VSNDRM1.SRC | 1071–1089 |
-| Robotron IRQ dispatcher | VSNDRM3.SRC | 1705–1757 |
-| Robotron GWAVE engine | VSNDRM3.SRC | 1522–1701 |
-| Robotron SCREAM | VSNDRM3.SRC | 1290–1330 |
-| Robotron ORGAN | VSNDRM3.SRC | 1376–1432 |
-| Robotron CDR (crowd roar) | VSNDRM3.SRC | 916–1135 |
-| Robotron PLAY (3-osc) | VSNDRM3.SRC | 268–360 |
-| Robotron SING | VSNDRM3.SRC | 668–718 |
-| Robotron WHIST + SINTBL | VSNDRM3.SRC | 461–496 |
-| Robotron ORGTAB (tunes) | VSNDRM3.SRC | 1881–1937 |
-| Robotron SVTAB (27 entries) | VSNDRM3.SRC | 1992–2020 |
-
-For exhaustive source-line indices, see the appendix sections of `research/findings_defender_sound.md` and `research/findings_robotron_sound.md`.
+Detailed source-line indices into the sound routines are maintained with the private research notes, out of the public docs — see [`research/00_INDEX_research.md`](../research/00_INDEX_research.md) (contributors with submodule access only).
 
 ### "I need a URL"
 
 | What | Where |
 |---|---|
-| ROM source (4 files) | <https://github.com/historicalsource/williams-soundroms> |
 | Defender Sound Studio (live) | <https://zapspace.net/defender_sound/> |
 | Defender Sound Studio source | <https://zapspace.net/defender_sound/defender.js> |
 | Defender Sound Studio disasm | <https://zapspace.net/defender_sound/defender.asm> |
@@ -171,7 +127,7 @@ For exhaustive source-line indices, see the appendix sections of `research/findi
 
 ## Project state (as of 2026-05-26)
 
-- ✅ Williams sound ROM source cloned to `research/williams-soundroms/` (Defender, Stargate, Robotron, Joust)
+- ✅ Source-level analysis complete for all four games (raw notes kept in the private `research/` submodule)
 - ✅ Hardware model documented
 - ✅ Synthesis primitives catalogued (8 techniques)
 - ✅ Defender sound catalogue complete (31 commands)
@@ -180,11 +136,9 @@ For exhaustive source-line indices, see the appendix sections of `research/findi
 - ✅ Explorer architecture sketched
 - ✅ Pedagogical design principles + UX patterns documented
 - ✅ Reference-audio acquisition strategy documented
-- ✅ Path B (assemble+drive) build plan documented in `assemble_drive_pipeline.md`
-- ✅ Stargate (= Defender II) sound catalogue — VSNDRM2.SRC analysed, found to be 95% identical to Defender
-- ✅ vasm 2.0e installed locally at `tools/vasm6800_oldstyle`
-- ✅ Williams-dialect preprocessor complete: 17 distinct dialect quirks bridged
-- ✅ All three ROMs assemble cleanly via `tools/build_roms.sh`
+- ✅ Path B audio-pipeline build plan documented in `assemble_drive_pipeline.md`
+- ✅ Stargate (= Defender II) sound catalogue — analysed at source level, found to be 95% identical to Defender
+- ✅ Build + verification tooling complete (details in the private research notes)
 - ✅ **Phases 1 + 2 closed** — TypeScript 6800 emulator (~160 opcodes), AudioWorklet pipeline, speed presets + pause + single-step + Step→DAC/Step→IRQ, tape-loop scrubber, glossary, disassembler.  See `explorer_implementation.md` for the module map.
 - ✅ **Phase 3 closed**: Stage swimlane + label map (`tools/build_labelmap.py` + per-game JSON), DAC byte tape with PC→label tooltip, three-panel triangle, oscilloscope + spectrogram (AC-coupled).
 - ✅ **Phase 4 closed**: all six engine slots live (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN), per-engine viz panels (VARI bars, Wavetable, FNOISE, SCREAMView, ORGANView), Pattern 3 freeze toggles, Pattern 8 causal hover trace (spectrogram + byte tape → INSPECT line in Code panel).

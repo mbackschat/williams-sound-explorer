@@ -1,6 +1,8 @@
 # Assemble + Drive Pipeline — Path B for Reference Audio
 
-> Concrete build plan for producing the canonical reference-audio corpus (Defender / Stargate / Robotron, every command code). This is **Path B** from `docs/reference_audio_plan.md` — the path the user picked. Doubles as **Phase 1** of `docs/explorer_architecture.md` (the 6800 emulator the browser explorer also needs).
+> Concrete build plan for producing the canonical reference-audio corpus (Defender / Stargate / Robotron, every command code). This is **Path B** from `docs/reference_audio_plan.md` — the canonical path. Doubles as **Phase 1** of `docs/explorer_architecture.md` (the 6800 emulator the browser explorer also needs).
+>
+> **Status (2026-05) — built and shipped.** The TypeScript 6802 emulator described here exists under `explorer/src/cpu/` + `board/` + `synth/`; `tools/render_sound.ts` / `tools/render_all.ts` render the WAV corpus (`out/corpus/`). The LOC estimates, effort breakdown, and build order below are the *original plan*, kept as a record — for what was actually built, see `docs/explorer_implementation.md`. One deviation from this plan: the locked distribution decision is **zero ROM bytes shipped** (user-supplied), not bundling the assembled bins.
 
 ## Goal
 
@@ -211,7 +213,7 @@ The hex-code → human-name mapping already exists in the catalogue docs. Extrac
     "1A": "scream",
     "1D": "saw"
   },
-  "stargate": { ... },   // pending Stargate catalogue
+  "stargate": { ... },   // see docs/stargate_sound_catalogue.md
   "robotron": { ... }
 }
 ```
@@ -253,7 +255,7 @@ Once Path B is built:
 - ✅ Reference WAV corpus (the immediate goal).
 - ✅ Phase 1 of the explorer is done (the 6800 emulator the browser app needs).
 - ✅ A regression-test harness: any future emulator change can `diff` against the canonical WAVs.
-- ✅ Bytes for a JS/WASM-bundled ROM-binary asset — the browser app can ship the assembled ROMs alongside the emulator instead of requiring users to bring their own.
+- ✅ A dev-only ROM fallback + verification target — the assembled bins back `npm run dev:roms` (gitignored local-dev convenience) and `tools/verify_roms.sh`. (The **locked** decision later went the other way for distribution: the shipped app bundles **zero** ROM bytes; ROMs are user-supplied. See `CLAUDE.md` "Decisions already locked".)
 - ✅ A reference data point for verifying the catalogue docs: any "we think this command does X" claim becomes auditable by listening to the WAV.
 
 ## Cross-references
@@ -261,5 +263,5 @@ Once Path B is built:
 - The audio strategy menu this is "Path B" within: `docs/reference_audio_plan.md`
 - The wider explorer this becomes Phase 1 of: `docs/explorer_architecture.md`
 - The hardware model the emulator implements: `docs/sound_hardware_model.md`
-- The per-sound expectations to validate output against: `docs/defender_sound_catalogue.md`, `docs/robotron_sound_catalogue.md`, (forthcoming) `docs/stargate_sound_catalogue.md`
-- Where the assembled ROM bytes will live: TBD (`build/` if at the repo root; or `src/data/` if bundled with the explorer)
+- The per-sound expectations to validate output against: `docs/defender_sound_catalogue.md`, `docs/robotron_sound_catalogue.md`, `docs/stargate_sound_catalogue.md`
+- Where the assembled ROM bytes live: `tools/*_sound.bin` (built by `tools/build_roms.sh`); the gitignored dev-only `explorer/public/roms/` fallback is populated on demand by `npm run dev:roms`. They are **never** bundled into the shipped app (locked decision: zero ROM bytes).

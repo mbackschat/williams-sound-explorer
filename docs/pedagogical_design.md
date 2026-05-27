@@ -167,9 +167,9 @@ Hover anywhere on the spectrum → highlight in the code panel the section that 
 
 Implementation: every snapshot stores `{cpu_cycle, pc, dac_byte, ...}`. Hovering computes the nearest snapshot and projects its `pc` into the source.
 
-### Pattern 9: Annotated explainer cards  *(infrastructure shipped — Step 6.3)*
+### Pattern 9: Annotated explainer cards  *(shipped — Step 6.3)*
 
-Each sound has a curated explanation panel. Written for a reader who knows what sine waves are but not 6800 assembly. Six canonical cards have landed so far (LITE / HBDV / SAW / CANNON / SCREAM / ORGANT — one per engine); the long tail of ~30 more cards is content-only, ~20 minutes per card.  Source format: routine-keyed JSON at `explorer/public/data/explainer/{ROUTINE}.json` with fields `tldr / how / watch / code / see`.  Tiny built-in markdown subset (`` `code` ``, `**bold**`, `[text](url)`) for inline formatting.  `viz/ExplainerCard.ts` loads the card on every user-driven fire via `loadExplainerForCmd(cmd)`.
+Each sound has a curated explanation panel. Written for a reader who knows what sine waves are but not 6800 assembly. **All 63 catalogued routines have cards** — source of truth is `docs/explainer_cards.md` (one `## ROUTINE — Title` section each), and `tools/build_explainer_cards.py` emits the per-routine JSON.  Source format: routine-keyed JSON at `explorer/public/data/explainer/{ROUTINE}.json` with fields `tldr / how / watch / code / see`.  Tiny built-in markdown subset (`` `code` ``, `**bold**`, `[text](url)`) for inline formatting.  `viz/ExplainerCard.ts` loads the card on every user-driven fire via `loadExplainerForCmd(cmd)`.
 
 Example for SCREAM:
 
@@ -221,13 +221,11 @@ Default to **Hobbyist**. Don't force tiers.
 
 ---
 
-## Reference-audio integration
+## Reference-audio integration *(considered; not built — superseded)*
 
-Every sound should ship with a captured reference WAV ("how it actually sounded on the cabinet"). Show it as a fourth panel: **ear · eye · code · reference**. The reference is just the audio output, played from a recording. The user compares ear (live emulator output) vs reference (real cabinet capture) and hears whether the emulator is faithful.
+An early idea was to ship a captured reference WAV per sound and show it as a fourth panel (*ear · eye · code · reference*) so the user could A/B the live emulator against a real-cabinet recording. **This was never built**, and the approach is superseded: the explorer treats the assembled-from-source ROMs as ground truth (byte-identical to MAME's production dumps for Stargate + Robotron; a documented 2-byte source-revision delta for Defender — see `vasm_install_notes.md`), and fidelity/regression are guarded by the golden DAC fixtures in `explorer/tests/golden/` plus ear + spectrogram checks. No real-cabinet recordings ship in the repo. The shipped panels are *ear · code · eye · swimlane*, not four-with-reference.
 
-This is also a regression-test surface: any change to the emulator can be diffed against the reference.
-
-See `docs/reference_audio_plan.md` for the acquisition strategy.
+`docs/reference_audio_plan.md` records the (unexecuted) reference-audio acquisition options.
 
 ---
 
