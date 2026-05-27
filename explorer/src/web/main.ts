@@ -46,78 +46,9 @@ import { QuizPanel } from "../viz/QuizPanel.ts";
 import { ABDiff, type ABDiffPick } from "../viz/ABDiff.ts";
 import { loadGenealogy, renderGenealogy } from "../viz/Genealogy.ts";
 import type { VizPanel } from "../viz/types.ts";
-
-const $ = <T extends HTMLElement>(id: string): T => {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`#${id} not in DOM`);
-  return el as T;
-};
-
-const els = {
-  pageLayout: $<HTMLDivElement>("pageLayout"),
-  colSplitter: $<HTMLDivElement>("colSplitter"),
-  gameSwitcher: $<HTMLDivElement>("gameSwitcher"),
-  cmd: $<HTMLInputElement>("cmd"),
-  fire: $<HTMLButtonElement>("fire"),
-  firePaused: $<HTMLButtonElement>("firePaused"),
-  pause: $<HTMLButtonElement>("pause"),
-  step: $<HTMLButtonElement>("step"),
-  stepDac: $<HTMLButtonElement>("stepDac"),
-  stepIrq: $<HTMLButtonElement>("stepIrq"),
-  pauseState: $<HTMLSpanElement>("pauseState"),
-  speedReadout: $<HTMLSpanElement>("speedReadout"),
-  volume: $<HTMLInputElement>("volume"),
-  volumeReadout: $<HTMLSpanElement>("volumeReadout"),
-  volumeMeterRms: $<HTMLDivElement>("volumeMeterRms"),
-  volumeMeterPeak: $<HTMLDivElement>("volumeMeterPeak"),
-  meterReadout: $<HTMLSpanElement>("meterReadout"),
-  earCanvas: $<HTMLCanvasElement>("earCanvas"),
-  eyeCanvas: $<HTMLCanvasElement>("eyeCanvas"),
-  codePanel: $<HTMLPreElement>("codePanel"),
-  spectroCanvas: $<HTMLCanvasElement>("spectroCanvas"),
-  swimlaneCanvas: $<HTMLCanvasElement>("swimlaneCanvas"),
-  variCanvas: $<HTMLCanvasElement>("variCanvas"),
-  wavetableCanvas: $<HTMLCanvasElement>("wavetableCanvas"),
-  screamCanvas: $<HTMLCanvasElement>("screamCanvas"),
-  organCanvas: $<HTMLCanvasElement>("organCanvas"),
-  fnoiseCanvas: $<HTMLCanvasElement>("fnoiseCanvas"),
-  ramHeatmapCanvas: $<HTMLCanvasElement>("ramHeatmapCanvas"),
-  explainerCard: $<HTMLDivElement>("explainerCard"),
-  quizPanel: $<HTMLDivElement>("quizPanel"),
-  engineStack: $<HTMLDivElement>("engineStack"),
-  engineToggleRow: $<HTMLDivElement>("engineToggleRow"),
-  screamBuildUp: $<HTMLButtonElement>("screamBuildUp"),
-  screamTearDown: $<HTMLButtonElement>("screamTearDown"),
-  screamSeqStop: $<HTMLButtonElement>("screamSeqStop"),
-  organBuildUp: $<HTMLButtonElement>("organBuildUp"),
-  organTearDown: $<HTMLButtonElement>("organTearDown"),
-  organSeqStop: $<HTMLButtonElement>("organSeqStop"),
-  hideHelpToggle: $<HTMLButtonElement>("hideHelpToggle"),
-  abGameA: $<HTMLSelectElement>("abGameA"),
-  abGameB: $<HTMLSelectElement>("abGameB"),
-  abCmdA: $<HTMLInputElement>("abCmdA"),
-  abCmdB: $<HTMLInputElement>("abCmdB"),
-  abRun: $<HTMLButtonElement>("abRun"),
-  abSummary: $<HTMLSpanElement>("abSummary"),
-  abCanvas: $<HTMLCanvasElement>("abCanvas"),
-  genealogyList: $<HTMLDivElement>("genealogyList"),
-  cmdInfo: $<HTMLDivElement>("cmdInfo"),
-  cmdChips: $<HTMLDivElement>("cmdChips"),
-  chipLegend: $<HTMLDivElement>("chipLegend"),
-  exportWav: $<HTMLButtonElement>("exportWav"),
-  termList: $<HTMLDivElement>("termList"),
-  termPopover: $<HTMLDivElement>("termPopover"),
-  scrubStart: $<HTMLButtonElement>("scrubStart"),
-  scrubLive: $<HTMLButtonElement>("scrubLive"),
-  scrubReset: $<HTMLButtonElement>("scrubReset"),
-  scrubMode: $<HTMLButtonElement>("scrubMode"),
-  scrubPos: $<HTMLInputElement>("scrubPos"),
-  scrubReadout: $<HTMLSpanElement>("scrubReadout"),
-  scrubLoop: $<HTMLButtonElement>("scrubLoop"),
-  scrubPlay: $<HTMLButtonElement>("scrubPlay"),
-  scrubMarkers: $<HTMLDivElement>("scrubMarkers"),
-  log: $<HTMLDivElement>("log"),
-};
+import { els } from "./els.ts";
+import { dbToPct, meterTrack, escapeHtml } from "./format.ts";
+import { initLayout } from "./ui/layout.ts";
 
 let host: WilliamsSoundHost | undefined;
 let paused = false;
@@ -470,10 +401,6 @@ document.addEventListener("click", (e) => {
     if (key) showTerm(key);
   }
 });
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-}
 
 /**
  * Rebuild the "Try:" chip browser from the active game's glossary.  One
@@ -975,30 +902,10 @@ function renderState(s: StateSnapshot): void {
 let meterRmsDb = -Infinity;
 let meterPeakDb = -Infinity;
 
-const METER_DB_FLOOR = -60;
 /** RMS release rate — dB drop per snapshot (~100 ms apart). */
 const METER_RMS_RELEASE = 3;
 /** Peak release rate — much slower, so transients hold long enough to read. */
 const METER_PEAK_RELEASE = 0.75;
-
-function dbToPct(db: number): number {
-  if (!isFinite(db)) return 0;
-  const t = (db - METER_DB_FLOOR) / -METER_DB_FLOOR;
-  return Math.max(0, Math.min(100, t * 100));
-}
-
-/** Fast-attack, slow-release filter that never drops below `signalDb`. */
-function meterTrack(currentDb: number, signalDb: number, releaseDb: number): number {
-  if (!isFinite(signalDb)) {
-    // Signal is silent: decay the meter toward the floor.
-    if (!isFinite(currentDb)) return -Infinity;
-    const next = currentDb - releaseDb;
-    return next <= METER_DB_FLOOR ? -Infinity : next;
-  }
-  if (!isFinite(currentDb) || signalDb >= currentDb) return signalDb;
-  // Decay, but clamp so we never read lower than the actual signal level.
-  return Math.max(signalDb, currentDb - releaseDb);
-}
 
 function updateVolumeMeter(s: StateSnapshot): void {
   const samples = s.lastSamples;
@@ -1831,115 +1738,6 @@ loadGenealogy().then((g) => {
   }
 });
 
-// Pattern 12 / Step 6.5 — No-explanation toggle.  Adds/removes a body class
-// that CSS uses to hide help paragraphs, term-link styling, the cmdInfo
-// blurb, the glossary, and the like.  Persisted to localStorage so the
-// "show me the data only" preference survives page reloads.
-(() => {
-  const STORAGE_KEY = "williams-sound-explorer.hide-help";
-  const apply = (hide: boolean): void => {
-    document.body.classList.toggle("hide-help", hide);
-    els.hideHelpToggle.setAttribute("aria-pressed", hide ? "true" : "false");
-    els.hideHelpToggle.textContent = hide ? "Show help" : "Hide help";
-  };
-  apply(localStorage.getItem(STORAGE_KEY) === "1");
-  els.hideHelpToggle.addEventListener("click", () => {
-    const next = !document.body.classList.contains("hide-help");
-    apply(next);
-    localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-    log(next
-      ? "Hide help: on. Predict the algorithm from the bars + tape + spectrogram."
-      : "Hide help: off. Explanatory text restored.");
-  });
-})();
-
-// Column splitter — drag the divider between the left and right columns to
-// resize the page's two-column layout.  The split fraction is persisted in
-// localStorage; double-click resets to 50/50.  At <1100 px the splitter
-// hides (CSS) and this code is a no-op until the user resizes wider.
-(() => {
-  const STORAGE_KEY = "williams-sound-explorer.col-split";
-  const DEFAULT_FRACTION = 0.5;
-  const MIN_FRACTION = 0.22;
-  const MAX_FRACTION = 0.78;
-
-  const applyFraction = (fraction: number): void => {
-    const clamped = Math.max(MIN_FRACTION, Math.min(MAX_FRACTION, fraction));
-    // Use fr-units so the CSS minmax(360px, …) clamps still apply at the
-    // far ends of the drag range.  Left = clamped fr, right = (1 - clamped) fr.
-    els.pageLayout.style.setProperty(
-      "--left-width",
-      `${(clamped * 100).toFixed(2)}fr`,
-    );
-    // Mirror the right side too so the grid template re-evaluates with the
-    // new ratio — the third column's minmax(360px, 1fr) becomes
-    // minmax(360px, (1 - clamped)fr).
-    els.pageLayout.style.setProperty(
-      "--right-width",
-      `${((1 - clamped) * 100).toFixed(2)}fr`,
-    );
-  };
-
-  // Restore saved fraction or fall back to 50/50.
-  const saved = Number.parseFloat(localStorage.getItem(STORAGE_KEY) ?? "");
-  applyFraction(Number.isFinite(saved) ? saved : DEFAULT_FRACTION);
-
-  let dragging = false;
-  let activePointerId: number | null = null;
-
-  els.colSplitter.addEventListener("pointerdown", (e: PointerEvent) => {
-    dragging = true;
-    activePointerId = e.pointerId;
-    els.colSplitter.classList.add("dragging");
-    els.colSplitter.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-
-  els.colSplitter.addEventListener("pointermove", (e: PointerEvent) => {
-    if (!dragging || e.pointerId !== activePointerId) return;
-    const rect = els.pageLayout.getBoundingClientRect();
-    const fraction = (e.clientX - rect.left) / rect.width;
-    applyFraction(fraction);
-  });
-
-  const endDrag = (e: PointerEvent): void => {
-    if (!dragging || e.pointerId !== activePointerId) return;
-    dragging = false;
-    activePointerId = null;
-    els.colSplitter.classList.remove("dragging");
-    try { els.colSplitter.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-    // Persist the current fraction.  Re-parse from the CSS variable so a
-    // mid-drag clamp at MIN/MAX is what gets saved (not the raw mouse pos).
-    const raw = els.pageLayout.style.getPropertyValue("--left-width");
-    const m = /([\d.]+)fr/.exec(raw);
-    if (m) localStorage.setItem(STORAGE_KEY, (Number.parseFloat(m[1]!) / 100).toFixed(4));
-  };
-  els.colSplitter.addEventListener("pointerup", endDrag);
-  els.colSplitter.addEventListener("pointercancel", endDrag);
-
-  // Double-click anywhere on the splitter resets to 50/50.
-  els.colSplitter.addEventListener("dblclick", () => {
-    applyFraction(DEFAULT_FRACTION);
-    localStorage.setItem(STORAGE_KEY, String(DEFAULT_FRACTION));
-  });
-
-  // Keyboard accessibility — arrow keys when the splitter has focus.
-  els.colSplitter.addEventListener("keydown", (e: KeyboardEvent) => {
-    const raw = els.pageLayout.style.getPropertyValue("--left-width");
-    const m = /([\d.]+)fr/.exec(raw);
-    const current = m ? Number.parseFloat(m[1]!) / 100 : DEFAULT_FRACTION;
-    const step = e.shiftKey ? 0.05 : 0.02;
-    let next = current;
-    if (e.key === "ArrowLeft")  next = current - step;
-    else if (e.key === "ArrowRight") next = current + step;
-    else if (e.key === "Home")  next = MIN_FRACTION;
-    else if (e.key === "End")   next = MAX_FRACTION;
-    else if (e.key === " " || e.key === "Enter") next = DEFAULT_FRACTION;
-    else return;
-    e.preventDefault();
-    applyFraction(next);
-    localStorage.setItem(STORAGE_KEY, next.toFixed(4));
-  });
-})();
+initLayout(log);
 
 log("Loaded.");
