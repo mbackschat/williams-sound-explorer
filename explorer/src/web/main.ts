@@ -1029,6 +1029,15 @@ els.scrubPlay.addEventListener("click", () => {
 });
 
 els.cmd.addEventListener("input", () => glossaryUi.refreshCmdInfo());
+// Enter in the cmd box fires the typed command (same as clicking Fire).
+els.cmd.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  if (!host) return;
+  const cmd = parseCmd();
+  if (cmd === undefined) return;
+  fireUserCmd(cmd);
+});
 // Game-switch refresh of glossary tooltips is handled in switchToGame()'s
 // `finally` block, since the new game-switcher buttons bypass <select>.
 
