@@ -11,13 +11,6 @@ import {
   compactOffsetToCycle,
   scrubReadout,
 } from "../engine/scrubTimeline.ts";
-import {
-  ENGINE_TOGGLE_KEYS,
-  ENGINE_TOGGLE_META,
-  SCREAM_VOICE_TOGGLE_KEYS,
-  ORGAN_VOICE_TOGGLE_KEYS,
-  type EngineToggleKey,
-} from "../engine/engineToggles.ts";
 import type { GameKind } from "../board/soundboard.ts";
 import { loadGlossary, lookup, lookupTerm, summarize, type Glossary } from "./glossary.ts";
 import { loadLabelMaps, emptyLabelMap, type LabelMap } from "./labelMap.ts";
@@ -49,6 +42,8 @@ import { dbToPct, meterTrack, escapeHtml } from "./format.ts";
 import { initLayout } from "./ui/layout.ts";
 import { initWavExport } from "./ui/wavExport.ts";
 import { initABDiff } from "./ui/abdiff.ts";
+import { initParamSliders } from "./ui/paramSliders.ts";
+import { initEngineToggles } from "./ui/engineToggles.ts";
 import type { AppContext } from "./appContext.ts";
 
 let host: WilliamsSoundHost | undefined;
@@ -779,7 +774,7 @@ function renderState(s: StateSnapshot): void {
   if (s.recorded.size === 0 && pcHistory.cycles.length > 0) clearPcHistory();
   mergeDacEventsIntoPcHistory(s.recentDacEvents);
   for (const p of panels) p.update(s);
-  syncParamRowsFromSnapshot(s);
+  paramSliders.syncFromSnapshot(s);
   // Engine view single-panel dispatch — show only the active engine's pane.
   // Priority order matches the at-most-one-slot-populated guarantee from
   // engineStateForPc().  An empty data-active falls back to the idle caption.
@@ -985,11 +980,11 @@ async function initialise(game: GameKind): Promise<void> {
     // Browser refused — caught by the first-user-gesture handler below.
   }
   setReady(true);
-  // Replay any toggles the user clicked before Init — buildEngineToggleRow
-  // stashes them in toggleState since host.setEngineToggle() throws when
-  // the worklet isn't yet ready.
-  applyToggleStateToHost();
-  replayParamOverrides();
+  // Replay any toggles / forced params the user set before Init — the
+  // controllers stash them locally since the host rejects messages until
+  // the worklet is ready.
+  engineToggles.applyToggleStateToHost();
+  paramSliders.replayOverrides();
   host.requestSnapshot();
   startPolling();
   log(`Ready. AudioContext rate = ${48000} Hz.`, "ok");
@@ -1028,16 +1023,7 @@ async function switchToGame(game: GameKind): Promise<void> {
     refreshChipTooltips();
     // Replay any forced parameter overrides at the new game's addresses
     // (per-game zero-page layouts differ — Robotron's LOPER is $12, not $13).
-    replayParamOverrides();
-  }
-}
-
-function replayParamOverrides(): void {
-  if (!host) return;
-  for (const r of paramRows) {
-    if (r.force.checked) {
-      host.setParamOverride(addrForRow(r.row), Number.parseInt(r.slider.value, 10));
-    }
+    paramSliders.replayOverrides();
   }
 }
 
@@ -1355,296 +1341,17 @@ loadZeroPageMaps().then((m) => {
   ramHeatmap.setZeroPageMap(m, currentGame);
 });
 
-// Build the Pattern 3 engine-toggle row.  Each checkbox forwards to the host
-// (which only accepts toggle messages after init); we cache state locally so
-// the checkbox UI reflects what the user clicked even before the host exists,
-// and we replay on init.
-const toggleState: Partial<Record<EngineToggleKey, boolean>> = {};
-
-/**
- * Pattern-4 voice-mute setup, parameterised per engine (SCREAM 4 voices /
- * ORGAN 8 OSCIL bits).  Each engine's sequencer shares the same UI shape:
- * checkboxes per voice + Build-up/Tear-down/Stop buttons.  Build-up fires
- * the sound with all voices muted and unmutes one at a time; Tear-down
- * fires with all on and mutes one at a time; Stop cancels and restores.
- */
-interface VoiceMuteEngine {
-  /** Engine identifier — used in log lines + .running-class tracking. */
-  name: string;
-  /** Toggle keys in voice-index order. */
-  keys: readonly EngineToggleKey[];
-  /** Checkbox elements indexed by voice. */
-  checkboxes: HTMLInputElement[];
-  /** Build-up / Tear-down / Stop button references. */
-  buildUp: HTMLButtonElement;
-  tearDown: HTMLButtonElement;
-  stop: HTMLButtonElement;
-  /** Selector to find the checkboxes in the DOM. */
-  cbSelector: string;
-  /** Data-attribute name on each checkbox carrying the voice index. */
-  cbDatasetKey: string;
-  /** Fires the engine's sound (host already verified non-null). */
-  fire: () => Promise<void>;
-}
-
-function setVoiceMute(engine: VoiceMuteEngine, voice: number, value: boolean): void {
-  const key = engine.keys[voice];
-  if (!key) return;
-  toggleState[key] = value;
-  const cb = engine.checkboxes[voice];
-  if (cb) {
-    cb.checked = value;
-    (cb.closest(".voice-toggle") as HTMLElement | null)?.classList.toggle("active", value);
-  }
-  try { host?.setEngineToggle(key, value); } catch { /* not yet ready */ }
-}
-
-function buildEngineToggleRow(): void {
-  // SCREAM + ORGAN voice mutes get their own UI inside their engine pane.
-  const voiceMuteSet: Set<EngineToggleKey> = new Set([
-    ...SCREAM_VOICE_TOGGLE_KEYS,
-    ...ORGAN_VOICE_TOGGLE_KEYS,
-  ]);
-  for (const key of ENGINE_TOGGLE_KEYS) {
-    if (voiceMuteSet.has(key)) continue;
-    const meta = ENGINE_TOGGLE_META[key];
-    const label = document.createElement("label");
-    label.className = "engine-toggle";
-    label.title = meta.tooltip;
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.dataset.toggleKey = key;
-    cb.addEventListener("change", () => {
-      toggleState[key] = cb.checked;
-      label.classList.toggle("active", cb.checked);
-      try {
-        host?.setEngineToggle(key, cb.checked);
-      } catch {
-        // Host not yet initialised — state is stashed in toggleState and
-        // replayed by applyToggleStateToHost() after Init.
-      }
-    });
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(meta.label));
-    els.engineToggleRow.appendChild(label);
-  }
-}
-
-function buildVoiceUi(engine: VoiceMuteEngine): void {
-  engine.checkboxes.length = 0;
-  const cbs = Array.from(document.querySelectorAll<HTMLInputElement>(engine.cbSelector));
-  for (const cb of cbs) {
-    const voice = Number.parseInt(cb.dataset[engine.cbDatasetKey] ?? "-1", 10);
-    if (voice < 0 || voice >= engine.keys.length) continue;
-    engine.checkboxes[voice] = cb;
-    // Tooltip from the shared meta so the static checkboxes explain themselves
-    // (and never drift from the freeze-row text).  Set on the wrapping label
-    // so hovering the "v0" / "b0" caption shows it too.
-    const tip = ENGINE_TOGGLE_META[engine.keys[voice]!]!.tooltip;
-    (cb.closest<HTMLElement>(".voice-toggle") ?? cb).title = tip;
-    cb.title = tip;
-    cb.addEventListener("change", () => setVoiceMute(engine, voice, cb.checked));
-  }
-}
-function applyToggleStateToHost(): void {
-  if (!host) return;
-  for (const key of ENGINE_TOGGLE_KEYS) {
-    const v = toggleState[key];
-    if (v !== undefined) host.setEngineToggle(key, v);
-  }
-}
-buildEngineToggleRow();
-
-const SCREAM_ENGINE: VoiceMuteEngine = {
-  name: "SCREAM",
-  keys: SCREAM_VOICE_TOGGLE_KEYS,
-  checkboxes: [],
-  buildUp: els.screamBuildUp,
-  tearDown: els.screamTearDown,
-  stop: els.screamSeqStop,
-  cbSelector: ".voice-cb",
-  cbDatasetKey: "voice",
-  fire: async () => { await fireSequence([0x1A]); },
-};
-const ORGAN_ENGINE: VoiceMuteEngine = {
-  name: "ORGAN",
-  keys: ORGAN_VOICE_TOGGLE_KEYS,
-  checkboxes: [],
-  buildUp: els.organBuildUp,
-  tearDown: els.organTearDown,
-  stop: els.organSeqStop,
-  cbSelector: ".organ-voice-cb",
-  cbDatasetKey: "bit",
-  // ORGAN's "play me now" sequence is $1B (arm ORGFLG) + $02 (tune 2 —
-  // NINTH/Beethoven on Stargate & Robotron, TACCATA on Defender; both exercise
-  // the OSCIL voices the mutes act on).  ORGNT1 runs inside the IRQ that
-  // services the second pulse — see MANUAL.md "Why $1B is special".
-  fire: async () => { await fireSequence([0x1B, 0x02]); },
-};
-buildVoiceUi(SCREAM_ENGINE);
-buildVoiceUi(ORGAN_ENGINE);
-
-// Pattern 4 / Step 6.1 — Build-up / Tear-down sequencer.  Generic over
-// engine config; only one sequence can be in flight at a time (subsequent
-// clicks cancel the running one).
-const VOICE_SEQ_STEP_MS = 700;
-let voiceSeqTimer: number | undefined;
-let voiceSeqRunning = false;
-let voiceSeqEngine: VoiceMuteEngine | undefined;
-
-function setSeqRunning(engine: VoiceMuteEngine | undefined, activeBtn?: HTMLButtonElement): void {
-  voiceSeqRunning = engine !== undefined;
-  voiceSeqEngine = engine;
-  for (const e of [SCREAM_ENGINE, ORGAN_ENGINE]) {
-    e.buildUp.classList.toggle("running", voiceSeqRunning && activeBtn === e.buildUp);
-    e.tearDown.classList.toggle("running", voiceSeqRunning && activeBtn === e.tearDown);
-    e.stop.disabled = !(voiceSeqRunning && voiceSeqEngine === e);
-  }
-}
-
-function cancelVoiceSequence(): void {
-  if (voiceSeqTimer !== undefined) {
-    window.clearTimeout(voiceSeqTimer);
-    voiceSeqTimer = undefined;
-  }
-  setSeqRunning(undefined);
-}
-
-function setAllMuted(engine: VoiceMuteEngine, muted: boolean): void {
-  for (let v = 0; v < engine.keys.length; v++) setVoiceMute(engine, v, muted);
-}
-
-async function runVoiceSequence(engine: VoiceMuteEngine, direction: "build" | "tear"): Promise<void> {
-  cancelVoiceSequence();
-  // SCREAM + ORGAN play on all three games, so the sequencer runs on whichever
-  // game is currently loaded — no forced switch to Robotron.
-  if (!host) return;
-  setAllMuted(engine, direction === "build");
-  // Brief settle for the toggle messages to land before the fire.
-  await new Promise((r) => setTimeout(r, 50));
-  await engine.fire();
-  log(`${direction === "build" ? "Build-up" : "Tear-down"} sequence — ${engine.name} firing…`);
-  setSeqRunning(engine, direction === "build" ? engine.buildUp : engine.tearDown);
-  const n = engine.keys.length;
-  const order: number[] = [];
-  for (let i = 0; i < n; i++) order.push(direction === "build" ? i : n - 1 - i);
-  let step = 0;
-  const advance = (): void => {
-    if (!voiceSeqRunning || voiceSeqEngine !== engine) return;
-    if (step >= order.length) {
-      log(`${direction === "build" ? "Build-up" : "Tear-down"} sequence complete.`);
-      setSeqRunning(undefined);
-      return;
-    }
-    const v = order[step]!;
-    setVoiceMute(engine, v, direction === "tear");
-    log(`${direction === "build" ? "+" : "−"}${engine.name === "ORGAN" ? "b" : "v"}${v}`);
-    step++;
-    voiceSeqTimer = window.setTimeout(advance, VOICE_SEQ_STEP_MS);
-  };
-  voiceSeqTimer = window.setTimeout(advance, VOICE_SEQ_STEP_MS);
-}
-
-function wireEngineButtons(engine: VoiceMuteEngine): void {
-  engine.buildUp.addEventListener("click", () => { void runVoiceSequence(engine, "build"); });
-  engine.tearDown.addEventListener("click", () => { void runVoiceSequence(engine, "tear"); });
-  engine.stop.addEventListener("click", () => {
-    cancelVoiceSequence();
-    setAllMuted(engine, false);
-    log(`${engine.name} sequence cancelled; all voices restored.`);
-  });
-}
-wireEngineButtons(SCREAM_ENGINE);
-wireEngineButtons(ORGAN_ENGINE);
-
-// Pattern 5 / Step 6.2 — parameter sliders.  Each `.param-row` carries
-// per-game address attributes (data-addr-{game}); on game switch the
-// addresses re-resolve and the force-checkbox state is replayed against
-// the new game's cells.  Sliders track live RAM when force is off; when
-// force flips on, the slider's value is pushed as a paramOverride and the
-// row turns yellow.
-type VariKey = "loper" | "hiper" | "locnt" | "hicnt" | "lodt" | "hidt" | "lomod" | "hien";
-interface ParamRow {
-  row: HTMLElement;
-  slider: HTMLInputElement;
-  value: HTMLElement;
-  force: HTMLInputElement;
-  /** Engine slot field this row mirrors when force is off; undefined = no live mirror. */
-  ramKey: VariKey | undefined;
-}
-const VARI_RAM_KEYS: Record<string, VariKey> = {
-  LOPER: "loper",
-  HIPER: "hiper",
-};
-const paramRows: ParamRow[] = [];
-
-function addrForRow(row: HTMLElement): number {
-  const g = currentGame();
-  const raw = row.dataset[`addr${g[0]!.toUpperCase()}${g.slice(1)}` as `addr${string}`]
-    ?? row.dataset.addrDefender ?? "0";
-  return Number.parseInt(raw, 16);
-}
-
-function setupParamRows(): void {
-  const rows = Array.from(document.querySelectorAll(".param-row")) as HTMLElement[];
-  for (const row of rows) {
-    const slider = row.querySelector(".param-slider") as HTMLInputElement;
-    const value = row.querySelector(".param-value") as HTMLElement;
-    const force = row.querySelector(".param-force-cb") as HTMLInputElement;
-    const label = row.querySelector(".param-label") as HTMLElement;
-    const cellName = label.textContent?.trim() ?? "";
-    const entry: ParamRow = {
-      row, slider, value, force,
-      ramKey: VARI_RAM_KEYS[cellName],
-    };
-    paramRows.push(entry);
-
-    // Force toggle: on → set the override to the slider's current value;
-    // off → clear the override.
-    force.addEventListener("change", () => {
-      row.classList.toggle("forced", force.checked);
-      if (!host) return;
-      if (force.checked) {
-        host.setParamOverride(addrForRow(row), Number.parseInt(slider.value, 10));
-      } else {
-        host.setParamOverride(addrForRow(row), null);
-      }
-    });
-
-    // Slider drag: only sends if force is on.  Either way the user sees the
-    // value display update so they can preview the candidate value.
-    slider.addEventListener("input", () => {
-      const v = Number.parseInt(slider.value, 10);
-      value.textContent = `$${v.toString(16).toUpperCase().padStart(2, "0")}`;
-      if (force.checked && host) {
-        host.setParamOverride(addrForRow(row), v);
-      }
-    });
-  }
-}
-setupParamRows();
-
-/** Push live RAM (from the snapshot) into each slider when force is off. */
-function syncParamRowsFromSnapshot(s: StateSnapshot): void {
-  for (const r of paramRows) {
-    if (r.force.checked) continue;
-    if (!r.ramKey || !s.vari) continue;
-    const live = (s.vari[r.ramKey] as number) & 0xFF;
-    if (Number.parseInt(r.slider.value, 10) !== live) {
-      r.slider.value = String(live);
-      r.value.textContent = `$${live.toString(16).toUpperCase().padStart(2, "0")}`;
-    }
-  }
-}
-
 const ctx: AppContext = {
   log,
+  getHost: () => host,
   currentGame,
   getGlossary: () => glossary,
   availableGames: () => availableGames,
   switchToGame,
   fireSequence,
 };
+const paramSliders = initParamSliders(ctx);
+const engineToggles = initEngineToggles(ctx);
 
 initLayout(log);
 initWavExport(ctx);

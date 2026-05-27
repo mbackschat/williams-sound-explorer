@@ -13,10 +13,13 @@
  */
 import type { GameKind } from "../board/soundboard.ts";
 import type { Glossary } from "./glossary.ts";
+import type { WilliamsSoundHost } from "./host.ts";
 
 export interface AppContext {
   /** Append a line to the on-page log (kind tints it ok/err). */
   log(line: string, kind?: "" | "ok" | "err"): void;
+  /** The live worklet host, or undefined before Init / between game switches. */
+  getHost(): WilliamsSoundHost | undefined;
   /** The game selected in the segmented switcher. */
   currentGame(): GameKind;
   /** The loaded glossary (reassigned on game-switch — call each time). */
