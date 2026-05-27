@@ -20,10 +20,10 @@ cd explorer && npm run dev
 
 | Metric | Value |
 |---|---|
-| TypeScript modules | ~50 across 8 layers: **cpu** 6, **board** 2, **synth** 3 (headless); **engine** 8 + **data** 1 (headless logic + shared contract); **web** 11, **viz** 17 (browser); **node** 2 (Node-only loaders). `engine`/`data`/`cpu`/`board`/`synth` are gated DOM-free by `tsconfig.core.json`. |
+| TypeScript modules | ~60 across 8 layers: **cpu** 6, **board** 2, **synth** 3 (headless); **engine** 8 + **data** 1 (headless logic + shared contract); **web** 21 (incl. 6 `web/ui/` feature controllers extracted from `main.ts`), **viz** 17 (browser); **node** 2 (Node-only loaders). `engine`/`data`/`cpu`/`board`/`synth` are gated DOM-free by `tsconfig.core.json`. |
 | Implemented 6800 opcodes | ~160 (every addressing mode of every common op) |
-| Test files | 24 |
-| Tests passing | **367 / 367** |
+| Test files | 25 |
+| Tests passing | **376 / 376** |
 | Strict-mode TypeScript errors | 0 |
 | Round-trip time (LITE end-to-end, offline) | ~30 ms |
 | WAV size (Defender LITE) | 67 KB, 0.70 s |
@@ -67,17 +67,28 @@ explorer/
 │   ├── data/                       # shared pure data contract (headless)
 │   │   └── protocol.ts             # StateSnapshot + worklet messages + the 6 engine-state shapes
 │   ├── web/                        # browser layer — DOM / Web Audio / IndexedDB / fetch
+│   │   ├── main.ts                 # entry/bootstrap + the live-session core (boot · render loop · transport · scrubber)
+│   │   ├── appContext.ts           # AppContext facade main hands each ui/ controller's init(ctx)
+│   │   ├── els.ts                  # the $ helper + the els DOM-handle cache
+│   │   ├── format.ts               # pure UI helpers: dbToPct / meterTrack / escapeHtml (tested)
+│   │   ├── organTunes.ts           # $1B ORGANT per-game tune table + auto-pulse timing (shared)
 │   │   ├── worklet.ts              # AudioWorkletProcessor wrapper
 │   │   ├── worklet-globals.d.ts    # AudioWorkletProcessor / sampleRate decls
 │   │   ├── host.ts                 # Main-thread WilliamsSoundHost
-│   │   ├── main.ts                 # HTML harness wiring
 │   │   ├── onboarding.ts           # first-run upload overlay (3 slots, drag-drop, tier feedback)
 │   │   ├── romStore.ts             # user-uploaded ROMs in IndexedDB + loadRomBytes (single ROM source)
 │   │   ├── romFetch.ts             # browser ROM loader — thin wrapper over romStore (A/B diff + WAV export) — Step 5.3
 │   │   ├── romValidate.ts          # tiered upload validation (size + 6802 vectors + SHA-1 allowlist)
 │   │   ├── glossary.ts             # Step 2.2+ glossary loader/lookup
 │   │   ├── labelMap.ts             # Step 3.4 label-map loader + PC resolver
-│   │   └── zeroPageMap.ts          # RAM-heatmap cell descriptors loader + engine-aware resolver
+│   │   ├── zeroPageMap.ts          # RAM-heatmap cell descriptors loader + engine-aware resolver
+│   │   └── ui/                     # per-feature controllers, each init(ctx) (extracted from main.ts)
+│   │       ├── layout.ts           # hide-help toggle + draggable column splitter
+│   │       ├── wavExport.ts        # offline ⬇ .wav export
+│   │       ├── abdiff.ts           # A/B diff + genealogy
+│   │       ├── paramSliders.ts     # Pattern 5 what-if LOPER/HIPER sliders
+│   │       ├── engineToggles.ts    # Pattern 3 freeze row + Pattern 4 voice-mute sequencer
+│   │       └── glossaryUi.ts       # command-info card + Try-chip browser + term popover
 │   ├── viz/                        # Step 3.1+ visualisation panels  (browser)
 │   │   ├── types.ts                # VizPanel interface (update(snapshot))
 │   │   ├── resizeObserver.ts       # NEW: shared ResizeObserver helper for canvases
