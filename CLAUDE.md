@@ -21,6 +21,7 @@ Browser-based explorer for the Williams arcade sound effects of **Defender** (19
 | Dual-trace oscilloscope + spectrogram (Step 3.2) | `docs/explorer_implementation.md` §Oscilloscope + Spectrogram |
 | Stage swimlane + label-map (Step 3.4 / Pattern adjacent) | `docs/explorer_implementation.md` §Stage swimlane |
 | Known caveats + deferred follow-ups (read before changing scrub / engine slots) | `docs/explorer_implementation.md` §Known caveats and deferred follow-ups |
+| Tutorial screenshot + verification harness (`explorer/e2e/`, MANUAL/README images) | `docs/web-capture.md` |
 | The 6-phase architectural plan + snapshot schema | `docs/explorer_architecture.md` |
 | The 5 design principles + 12 UX patterns | `docs/pedagogical_design.md` |
 | Williams hardware (6802, PIA, DAC, clock, filter) | `docs/sound_hardware_model.md` |
@@ -66,6 +67,8 @@ cd explorer && npm run typecheck                       # strict typecheck — fu
 cd explorer && npm run dev                             # Vite dev server → http://localhost:5173
 cd explorer && npm run build                           # production bundle → explorer/dist
 npx tsx tools/render_sound.ts defender 0x11 out/x.wav  # render any sound → WAV
+cd explorer && npx tsx e2e/capture.ts                  # verify every tutorial + (re)shoot MANUAL screenshots (needs dev:roms + dev server; docs/web-capture.md)
+cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README hero + demo GIF
 ```
 
 ## Decisions already locked

@@ -46,7 +46,20 @@ The explorer emulates all of this cycle-accurately, then plays the resulting DAC
 
 ## 2. The interface — a tour
 
+<img src="docs/img/manual/ui-overview.png" width="820" alt="The two-column layout mid-sound — playback controls and the live grid on the left; engine view and spectrogram on the right">
+
 The page splits into two columns at desktop widths. **Drag the vertical divider** between them to set your preferred ratio (double-click resets to 50/50; arrow keys nudge when the divider has focus).
+
+The left column is *sticky* while the right column scrolls with the window, so you can line up any left panel beside any right panel — here the **Ear oscilloscope** (left) reads side by side with the active **GWAVE wavetable pane** (right):
+
+<img src="docs/img/manual/ui-navigate-columns.png" width="820" alt="Ear oscilloscope on the left and the highlighted GWAVE pane on the right, in the same horizontal band">
+
+<details>
+<summary>The whole UI at once (full-page map)</summary>
+
+<img src="docs/img/manual/ui-full-map.png" width="700" alt="The entire scrollable interface top to bottom — every panel named in the tables below">
+
+</details>
 
 A **"Hide help"** button sits in the header (next to the game switcher).  Toggle it to remove all help text, term-link underlines, the cmdInfo blurb, and the Glossary section — the page collapses to *just data* so you can predict what's happening before the labels nudge you (Pattern 12).  Preference persists across reloads.
 
@@ -114,6 +127,14 @@ Every Williams sound is built from one of these algorithms. Read [`docs/synthesi
 
 The engine pane in the right column visualises whichever one is currently running. The Code panel also surfaces the engine's state textually as an `LFSR: …` / `VARI: …` / etc. line.
 
+Each engine's live pane, captured on Defender (fire the command in parentheses to reproduce):
+
+<img src="docs/img/manual/engine-gwave.png" width="460" alt="GWAVE wavetable pane with the live 72-byte table and sample cursor (SV3, $0A)">
+<img src="docs/img/manual/engine-fnoise.png" width="460" alt="FNOISE slope-limited-noise pane (THRUST, $16)">
+<img src="docs/img/manual/engine-scream.png" width="460" alt="SCREAM pane — four detuned voices with phase wheels and FREQ/TIMER bars ($1A)">
+<img src="docs/img/manual/engine-vari.png" width="460" alt="VARI pane — variable-duty square wave with LO/HI bars and the duty waveform (QUASAR, $1F)">
+<img src="docs/img/manual/engine-organ.png" width="460" alt="ORGAN pane — polyphonic OSCIL voices through the RDELAY scratchpad (ORGANT, $1B)">
+
 ---
 
 ## 4. Tutorials
@@ -123,6 +144,8 @@ Each tutorial has a goal, exact clicks, and what you should hear / see. Linked c
 ### Tutorial 1 — Hear your first sound
 
 **Goal**: confirm the explorer is alive and you understand the basic Fire → see-what-happens loop.
+
+<img src="docs/img/manual/tut-01-first-sound.png" width="640" alt="Ear dual-trace oscilloscope after firing LITE — the raw DAC stair-step (blue) and its post-LPF smoothing (green)">
 
 1. Open http://localhost:5173 with the dev server running. Defender is already selected.
 2. In the **Playback** section, find the chip labelled `$11 LITE` (cyan dot — LFSR engine).
@@ -146,6 +169,8 @@ What you should see:
 
 **Goal**: see the linear-feedback shift register actually shifting, one bit at a time.
 
+<img src="docs/img/manual/tut-02-slowmo-lfsr.png" width="640" alt="Spectrogram of LITE at ¹⁄₁₀× — the LFSR noise as a broadband upward sweep">
+
 1. Fire `$11 LITE`.
 2. While it's playing, in **Speed & volume**, click `¹⁄₁₀×`. The sound becomes a low buzz.
 3. Click `¹⁄₁₀₀×`. Now you can hear *individual clicks* — each click is one toggle of the DAC, one bit of LFSR feedback.
@@ -163,6 +188,8 @@ The LFSR algorithm is unusually elegant — 30 lines of 6800 assembly produce so
 ### Tutorial 3 — The byte tape: every speaker pulse, individually
 
 **Goal**: see every single DAC write as a coloured cell, in time order.
+
+<img src="docs/img/manual/tut-03-byte-tape.png" width="640" alt="Eye DAC byte tape during HBDV — each cell one DAC write, colour-coded around the mid-rail">
 
 1. Click `¹⁄₁₀×` to slow down a bit (makes the tape easier to read).
 2. Fire `$01 HBDV` (Defender heartbeat) — green dot, GWAVE engine.
@@ -192,6 +219,8 @@ The source-line citation comes from the **label map**: `tools/build_labelmap.py`
 
 **Goal**: replay any past instant of audio + visualisation, forward or reverse.
 
+<img src="docs/img/manual/tut-04-scrubber.png" width="640" alt="Tape scrubber in Scrub mode — per-fire markers on the timeline and the playhead frozen mid-segment">
+
 1. Fire `$1D SAW` (yellow dot, VARI engine).
 2. After it finishes (~1.9 s), look at the **Tape scrubber** section. You'll see yellow markers on the slider — one per sound you've fired.
 3. Click the rightmost yellow marker labelled `1D`. The slider jumps to the start of that segment and pauses.
@@ -211,6 +240,8 @@ The really clever bit landed in the most recent commits: a parallel **RAM histor
 
 **Goal**: see the dispatch path through the ROM as a sound plays.
 
+<img src="docs/img/manual/tut-05-swimlane.png" width="640" alt="Stage swimlane during HBDV — one lane per ROM routine, banded by which wrote each DAC sample">
+
 1. Fire `$01 HBDV` and let it complete.
 2. Scrub back to the start of the segment (yellow marker).
 3. Now look at the **Swimlane** panel (in the live grid, below the Ear oscilloscope). You'll see horizontal lanes labelled with ROM routine names: probably `GWLD`, `GWAVE`, `GPLAY`, `WVDECA`, `IRQ`, `BRA *`.
@@ -226,6 +257,8 @@ The lane labels come from the same label-map JSON that powers the byte tape's to
 ### Tutorial 6 — Freeze the LFSR: what's noise without the shift?
 
 **Goal**: hear what LITE's LFSR contributes to the sound by removing it.
+
+<img src="docs/img/manual/tut-06-freeze-lfsr.png" width="460" alt="Engine state and toggles panel with 'Freeze LFSR' checked (yellow) — Pattern-3 freeze controls">
 
 1. Fire `$11 LITE` to confirm what it normally sounds like.
 2. In the **Engine view** section's **Toggles** row at the top, check **Freeze LFSR**.
@@ -249,6 +282,8 @@ Try the other toggles too:
 ### Tutorial 7 — What-if: drag a parameter slider
 
 **Goal**: change a synthesis parameter in real time and hear the algorithm respond.
+
+<img src="docs/img/manual/tut-07-param-slider.png" width="460" alt="VARI pane with the LOPER row forced (yellow) — duty-cycle bars, waveform, and the LOPER/HIPER sliders">
 
 1. Click `$1D SAW` to start the descending saw sound.
 2. While SAW is still playing, find the **VARI engine pane** (top-left of the Engine grid). Below the canvas are two slider rows:
@@ -283,6 +318,8 @@ The architecture matters: we *don't* recompile or modify the ROM. The ROM runs e
 
 **Goal**: see whether two games share the same sound implementation.
 
+<img src="docs/img/manual/tut-08-ab-diff.png" width="640" alt="A/B diff of Defender $01 vs Stargate $01 — two byte tapes with a red divergence band">
+
 1. Open the **A/B diff & genealogy** section (collapsed by default — click the heading).
 2. Set the A picker to `defender 01`, B picker to `stargate 01`.
 3. Click **Compare**.
@@ -300,6 +337,8 @@ Now try Defender `01` vs Robotron `01`. The diff band lights up red almost every
 
 **Goal**: see which sounds across the three games share an algorithm.
 
+<img src="docs/img/manual/tut-09-genealogy.png" width="640" alt="Sound family tree — engine families with cross-game member chips and Compare buttons">
+
 1. In the **A/B diff & genealogy** section, scroll past the diff canvas to **Sound family tree**.
 2. You'll see five families: Lightning (LFSR), Heartbeat (GWAVE), Variable-duty saw (VARI), Scream (SCREAM), Organ (ORGAN) — the last two appear in all three games (SCREAM was born on Defender), so they're cross-game comparable too.
 3. Click the **Compare ↔** button on the Lightning family. The A/B diff above auto-loads `defender $11` vs `stargate $11` and fires.
@@ -314,6 +353,8 @@ For deeper genealogy reading: [`docs/sound_studio_reference.md`](docs/sound_stud
 ### Tutorial 10 — Step through a sound instruction by instruction
 
 **Goal**: see exactly what the 6800 CPU does, one instruction at a time, with audible feedback per step.
+
+<img src="docs/img/manual/tut-10-step.png" width="640" alt="Code panel paused mid-sound — disassembly, A/B/X/SP registers, CCR flags, cycle count, and the LFSR state line">
 
 1. Click `$11 LITE` to fire and **immediately click `Pause`**. Or use the `Fire ⏸` button which combines both — fires the command and pauses.
 2. Look at the **Code** panel. You'll see the disassembled instruction at the current PC.
@@ -338,6 +379,8 @@ For the 6800 instruction set and addressing modes the explorer implements, see `
 
 **Goal**: trace any audible feature back to the exact line of 6800 code that produced it.
 
+<img src="docs/img/manual/tut-11-causal-hover.png" width="640" alt="Code panel INSPECT line while hovering the spectrogram — cycle → PC → routine → source-line resolved under the cursor">
+
 1. Fire `$11 LITE` and wait for it to play out.
 2. **Hover the Spectrogram** with your mouse. As you move horizontally, the Code panel grows a top line:
    ```
@@ -356,6 +399,8 @@ You can do the same hover on the **byte tape** (Eye panel) — that gives you th
 ### Tutorial 12 — Combine toggles + sliders + scrub for "what would Robotron's HBDV sound like with WVDECA disabled?"
 
 **Goal**: a chain of features.
+
+<img src="docs/img/manual/tut-12-combine.png" width="460" alt="Robotron's GWAVE wavetable pane with 'Skip WVDECA' on — the table stays at full amplitude across echoes">
 
 1. Switch the game to **Robotron**.
 2. In the Engine view → Toggles row, check **Skip WVDECA**.

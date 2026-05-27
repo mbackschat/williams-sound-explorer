@@ -37,6 +37,7 @@ If you need only one document: read `explorer_implementation.md` (it links to ev
 | **`sound_studio_reference.md`** | What msarnoff's Defender Sound Studio does, what to copy, what to do differently. | ~150 lines |
 | **`explorer_architecture.md`** | Architecture sketch — CPU emulator vs hand-port, layers, visualization spec, 6-phase plan. | ~200 lines |
 | **`explorer_implementation.md`** | **What's actually built** in `explorer/`: module dependency graph, design decisions, runner API, real-time AudioWorklet pipeline, six engine slots + viz panels, live grid (Ear·Swimlane/Eye·Code), scrubber + RAM time-travel, A/B diff + Genealogy, label-map, parameter overrides, known caveats. Phases 1–6 covered (all 12 UX patterns). | ~900 lines |
+| **`web-capture.md`** | Playwright capture harness (`explorer/e2e/`) that verifies every MANUAL tutorial's click-path and emits the MANUAL/README screenshots + demo GIF. Local maintainer tool (no ROM bytes). | ~210 lines |
 | **`explainer_cards.md`** | **Source of truth** for Pattern 9 annotated explainer cards.  One `## ROUTINE — Title` section per card; `tools/build_explainer_cards.py` emits per-routine JSON to `explorer/public/data/explainer/`.  All 63 catalogued routines covered. | ~1400 lines |
 | **`reference_audio_plan.md`** | How to acquire WAV recordings of every effect (MAME, assemble-and-drive, prerecorded). | ~150 lines |
 | **`assemble_drive_pipeline.md`** | The chosen audio strategy (Path B) — concrete build plan for assembler + 6800 emulator + driver. ~3-day project. | ~200 lines |
@@ -125,7 +126,7 @@ Detailed source-line indices into the sound routines are maintained with the pri
 
 ---
 
-## Project state (as of 2026-05-26)
+## Project state (as of 2026-05-27)
 
 - ✅ Source-level analysis complete for all four games (raw notes kept in the private `research/` submodule)
 - ✅ Hardware model documented
@@ -158,6 +159,7 @@ Detailed source-line indices into the sound routines are maintained with the pri
 - ✅ **2026-05 user-supplied ROMs**: the app ships no copyrighted ROM bytes.  First-run onboarding takes uploads (validated by size + 6802 vectors + SHA-1 allowlist), stored in IndexedDB (`web/{romStore,romValidate,onboarding}.ts`); both ROM entry points (`host.fetchRom`, `loadRomFromUrl`) read through `loadRomBytes`.  Works with as few as one ROM — games without one are locked in the switcher.  `prepare:public` no longer copies ROMs (opt-in `npm run dev:roms` for local dev); `dist/` has zero ROM bytes.  Enables a clean MIT publish.
 - ✅ **2026-05 source-layer split + DOM-free gate**: `explorer/src/` reorganised into **headless** (`cpu/`, `board/`, `synth/`, `engine/`, `data/`), **browser** (`web/`, `viz/`), and **Node-only** (`node/`) layers — the flat `audio/` grab-bag is gone.  The shared `StateSnapshot` / worklet-message / engine-state contract moved out of the browser `worklet.ts` into pure `data/protocol.ts` (deduping a copy that was drifting against `engineState.ts`).  New `explorer/tsconfig.core.json` (lib `ES2022` only, no DOM/Node types) compiles the headless layers and runs as the second half of `npm run typecheck`, so a stray `document`/`fetch`/`import.meta.env` or a `web/`→headless import now **fails the build**.  Pure relocation — 367 tests unchanged.
 - ✅ **2026-05 `main.ts` decomposition + keyboard support**: the 1945-line `web/main.ts` god-module split −44% into focused `web/` modules + `web/ui/` per-feature controllers behind an `AppContext` facade (`els`, `format` (+tests), `appContext`, `organTunes`, and `ui/{layout,wavExport,abdiff,paramSliders,engineToggles,glossaryUi}`); the cohesive live-session core (boot/render/transport/scrubber) intentionally left in `main.ts`.  `index.html` slimmed −60% by extracting its inline `<style>` to `web/main.css`.  Added **keyboard shortcuts** (`web/ui/keyboard.ts` + a unit-tested pure `keymap.ts`; Space=fire, P=pause, 1–4=speed, arrows=nudge time/volume, G=game, `?`=overlay) and an **Enter-to-fire** on the cmd box.  385 tests.
+- ✅ **2026-05 illustrated docs + web-capture harness**: a Playwright harness in `explorer/e2e/` drives the dev server and emits screenshots — `e2e/capture.ts` runs a 20-entry manifest (all 12 MANUAL tutorials + 5 per-engine showcase panels + 3 interface-tour shots), verifying each click-path and clipping its panel, while `e2e/readme.ts` produces the README hero + demo GIF.  Images live under `docs/img/` and are wired into MANUAL.md (§2 interface tour + §3 engine gallery + §4 tutorials) and README.md.  It's a local maintainer tool (consumes the dev-only user-supplied ROMs, emits no ROM bytes); design + how-to in [`web-capture.md`](web-capture.md).
 
 ## Suggested next concrete steps
 

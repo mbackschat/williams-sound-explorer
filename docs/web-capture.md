@@ -2,7 +2,7 @@
 
 This documents the tooling that drives the explorer in a real browser to **(a) verify each MANUAL.md tutorial's click-path still works** and **(b) capture the illustrative screenshots used in MANUAL.md / README.md plus the README demo GIF**. It is a *local maintainer tool*, not a CI job — see "ROM / copyright constraint" below for why.
 
-Status (2026-05-27): pipeline proven end-to-end and the README assets are built. The AudioWorklet runs under headless Chromium (the make-or-break risk), canvases paint, and we produce `docs/img/readme/hero.png` (full two-column viewport still) + `docs/img/readme/demo.gif` (slow-mo live-grid clip) via `e2e/readme.ts`, plus one tutorial panel (`tut-02-slowmo-lfsr`) via the manifest in `e2e/capture.ts`. Expansion of the manifest to all 12 tutorials is the remaining work (tracked at the end).
+Status (2026-05-27): complete and in use. The AudioWorklet runs under headless Chromium (the make-or-break risk) and canvases paint. `e2e/readme.ts` produces `docs/img/readme/hero.png` (full two-column viewport still) + `docs/img/readme/demo.gif` (slow-mo live-grid clip), wired into README.md. `e2e/capture.ts` runs a 20-entry manifest — all 12 MANUAL tutorials + 5 per-engine showcase panels + 3 interface-tour shots (§2 overview / column-navigation / full-page map) — verifying each click-path and emitting its image to `docs/img/manual/`, all wired into MANUAL.md (§2 interface tour, §3 engine gallery, §4 tutorials). Remaining: a `tools/refresh_screenshots.sh` wrapper (tracked at the end).
 
 ## Why this exists
 
@@ -44,7 +44,7 @@ interface Entry {
   steps: Step[];         // the exact clicks the tutorial tells a human to do
   readyWhen?: Assert;    // gate before asserting/capturing (usually { recorded: true })
   assert?: Assert[];     // post-conditions = "the tutorial still works"
-  shot: { clip: string; file: string }; // element-clip screenshot → repo-relative path
+  shot: Shot;            // { clip } an element · { viewport: true } the window · { fullPage: true } whole page → repo-relative path
 }
 ```
 
@@ -110,7 +110,7 @@ Live canvases animate, so naive screenshots are frame-dependent. Levers:
 
 ## Screenshot taxonomy
 
-- **MANUAL.md** — element-clipped shots, one per tutorial, of the specific panel that tutorial is about (oscilloscope, byte tape, swimlane, VARI sliders, A/B diff…). Tight crops read far better inline than a full page. → `docs/img/manual/` (via `capture.ts`).
+- **MANUAL.md** — element-clipped shots, one per tutorial, of the specific panel that tutorial is about (oscilloscope, byte tape, swimlane, VARI sliders, A/B diff…). Tight crops read far better inline than a full page. The §2 interface tour is the exception: it uses `viewport` shots (overview + the Ear↔GWAVE column-navigation pairing) and one `fullPage` shot (the whole-UI map), since those are *about* the layout, not one panel. → `docs/img/manual/` (via `capture.ts`). Wire them into MANUAL with `<img src=… width=…>` (≈640 for wide panels, 460 for the squarer engine panes, 700–820 for the interface shots), **not** bare `![](…)` — the clips are 2× DPI, so `![]` would render them at full column width. Re-captures only overwrite the PNGs; the widths in MANUAL stay put.
 - **README.md** — a *viewport* hero shot (not `fullPage` — the page is enormously tall) of the two-column layout mid-sound, plus the GIF. → `docs/img/readme/` (via `readme.ts`).
 - **The GIF** — one short slow-mo sequence recorded as a Playwright video, cropped to the live grid, converted with ffmpeg. → `docs/img/readme/demo.gif`.
 
@@ -198,6 +198,5 @@ If a tutorial needs an action the vocabulary can't express, add a new `Step`/`As
 ## Remaining work
 
 - ✅ README hero + demo GIF (`e2e/readme.ts`), wired into README.md.
-- Expand the manifest from 1 → all 12 tutorials and wire the panel shots into MANUAL.md.
-- Write `tools/refresh_screenshots.sh` (server lifecycle + capture, mirroring `refresh_corpus.sh`).
-- When the manifest is complete, do the repo-wide doc sweep (`docs/00_INDEX.md`, CLAUDE.md on-demand references table + commands, `docs/explorer_implementation.md` tooling note, MANUAL.md interface tour).
+- ✅ Manifest expanded to all 12 tutorials + 5 engine-showcase panels + 3 interface-tour shots (`e2e/capture.ts`), wired into MANUAL.md (§2 + §3 + §4).
+- Write `tools/refresh_screenshots.sh` (server lifecycle + capture, mirroring `refresh_corpus.sh`) — the one convenience piece still missing; for now run `npm run dev:roms && npm run dev`, then `e2e/capture.ts` + `e2e/readme.ts` by hand.

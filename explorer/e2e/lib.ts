@@ -57,7 +57,14 @@ export async function selectGame(page: Page, game: GameKind): Promise<void> {
 /** Open every collapsed <details> ancestor so the target control is visible. */
 export async function reveal(page: Page, sel: string): Promise<void> {
   await page.evaluate((s) => {
-    let el: Element | null = document.querySelector(s);
+    let el: Element | null;
+    // Playwright-only selectors (e.g. :has-text) aren't valid CSS — querySelector
+    // throws; such controls aren't inside collapsed sections, so skip revealing.
+    try {
+      el = document.querySelector(s);
+    } catch {
+      return;
+    }
     while (el) {
       if (el instanceof HTMLDetailsElement && !el.open) el.open = true;
       el = el.parentElement;
@@ -68,6 +75,31 @@ export async function reveal(page: Page, sel: string): Promise<void> {
 export async function clickRevealed(page: Page, sel: string): Promise<void> {
   await reveal(page, sel);
   await page.click(sel);
+}
+
+/**
+ * Return the app to a clean default before each entry, so entries are
+ * order-independent: leave scrub mode, and clear any freeze toggles / forced
+ * param-slider overrides a previous entry set (their state survives game
+ * switches via replay, so they'd otherwise leak across entries).
+ */
+export async function resetState(page: Page): Promise<void> {
+  const scrubbing = await page
+    .locator("#scrubStart")
+    .evaluate((el) => el.classList.contains("active"))
+    .catch(() => false);
+  if (scrubbing) await clickRevealed(page, "#scrubLive");
+  for (const cb of await page.locator("#engineToggleRow input[type=checkbox]:checked").all()) {
+    await cb.uncheck({ force: true }).catch(() => {});
+  }
+  for (const cb of await page.locator(".param-row input.param-force-cb:checked").all()) {
+    await cb.uncheck({ force: true }).catch(() => {});
+  }
+  // Reset scroll (window + sticky left column) so viewport/full-page shots are reproducible.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    document.querySelector(".left-col")?.scrollTo(0, 0);
+  });
 }
 
 export async function runStep(page: Page, step: Step): Promise<void> {
@@ -81,6 +113,13 @@ export async function runStep(page: Page, step: Step): Promise<void> {
     const [sel, value] = step.select;
     await reveal(page, sel);
     await page.selectOption(sel, value);
+  } else if ("fill" in step) {
+    const [sel, value] = step.fill;
+    await reveal(page, sel);
+    await page.fill(sel, value);
+  } else if ("hover" in step) {
+    await reveal(page, step.hover);
+    await page.hover(step.hover);
   } else if ("openSection" in step) {
     await page.evaluate((sel) => {
       const el = document.querySelector(sel);

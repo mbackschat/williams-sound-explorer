@@ -25,6 +25,7 @@ import {
   launch,
   bootPage,
   selectGame,
+  resetState,
   reveal,
   runStep,
   canvasRange,
@@ -76,6 +77,7 @@ async function checkAssert(page: Page, a: Assert): Promise<string | null> {
 async function runEntry(page: Page, e: Entry): Promise<boolean> {
   process.stdout.write(`\n▶ ${e.id} (${e.game})\n`);
   await selectGame(page, e.game);
+  await resetState(page); // clear scrub / freeze toggles / forced sliders left by a prior entry
   for (const step of e.steps) await runStep(page, step);
   if (e.readyWhen) {
     const fail = await checkAssert(page, e.readyWhen);
@@ -96,9 +98,15 @@ async function runEntry(page: Page, e: Entry): Promise<boolean> {
   }
   const out = resolve(REPO_ROOT, e.shot.file);
   await mkdir(dirname(out), { recursive: true });
-  await reveal(page, e.shot.clip);
-  const el: Locator = page.locator(e.shot.clip);
-  await el.screenshot({ path: out });
+  if ("clip" in e.shot) {
+    await reveal(page, e.shot.clip);
+    const el: Locator = page.locator(e.shot.clip);
+    await el.screenshot({ path: out });
+  } else if ("fullPage" in e.shot) {
+    await page.screenshot({ path: out, fullPage: true });
+  } else {
+    await page.screenshot({ path: out }); // viewport only
+  }
   process.stdout.write(`  📸 ${e.shot.file}\n`);
   return ok;
 }
