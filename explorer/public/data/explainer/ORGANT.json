@@ -1,0 +1,29 @@
+{
+  "title": "ORGANT — Organ tune (Beethoven's 9th on Robotron)",
+  "engine": "ORGAN",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "An *arm-only* command — `$1B` decrements `ORGFLG` and RTSes; the tune actually plays on the *next* IRQ, which reads its command byte as the tune index. Robotron's tune 2 is Beethoven's 9th. The polyphony is bitmask-popcount across 8 oscillators.",
+  "how": "ORGAN is unusual in three ways.\n\nFirst, it's a *two-step* command. Firing `$1B` doesn't play anything — it just decrements `ORGFLG`. The actual playback lives at the *top* of the IRQ handler: `LDAB ORGFLG; BEQ skip; JSR ORGNT1`. The next IRQ that arrives (any command) checks `ORGFLG`, sees it non-zero, and runs the tune player with that IRQ's command byte as the tune number. The explorer auto-pulses `[$1B, tune_index]` on a single click so a Fire on `$1B` actually plays the tune.\n\nSecond, the polyphony is *bitmask popcount*. Each note in `ORGTAB` has an `OSCIL` byte where each of 8 bits represents one oscillator voice. The inner loop (`ORGAN1`) reads `OSCIL`, computes its popcount, and writes that as the DAC output. So an 8-bit-set OSCIL = 8-voice loud chord; 1-bit-set = single soft voice. Six voices simultaneously from a single byte.\n\nThird, the note tables use a *self-modifying scratchpad* (`RDELAY`, 60 bytes at `$15..$50` on Robotron). `ORGANL` (loader) writes a sequence of inline `NOP` and `JMP` opcodes into RDELAY before each note, then the inner loop literally *executes* RDELAY as code — the NOP count produces the per-sample delay (= pitch), the JMP terminates the run. Yes, code-as-data.\n\nRobotron's `ORGTAB` has two tunes: FIFTH (Close Encounters 5-note motif) and NINTH (Beethoven's 9th — the wave-start jingle).",
+  "watch": [
+    "ORGAN engine view — 8 LEDs showing the current OSCIL bitmask (popcount = audible voice count) + 60-byte RDELAY heatmap.",
+    "DUR (16-bit duration counter) and OSCIL changing per note in the tune.",
+    "**OSCIL voice mute checkboxes + Build-up / Tear-down** in the ORGAN pane — sequences voices on/off so you can hear the popcount-polyphony technique build the chord up bit by bit.",
+    "Stage swimlane — alternating bands of `ORGNT4` (tune loop), `ORGANL` (per-note loader), `ORGAN1` (sample output)."
+  ],
+  "code": [
+    "`ORGANT` at `$F8C9` (Robotron) — literally `DEC ORGFLG; RTS`. See `MANUAL.md` 'Why $1B is special' for the IRQ trace.",
+    "`ORGNT1` / `ORGASM` — IRQ-time tune kicker: reads tune index from A, walks ORGTAB to the right tune, loops through notes calling `ORGANL`.",
+    "`ORGANL` — note loader: writes the per-note delay sequence into RDELAY (self-modifying code setup).",
+    "`ORGAN1` — sample output: popcount OSCIL → DAC, jump through RDELAY for per-sample timing.",
+    "Source: `VSNDRM3.SRC:1334` (Robotron)."
+  ],
+  "see": [
+    "[MANUAL.md](MANUAL.md#why-1b-organt-is-special) — Why $1B is special (the arm-then-kick IRQ trace)",
+    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §ORGAN tunes",
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §ORGAN popcount-polyphony"
+  ]
+}

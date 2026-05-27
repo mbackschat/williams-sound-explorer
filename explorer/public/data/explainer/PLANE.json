@@ -1,0 +1,19 @@
+{
+  "title": "PLANE — Diving plane (incrementing FREQ1) (Robotron)",
+  "engine": "square",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "A single-square-wave oscillator with the `FREQ1` counter incrementing each iteration — so the pitch climbs continuously, then resets. The \"diving plane\" enemy's approach.",
+  "how": "PLANE drives a square wave whose period is `FREQ1`. Each outer iteration *increments* `FREQ1` so the period grows (= pitch drops). When `FREQ1` overflows, it wraps back and starts again — the cycle produces the iconic Doppler-effect diving curve.\n\nThis is closer in spirit to VARI than to GWAVE — a pure-CPU square wave with a single counter — but with the modulator going in the opposite direction (incrementing vs VARI's decrementing).",
+  "watch": [
+    "Spectrogram — descending pitch sweep that wraps periodically.",
+    "VARI engine view *won't* populate (different PC range), but the audible character is square-wave-driven."
+  ],
+  "code": [
+    "`PLANE` routine at Robotron's `$36` entry."
+  ],
+  "see": [
+    "**SAW** — VARI's descending sweep (similar idea, different mechanics)."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "title": "SND2 — 3-oscillator preset VEC02 (Robotron)",
+  "engine": "PLAY",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron's `PLAY` engine driven with the `VEC02X` vector. PLAY is a 3-oscillator synthesiser unique to Robotron — three independent frequency counters summed at the DAC. SND2 plays the \"vector 02\" preset of this engine.",
+  "how": "The PLAY engine maintains three oscillator pairs `(FREQ_n, COUNTER_n)`. Each sample iteration: every counter advances by its FREQ; when a counter overflows it contributes a fixed amount to the DAC accumulator. The sum of the three contributions becomes the output sample.\n\n`VEC02X` is a 6-byte parameter block defining the three (FREQ, COUNTER_init) pairs. PLAY engine code at `$F046` (per the Robotron labelmap).",
+  "watch": [
+    "Three distinct pitches audible if the FREQ values are different — three-voice chord.",
+    "Spectrogram — three formants visible simultaneously."
+  ],
+  "code": [
+    "`SND2` dispatch entry → loads `VEC02X` and jumps to `PLAY`.",
+    "`PLAY` at `$F046` (Robotron)."
+  ],
+  "see": [
+    "**SND5 / THNDR / SND16 / SND17** — other PLAY presets.",
+    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §PLAY 3-osc engine"
+  ]
+}

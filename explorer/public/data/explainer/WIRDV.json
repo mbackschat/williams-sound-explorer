@@ -1,0 +1,18 @@
+{
+  "title": "WIRDV — Weirdo / electrode (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Idiosyncratic GWAVE preset — uses a different wavetable + offset combination than the canonical presets, producing the \"electrode hum\" character. Catalogue note: `$0D` byte at the end (= 13 decimal).",
+  "how": "GWAVE preset with bytes `FCB $21, $30, $00, $FF, $00, 27, $0D`. The `$0D` final byte is unusual — different from the typical `XXXSND-GFRTAB` pattern. Possibly directly addresses a small constant pattern.",
+  "watch": [
+    "GWAVE engine view's `FOFSET` and pattern walk — different shape than HBDV / STDV."
+  ],
+  "code": [
+    "`WIRDV` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

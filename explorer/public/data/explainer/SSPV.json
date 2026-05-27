@@ -1,0 +1,18 @@
+{
+  "title": "SSPV — Sub-spinner (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "A \"soft spinner\" GWAVE preset — even shorter than SPNV / SPNRV. Used for very-light interactions.",
+  "how": "GWAVE preset with minimal echo count and gentle wavetable. The shortest GWAVE preset in Robotron's catalogue.",
+  "watch": [
+    "Total duration is the shortest of the Robotron spinner family."
+  ],
+  "code": [
+    "`SSPV` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**SPNV / SPNRV / SP1V** — full spinner family."
+  ]
+}

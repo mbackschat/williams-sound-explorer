@@ -1,0 +1,19 @@
+{
+  "title": "GDYUKV — Family-rescue jingle (\"good yuk\", Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset using `YUKSND` — the longer cousin of STRT. Plays when the player rescues an entire family of humans.",
+  "how": "Similar to STRT but with different initial parameters (longer duration, possibly higher pitch). The `YUKSND` pattern provides the rising motif; GWAVE renders it through the standard wavetable engine.",
+  "watch": [
+    "Compare against STRT in the A/B diff — both use YUKSND but the surrounding preset bytes differ."
+  ],
+  "code": [
+    "`GDYUKV` preset at `VSNDRM3.SRC:2017`."
+  ],
+  "see": [
+    "**STRT** ($23) — shorter sibling using the same YUKSND pattern.",
+    "**HUNV** ($20) — 100-point single-rescue."
+  ]
+}

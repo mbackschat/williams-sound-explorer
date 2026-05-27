@@ -1,0 +1,19 @@
+{
+  "title": "PERK — SING with VEC06X + ECHO (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "SING preset using `VEC06X` and the `ECHO` subroutine — produces a percussive \"perky\" sound. Source name `PERK$$` (the `$$` is reserved-flag decoration; explainer-card key is `PERK`).",
+  "how": "SING engine plus an echo wrapper that re-fires the vector with decay. Short fundamental + decaying repeats.",
+  "watch": [
+    "Echo trails visible in the spectrogram.",
+    "Stage swimlane — `PERK_` / `SING` / `ECHO` bands."
+  ],
+  "code": [
+    "`PERK$$` dispatch → `VEC06X` → `SING` + `ECHO`."
+  ],
+  "see": [
+    "**HSTD** — canonical SING card."
+  ]
+}

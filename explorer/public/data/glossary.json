@@ -1,0 +1,960 @@
+{
+  "defender": {
+    "00": {
+      "name": "NOP",
+      "routine": "(silence)",
+      "engine": "",
+      "blurb": "IRQ tail polls background"
+    },
+    "01": {
+      "name": "Heartbeat distorto",
+      "routine": "HBDV",
+      "engine": "GWAVE",
+      "blurb": "iconic low pulse"
+    },
+    "02": {
+      "name": "Start fanfare swell",
+      "routine": "STDV",
+      "engine": "GWAVE",
+      "blurb": "rising-then-falling sine"
+    },
+    "03": {
+      "name": "Sweep blip",
+      "routine": "DP1V",
+      "engine": "GWAVE",
+      "blurb": "1-byte pattern + +1 slide"
+    },
+    "04": {
+      "name": "Extra-bonus climb",
+      "routine": "XBV",
+      "engine": "GWAVE",
+      "blurb": "square slide"
+    },
+    "05": {
+      "name": "Big-Ben chime",
+      "routine": "BBSV",
+      "engine": "GWAVE",
+      "blurb": "15 echoes, sine bell"
+    },
+    "06": {
+      "name": "Heartbeat echo",
+      "routine": "HBEV",
+      "engine": "GWAVE",
+      "blurb": "4-echo softer variant"
+    },
+    "07": {
+      "name": "Protector death",
+      "routine": "PROTV",
+      "engine": "GWAVE",
+      "blurb": "descending sine"
+    },
+    "08": {
+      "name": "Spinner drip",
+      "routine": "SPNRV",
+      "engine": "GWAVE",
+      "blurb": "single $40 period, 5 cyc"
+    },
+    "09": {
+      "name": "Cool-down chirp",
+      "routine": "CLDWNV",
+      "engine": "GWAVE",
+      "blurb": "3-echo"
+    },
+    "0A": {
+      "name": "(test/effect)",
+      "routine": "SV3",
+      "engine": "GWAVE",
+      "blurb": "rarely used"
+    },
+    "0B": {
+      "name": "Ed sound 10",
+      "routine": "ED10",
+      "engine": "GWAVE",
+      "blurb": "experimental"
+    },
+    "0C": {
+      "name": "Ed sound 12",
+      "routine": "ED12",
+      "engine": "GWAVE",
+      "blurb": "experimental"
+    },
+    "0D": {
+      "name": "Ed sound 17",
+      "routine": "ED17",
+      "engine": "GWAVE",
+      "blurb": "experimental spinner"
+    },
+    "0E": {
+      "name": "Spinner #1",
+      "routine": "SP1 / CABSHK",
+      "engine": "VARI",
+      "blurb": "per-trigger pitch advance"
+    },
+    "0F": {
+      "name": "Background 1 start",
+      "routine": "BG1",
+      "engine": "FNOISE",
+      "blurb": "persistent drone"
+    },
+    "10": {
+      "name": "Background 2 advance",
+      "routine": "BG2INC",
+      "engine": "",
+      "blurb": "ratchet pitch up"
+    },
+    "11": {
+      "name": "Lightning",
+      "routine": "LITE",
+      "engine": "LFSR",
+      "blurb": "upward LFSR sweep"
+    },
+    "12": {
+      "name": "Bonus #2",
+      "routine": "BON2 / BONV",
+      "engine": "GWAVE",
+      "blurb": "re-trigger optimised"
+    },
+    "13": {
+      "name": "End background",
+      "routine": "BGEND",
+      "engine": "",
+      "blurb": "silences BG1/BG2"
+    },
+    "14": {
+      "name": "Turbo noise burst",
+      "routine": "TURBO",
+      "engine": "LFSR",
+      "blurb": "bright fading"
+    },
+    "15": {
+      "name": "Enemy appear",
+      "routine": "APPEAR",
+      "engine": "LFSR",
+      "blurb": "falling LFSR"
+    },
+    "16": {
+      "name": "Thrust drone",
+      "routine": "THRUST",
+      "engine": "FNOISE",
+      "blurb": "gentle slope"
+    },
+    "17": {
+      "name": "Cannon",
+      "routine": "CANNON",
+      "engine": "FNOISE",
+      "blurb": "distorted, decaying"
+    },
+    "18": {
+      "name": "Radio chatter",
+      "routine": "RADIO",
+      "engine": "RADIO",
+      "blurb": "16-byte LUT"
+    },
+    "19": {
+      "name": "Hyperspace warp",
+      "routine": "HYPER",
+      "engine": "HYPER",
+      "blurb": "PWM sweep"
+    },
+    "1A": {
+      "name": "Death scream",
+      "routine": "SCREAM",
+      "engine": "SCREAM",
+      "blurb": "4-voice additive"
+    },
+    "1B": {
+      "name": "Organ tune (arm)",
+      "routine": "ORGANT",
+      "engine": "ORGAN",
+      "blurb": "next byte = tune #; see Arm-only commands below"
+    },
+    "1C": {
+      "name": "Organ note (arm)",
+      "routine": "ORGANN",
+      "engine": "ORGAN",
+      "blurb": "next 3 bytes = osc/dly/note; see Arm-only commands below"
+    },
+    "1D": {
+      "name": "Descending saw",
+      "routine": "SAW",
+      "engine": "VARI",
+      "blurb": "LOPER=$40"
+    },
+    "1E": {
+      "name": "Foe-hit",
+      "routine": "FOSHIT",
+      "engine": "VARI",
+      "blurb": "shorter saw"
+    },
+    "1F": {
+      "name": "Quasar zap",
+      "routine": "QUASAR",
+      "engine": "VARI",
+      "blurb": "reverse polarity"
+    }
+  },
+  "stargate": {
+    "00": {
+      "name": "NOP",
+      "routine": "(silence)",
+      "engine": "",
+      "blurb": "IRQ tail polls background"
+    },
+    "01": {
+      "name": "Heartbeat distorto",
+      "routine": "HBDV",
+      "engine": "GWAVE",
+      "blurb": "iconic low pulse"
+    },
+    "02": {
+      "name": "Start fanfare swell",
+      "routine": "STDV",
+      "engine": "GWAVE",
+      "blurb": "rising-then-falling sine"
+    },
+    "03": {
+      "name": "Sweep blip",
+      "routine": "DP1V",
+      "engine": "GWAVE",
+      "blurb": "1-byte pattern + +1 slide"
+    },
+    "04": {
+      "name": "Extra-bonus climb",
+      "routine": "XBV",
+      "engine": "GWAVE",
+      "blurb": "square slide"
+    },
+    "05": {
+      "name": "Big-Ben chime",
+      "routine": "BBSV",
+      "engine": "GWAVE",
+      "blurb": "15 echoes, sine bell"
+    },
+    "06": {
+      "name": "Heartbeat echo",
+      "routine": "HBEV",
+      "engine": "GWAVE",
+      "blurb": "4-echo softer variant"
+    },
+    "07": {
+      "name": "Protector death",
+      "routine": "PROTV",
+      "engine": "GWAVE",
+      "blurb": "descending sine"
+    },
+    "08": {
+      "name": "Spinner drip",
+      "routine": "SPNRV",
+      "engine": "GWAVE",
+      "blurb": "single $40 period, 5 cyc"
+    },
+    "09": {
+      "name": "Cool-down chirp",
+      "routine": "CLDWNV",
+      "engine": "GWAVE",
+      "blurb": "3-echo"
+    },
+    "0A": {
+      "name": "(test/effect)",
+      "routine": "SV3",
+      "engine": "GWAVE",
+      "blurb": "rarely used"
+    },
+    "0B": {
+      "name": "Ed sound 10",
+      "routine": "ED10",
+      "engine": "GWAVE",
+      "blurb": "experimental"
+    },
+    "0C": {
+      "name": "Ed sound 12",
+      "routine": "ED12",
+      "engine": "GWAVE",
+      "blurb": "experimental"
+    },
+    "0D": {
+      "name": "Ed sound 17",
+      "routine": "ED17",
+      "engine": "GWAVE",
+      "blurb": "experimental spinner"
+    },
+    "0E": {
+      "name": "Spinner #1",
+      "routine": "SP1 / CABSHK",
+      "engine": "VARI",
+      "blurb": "per-trigger pitch advance"
+    },
+    "0F": {
+      "name": "Background 1 start",
+      "routine": "BG1",
+      "engine": "FNOISE",
+      "blurb": "persistent drone"
+    },
+    "10": {
+      "name": "Background 2 advance",
+      "routine": "BG2INC",
+      "engine": "",
+      "blurb": "ratchet pitch up"
+    },
+    "11": {
+      "name": "Lightning",
+      "routine": "LITE",
+      "engine": "LFSR",
+      "blurb": "upward LFSR sweep"
+    },
+    "12": {
+      "name": "Bonus #2",
+      "routine": "BON2 / BONV",
+      "engine": "GWAVE",
+      "blurb": "re-trigger optimised"
+    },
+    "13": {
+      "name": "End background",
+      "routine": "BGEND",
+      "engine": "",
+      "blurb": "silences BG1/BG2"
+    },
+    "14": {
+      "name": "Turbo noise burst",
+      "routine": "TURBO",
+      "engine": "LFSR",
+      "blurb": "bright fading"
+    },
+    "15": {
+      "name": "Enemy appear",
+      "routine": "APPEAR",
+      "engine": "LFSR",
+      "blurb": "falling LFSR"
+    },
+    "16": {
+      "name": "Thrust drone",
+      "routine": "THRUST",
+      "engine": "FNOISE",
+      "blurb": "gentle slope"
+    },
+    "17": {
+      "name": "Cannon",
+      "routine": "CANNON",
+      "engine": "FNOISE",
+      "blurb": "distorted, decaying"
+    },
+    "18": {
+      "name": "Radio chatter",
+      "routine": "RADIO",
+      "engine": "RADIO",
+      "blurb": "16-byte LUT"
+    },
+    "19": {
+      "name": "Hyperspace warp",
+      "routine": "HYPER",
+      "engine": "HYPER",
+      "blurb": "PWM sweep"
+    },
+    "1A": {
+      "name": "Death scream",
+      "routine": "SCREAM",
+      "engine": "SCREAM",
+      "blurb": "4-voice additive"
+    },
+    "1B": {
+      "name": "ORGANT \u2014 Stargate tune",
+      "routine": "ORGANT",
+      "engine": "ORGAN",
+      "blurb": "Plays one of two new tunes: FIFTH (Close Encounters motif) or NINTH (a longer baroque-style figure). Defender's PHANTOM/TACCATA were replaced."
+    },
+    "1C": {
+      "name": "ORGANN \u2014 gutted",
+      "routine": "ORGANN",
+      "engine": "ORGAN",
+      "blurb": "Stub: immediate RTS, silent. Defender's per-note arm was removed."
+    },
+    "1D": {
+      "name": "Descending saw",
+      "routine": "SAW",
+      "engine": "VARI",
+      "blurb": "LOPER=$40"
+    },
+    "1E": {
+      "name": "Foe-hit",
+      "routine": "FOSHIT",
+      "engine": "VARI",
+      "blurb": "shorter saw"
+    },
+    "1F": {
+      "name": "Quasar zap",
+      "routine": "QUASAR",
+      "engine": "VARI",
+      "blurb": "reverse polarity"
+    }
+  },
+  "robotron": {
+    "00": {
+      "name": "IRQ tail only",
+      "routine": "(silence)",
+      "engine": ""
+    },
+    "01": {
+      "name": "Heartbeat distorto (Defender-compatible)",
+      "routine": "HBDV",
+      "engine": "GWAVE"
+    },
+    "02": {
+      "name": "Start swell",
+      "routine": "STDV",
+      "engine": "GWAVE"
+    },
+    "03": {
+      "name": "Sweep blip",
+      "routine": "DP1V",
+      "engine": "GWAVE"
+    },
+    "04": {
+      "name": "Bonus climb",
+      "routine": "XBV",
+      "engine": "GWAVE"
+    },
+    "05": {
+      "name": "Big-Ben",
+      "routine": "BBSV",
+      "engine": "GWAVE"
+    },
+    "06": {
+      "name": "Heartbeat echo",
+      "routine": "HBEV",
+      "engine": "GWAVE"
+    },
+    "07": {
+      "name": "Spinner-protect",
+      "routine": "PROTV",
+      "engine": "GWAVE"
+    },
+    "08": {
+      "name": "Spinner drip",
+      "routine": "SPNRV",
+      "engine": "GWAVE"
+    },
+    "09": {
+      "name": "Cool-down",
+      "routine": "CLDWNV",
+      "engine": "GWAVE"
+    },
+    "0A": {
+      "name": "(test)",
+      "routine": "SV3",
+      "engine": "GWAVE"
+    },
+    "0B": {
+      "name": "Ed 10",
+      "routine": "ED10",
+      "engine": "GWAVE"
+    },
+    "0C": {
+      "name": "Ed 12",
+      "routine": "ED12",
+      "engine": "GWAVE"
+    },
+    "0D": {
+      "name": "Ed 17 spinner",
+      "routine": "ED17",
+      "engine": "GWAVE"
+    },
+    "0E": {
+      "name": "Spinner #1 (per-trigger pitch)",
+      "routine": "SP1 / CABSHK",
+      "engine": "VARI"
+    },
+    "0F": {
+      "name": "Background music start",
+      "routine": "BG1",
+      "engine": "FNOISE"
+    },
+    "10": {
+      "name": "Wave-urgency ratchet",
+      "routine": "BG2INC",
+      "engine": ""
+    },
+    "11": {
+      "name": "Lightning",
+      "routine": "LITE",
+      "engine": "LFSR"
+    },
+    "12": {
+      "name": "Bonus #2 (laser-ball pickup)",
+      "routine": "BON2 / BONV",
+      "engine": "GWAVE"
+    },
+    "13": {
+      "name": "End background",
+      "routine": "BGEND",
+      "engine": ""
+    },
+    "14": {
+      "name": "Short noise burst",
+      "routine": "TURBO",
+      "engine": "LFSR"
+    },
+    "15": {
+      "name": "Enemy-appear descent",
+      "routine": "APPEAR",
+      "engine": "LFSR"
+    },
+    "16": {
+      "name": "Thrust drone",
+      "routine": "THRUST",
+      "engine": "FNOISE"
+    },
+    "17": {
+      "name": "Cannon (verbatim from Defender)",
+      "routine": "CANNON",
+      "engine": "FNOISE"
+    },
+    "18": {
+      "name": "16-byte LUT",
+      "routine": "RADIO",
+      "engine": "RADIO"
+    },
+    "19": {
+      "name": "PWM warp",
+      "routine": "HYPER",
+      "engine": "HYPER"
+    },
+    "1A": {
+      "name": "Human death cry (4-voice additive)",
+      "routine": "SCREAM",
+      "engine": "SCREAM"
+    },
+    "1B": {
+      "name": "Arm/kick tune (Beethoven 9th!)",
+      "routine": "ORGANT",
+      "engine": "ORGAN"
+    },
+    "1C": {
+      "name": "RTS placeholder",
+      "routine": "ORGANN",
+      "engine": "ORGAN"
+    },
+    "1D": {
+      "name": "Saw zap",
+      "routine": "SAW",
+      "engine": "VARI"
+    },
+    "1E": {
+      "name": "Foe-hit",
+      "routine": "FOSHIT",
+      "engine": "VARI"
+    },
+    "1F": {
+      "name": "Quasar",
+      "routine": "QUASAR",
+      "engine": "VARI"
+    },
+    "20": {
+      "name": "100-point rescue jingle",
+      "routine": "HUNV",
+      "engine": "GWAVE"
+    },
+    "21": {
+      "name": "Speedy variant",
+      "routine": "SPD",
+      "engine": "GWAVE"
+    },
+    "22": {
+      "name": "Spinner alt",
+      "routine": "SPNV",
+      "engine": "GWAVE"
+    },
+    "23": {
+      "name": "Start (YUKSND)",
+      "routine": "STRT",
+      "engine": "GWAVE"
+    },
+    "24": {
+      "name": "Spinner-1 (SP2SND)",
+      "routine": "SP1V",
+      "engine": "GWAVE"
+    },
+    "25": {
+      "name": "Sub-spinner",
+      "routine": "SSPV",
+      "engine": "GWAVE"
+    },
+    "26": {
+      "name": "Bump (BWS)",
+      "routine": "BMPV",
+      "engine": "GWAVE"
+    },
+    "27": {
+      "name": "Weirdo / electrode",
+      "routine": "WIRDV",
+      "engine": "GWAVE"
+    },
+    "28": {
+      "name": "Family-rescue jingle (\"good yuk\")",
+      "routine": "GDYUKV",
+      "engine": "GWAVE"
+    },
+    "29": {
+      "name": "Back-8 cool-down",
+      "routine": "BK8",
+      "engine": "GWAVE"
+    },
+    "2A": {
+      "name": "S/F 10",
+      "routine": "SF10",
+      "engine": "GWAVE"
+    },
+    "2B": {
+      "name": "Bill 30",
+      "routine": "BIL30",
+      "engine": "GWAVE"
+    },
+    "2C": {
+      "name": "3-osc preset VEC02",
+      "routine": "SND2",
+      "engine": "PLAY"
+    },
+    "2D": {
+      "name": "3-osc preset VEC05",
+      "routine": "SND5",
+      "engine": "PLAY"
+    },
+    "2E": {
+      "name": "\"Thunder\" 3-osc",
+      "routine": "THNDR",
+      "engine": "PLAY"
+    },
+    "2F": {
+      "name": "Sing VEC08X + echoes",
+      "routine": "HSTD",
+      "engine": "SING"
+    },
+    "30": {
+      "name": "Sing VEC02X",
+      "routine": "ATARI",
+      "engine": "SING"
+    },
+    "31": {
+      "name": "Sing VEC03X\u2192VEC04X looped",
+      "routine": "SIREN",
+      "engine": "SING"
+    },
+    "32": {
+      "name": "Sing VEC05X",
+      "routine": "ORRRR",
+      "engine": "SING"
+    },
+    "33": {
+      "name": "Sing VEC06X + ECHO",
+      "routine": "PERK$$",
+      "engine": "SING"
+    },
+    "34": {
+      "name": "Random-freq sing \u2014 zap",
+      "routine": "SQRT",
+      "engine": "SING"
+    },
+    "35": {
+      "name": "\"Electric\" buzzy drone",
+      "routine": "START",
+      "engine": ""
+    },
+    "36": {
+      "name": "Diving plane (incrementing FREQ1)",
+      "routine": "PLANE",
+      "engine": "square"
+    },
+    "37": {
+      "name": "3-osc preset VEC016",
+      "routine": "SND16",
+      "engine": "PLAY"
+    },
+    "38": {
+      "name": "3-osc preset VEC017",
+      "routine": "SND17",
+      "engine": "PLAY"
+    },
+    "39": {
+      "name": "Launch sweep",
+      "routine": "LAUNCH",
+      "engine": "LFSR"
+    },
+    "3A": {
+      "name": "Crowd roar (dual noise + whistle)",
+      "routine": "CDR",
+      "engine": "CDR"
+    },
+    "3B": {
+      "name": "KNKTAB-driven thud",
+      "routine": "KNOCK",
+      "engine": "KNOCK"
+    },
+    "3C": {
+      "name": "Air-raid siren",
+      "routine": "ZIREN",
+      "engine": "ZIREN"
+    },
+    "3D": {
+      "name": "\"OOOOH NOOOO\" falling sine",
+      "routine": "WHIST",
+      "engine": "WHIST"
+    },
+    "3E": {
+      "name": "H-bomb noise",
+      "routine": "HBOMB",
+      "engine": "FNOISE"
+    },
+    "3F": {
+      "name": "Mosquito high tone",
+      "routine": "MOSQTO",
+      "engine": "VARI"
+    }
+  },
+  "terms": {
+    "GWAVE": {
+      "title": "GWAVE \u2014 wavetable engine",
+      "what": "Reads samples from a small ROM lookup table (sine, square, harmonic mix) in a phase-accumulator loop.",
+      "how": "Inner loop walks an index X across a length-prefixed LUT, dwelling GPER cycles per sample. Frequency comes from a pattern table; envelopes come from RAM-copy decay (WVDECA).",
+      "where": "Most reused engine on the board. Drives HBDV (heartbeat), STDV (start swell), bonus chimes, lander deaths, etc."
+    },
+    "LFSR": {
+      "title": "LFSR \u2014 linear-feedback shift register",
+      "what": "A 16-bit pseudo-random bit generator: XOR taps on bits 0 and 3 feed back into the top, giving a 65 535-step repeating noise sequence.",
+      "how": "On each clock the high byte rotates right through carry; the carry comes from XORing two low-byte bits. Noise routines feed the carry (or the whole word) to the DAC for sweeping noise.",
+      "where": "LITE (lightning), APPEAR (enemy appear), TURBO (noise burst), and as the bit-source feeding NOISE/FNOISE."
+    },
+    "LITEN": {
+      "title": "LITEN \u2014 LFSR inner-loop helper",
+      "what": "The shared LFSR-clock subroutine that LITE / APPEAR / TURBO call repeatedly.",
+      "how": "Each call advances the 16-bit shift register once, leaves the new carry in C, and (in LITE's case) `COM SOUND` toggles the DAC byte.",
+      "where": "Defender / Stargate / Robotron all share this routine. Centre of the lightning-style sounds."
+    },
+    "VARI": {
+      "title": "VARI \u2014 variable-duty-cycle square",
+      "what": "Pitch-modulating square-wave engine. Two timers (LOPER, HIPER) set how long the DAC sits at each level.",
+      "how": "Inner loop alternately holds the DAC high for HIPER counts, then low for LOPER counts. Both timers can ramp over the sound's lifetime to slide pitch + duty.",
+      "where": "SAW (descending saw), FOSHIT (foe-hit), QUASAR (zap), spinner sounds, MOSQTO (Robotron)."
+    },
+    "FNOISE": {
+      "title": "FNOISE \u2014 slope-limited filtered noise",
+      "what": "DAC walk-toward-target noise. Each step nudges the DAC value by a small amount toward an LFSR-derived target, producing band-limited (gravelly, not bright) noise.",
+      "how": "Read LFSR \u2192 target; step DAC by \u00b11 (or \u00b1N) toward it; repeat. The slope limit kills the highest noise frequencies.",
+      "where": "Thrust drone, cannon, background buzzes, BG1/BG2 droning."
+    },
+    "RADIO": {
+      "title": "RADIO \u2014 short LUT playback",
+      "what": "A 16-byte table played back as DAC samples, looped. Sounds like clipped speech without actually being speech.",
+      "how": "Sequential read of `RDPAT` (16 bytes) at a fixed sample rate; the discontinuities are the character.",
+      "where": "Defender's $18 RADIO \u2014 the iconic 'something-is-happening' chatter."
+    },
+    "HYPER": {
+      "title": "HYPER \u2014 pulse-width-modulated sweep",
+      "what": "PWM warp effect: the DAC alternates between two values at a rate that sweeps over time, creating a 'tearing-time' warble.",
+      "how": "Two nested counters: outer one moves the inner one's threshold, varying the duty cycle from 0% to 100% and back.",
+      "where": "Hyperspace warp ($19) in Defender / Stargate / Robotron."
+    },
+    "SCREAM": {
+      "title": "SCREAM \u2014 4-voice additive synthesis",
+      "what": "Four independent phase accumulators are summed per sample and the high byte is written to the DAC. Audibly: drifting, beating tones.",
+      "how": "Four (phase, increment) pairs in RAM; each increment shifts pitch over the sound's duration. Sum overflow is OK \u2014 that's the bit-crusher character.",
+      "where": "Death scream ($1A) \u2014 also reused for Stargate's Inviso event."
+    },
+    "ORGAN": {
+      "title": "ORGAN \u2014 multi-note tune engine",
+      "what": "Plays sequences of notes with per-note pitch and duration. Uses a wavetable underneath (similar to GWAVE) but with a tune-data interpreter on top.",
+      "how": "Tune table is a list of (note, duration) pairs. Each note sets a GPER and a sample count; the engine loops the wavetable that many times before advancing.",
+      "where": "Defender's PHANTOM and TACCATA; Stargate's FIFTH (CE3K) and NINTH; Robotron has its own polyphonic ORGAN with popcount mixing."
+    },
+    "BG": {
+      "title": "BG \u2014 background drone",
+      "what": "Persistent low-volume noise played continuously between other sounds. The 'arcade ambience' under everything.",
+      "how": "FNOISE-driven; the IRQ handler's BG poll runs whenever no foreground command is active.",
+      "where": "BG1 (background start), BG2INC (turbine ratchet that raises BG pitch), BGEND (silence the background)."
+    },
+    "PWM": {
+      "title": "PWM \u2014 pulse-width modulation",
+      "what": "Encoding a value by varying how long a high-vs-low pulse stays at each level. The duty cycle (high-fraction) controls amplitude/timbre.",
+      "how": "On the Williams board this means alternating two DAC values at fast rates; the ratio (1.45 \u03bcs resolution) varies over time.",
+      "where": "VARI engine and the HYPER warp use PWM mechanics in different ways."
+    },
+    "DAC": {
+      "title": "DAC \u2014 digital-to-analog converter",
+      "what": "The MC1408 8-bit DAC at PIA Port A. Each byte the CPU writes (`STAA $0400`) becomes a voltage on the speaker amplifier input.",
+      "how": "256 voltage levels (0x00 = full-negative, 0x80 = mid-rail/silence, 0xFF = full-positive) followed by a single-pole ~10 kHz reconstruction filter (1458 op-amp).",
+      "where": "All Williams sounds work by streaming bytes to this single 8-bit DAC; no on-chip mixer, no separate channels."
+    },
+    "PIA": {
+      "title": "PIA \u2014 MC6821 peripheral interface adapter",
+      "what": "The chip that wires the sound CPU to the DAC and to the main-CPU command latch.",
+      "how": "Port A = DAC byte (output). Port B = 6-bit command latch (input from main CPU). The CA1 line strobes /IRQ when a new command lands.",
+      "where": "Memory-mapped at $0400-$0403 on every Williams sound board (and mirrored at $8400 \u2014 bit 15 is ignored by the decoder)."
+    },
+    "IRQ": {
+      "title": "IRQ \u2014 interrupt request",
+      "what": "Hardware signal that pre-empts the CPU and vectors it to a handler. On the sound board, IRQ = 'a new command arrived in PIA Port B.'",
+      "how": "PIA's CA1 line goes high when the main CPU writes Port B. The 6802 pushes its registers and jumps via $FFF8/9 to the per-game IRQ handler. Reading Port B inside the handler clears CA1.",
+      "where": "Every sound starts with an IRQ. The handler reads the command, dispatches to a per-code routine (LITE / HBDV / etc.), runs the sound to completion, then RTIs back to the BRA-self idle loop."
+    },
+    "BRA-self": {
+      "title": "BRA-self idle loop",
+      "what": "A two-byte `BRA *` (branch to itself) instruction that the sound CPU sits on when no sound is playing.",
+      "how": "Williams' main loop after SETUP is literally `LOOP: BRA LOOP`. CPU spins here, waiting for the next IRQ.",
+      "where": "Defender / Stargate / Robotron all use the same idiom. The explorer detects it for 'idle' classification."
+    },
+    "ZOH": {
+      "title": "ZOH \u2014 zero-order hold",
+      "what": "Resampling rule: between two known sample times, hold the previous value flat until the next change.",
+      "how": "Models a physical sample-and-hold DAC ladder: the analogue voltage stays where it was until the CPU writes a new byte.",
+      "where": "Used in both the offline `renderDacEvents` resampler and the realtime `fillBlock` per-sample loop."
+    },
+    "LPF": {
+      "title": "LPF \u2014 low-pass filter",
+      "what": "Audio filter that attenuates frequencies above its cutoff. On Williams hardware, a single-pole RC filter at ~10 kHz tames the DAC stair-step.",
+      "how": "Single-pole IIR: y[n] = \u03b1\u00b7x[n] + (1\u2212\u03b1)\u00b7y[n\u22121]. \u03b1 derived from cutoff Hz + sample rate; cutoff ~10 kHz matches the 1458 op-amp's analogue tail.",
+      "where": "Both offline (`synth/lpf.ts`) and realtime (`audio/realtimeRunner.ts`) apply it inline. Doesn't kill DAC aliasing entirely \u2014 that's part of the iconic Williams grit."
+    },
+    "WVDECA": {
+      "title": "WVDECA \u2014 wavetable decay",
+      "what": "Subtractive amplitude envelope: instead of multiplying samples by a gain factor, decay a working RAM copy of the wavetable.",
+      "how": "Each echo iteration subtracts a small amount from each sample (`working[i] -= original[i] >> 4 * decay`) with intentional 8-bit wrap-around \u2014 the wrap is what gives later iterations the 'glitched' timbre.",
+      "where": "GWAVE family. Heartbeat echoes, bonus chimes, lander deaths."
+    },
+    "6802": {
+      "title": "6802 \u2014 the sound CPU",
+      "what": "Motorola 6802: a 6800 core with 128 bytes of on-chip RAM, clocked at 894 886 Hz on the Williams sound board.",
+      "how": "Runs a tiny ROM program (2 KB Defender/Stargate, 4 KB Robotron). No timers or sound hardware \u2014 it makes sound purely by writing bytes to the DAC at cycle-counted intervals.",
+      "where": "Every sound is this CPU executing a per-command routine. Its 128-byte zero page is the working RAM you see in the heatmap."
+    },
+    "CA1": {
+      "title": "CA1 \u2014 PIA interrupt strobe",
+      "what": "The PIA control line that fires the CPU's IRQ when the main game CPU drops a new command into Port B.",
+      "how": "A Port-B write pulses CA1; the PIA latches an interrupt flag and asserts /IRQ. Reading Port B inside the handler clears the flag.",
+      "where": "The trigger behind every sound \u2014 see IRQ and PIA."
+    },
+    "mid-rail": {
+      "title": "mid-rail \u2014 the silence level ($80)",
+      "what": "The DAC's center value, $80. Output swings above it (toward $FF) and below it (toward $00); sitting at $80 is silence.",
+      "how": "Because the amp is AC-coupled, only *changes* around mid-rail are heard. Sounds end by parking the DAC near $80.",
+      "where": "The Eye byte-tape and oscilloscope draw symmetrically around mid-rail; the RAM heatmap's SOUND cell rests here when idle."
+    },
+    "AC-coupling": {
+      "title": "AC-coupling \u2014 the amp's DC blocker",
+      "what": "A series capacitor on the amplifier input that passes audio but blocks any steady DC offset left on the DAC.",
+      "how": "Modeled in the explorer as a ~5 Hz high-pass between the gain stage and the output, so a sound that ends parked away from mid-rail fades to silence instead of leaving a click/hum.",
+      "where": "Why the spectrogram goes dark after a sound ends rather than painting a persistent DC band."
+    },
+    "phase accumulator": {
+      "title": "phase accumulator \u2014 the pitch counter",
+      "what": "A running counter whose high bits index a wavetable; the increment added each step sets the pitch.",
+      "how": "Bigger increment \u2192 the index advances faster \u2192 higher pitch. Letting the accumulator overflow wraps cleanly back to the table start.",
+      "where": "The mechanism under GWAVE (one accumulator) and SCREAM (four summed accumulators)."
+    },
+    "duty cycle": {
+      "title": "duty cycle \u2014 high-fraction of a square wave",
+      "what": "The proportion of each cycle the DAC sits high versus low. 50% is a symmetric square; skewed ratios change the timbre.",
+      "how": "VARI holds the DAC high for HIPER counts then low for LOPER counts; the HIPER:LOPER ratio is the duty cycle, and ramping the two timers slides pitch and timbre together.",
+      "where": "The VARI engine pane's duty-cycle preview; PWM effects."
+    },
+    "popcount": {
+      "title": "popcount \u2014 set-bit count",
+      "what": "The number of 1-bits in a byte. ORGAN reads it from the OSCIL mask to know how many notes are sounding at once.",
+      "how": "Each set OSCIL bit enables one oscillator; the popcount is the polyphony, and the sum of active voices is what reaches the DAC.",
+      "where": "Robotron's polyphonic ORGAN (Beethoven's 9th) \u2014 muting OSCIL bits changes the popcount and you hear voices drop out."
+    },
+    "OSCIL": {
+      "title": "OSCIL \u2014 ORGAN oscillator mask",
+      "what": "A zero-page bitmask where each set bit enables one of ORGAN's oscillators (voices).",
+      "how": "The engine sums every enabled voice per sample; clearing a bit silences that voice immediately (the basis of the ORGAN voice-mute toggles).",
+      "where": "ORGAN engine pane (the b0..b7 checkboxes) and the RAM heatmap."
+    },
+    "GPER": {
+      "title": "GPER \u2014 GWAVE period",
+      "what": "How many CPU cycles the GWAVE engine dwells on each wavetable sample before advancing \u2014 i.e. the pitch.",
+      "how": "Larger GPER \u2192 slower walk through the table \u2192 lower pitch. The pattern table updates GPER per note to play a melody.",
+      "where": "Shown in the Wavetable engine pane's caption; the GWAVE family (heartbeat, chimes, etc.)."
+    },
+    "GECHO": {
+      "title": "GECHO \u2014 GWAVE echo flag",
+      "what": "Non-zero while GWAVE is replaying its wavetable as a decaying echo rather than the initial strike.",
+      "how": "When set, the engine re-walks the table with the amplitude knocked down by WVDECA \u2014 the trailing repeats you hear after a heartbeat or chime.",
+      "where": "Caption of the Wavetable engine pane (\u25cf when echoing, \u25cb when not)."
+    },
+    "GECNT": {
+      "title": "GECNT \u2014 GWAVE echo counter",
+      "what": "How many echoes are left to play in the current GWAVE sound.",
+      "how": "Loaded per sound, decremented as each echo finishes; the sound ends (returns to idle) when it reaches zero.",
+      "where": "Caption of the Wavetable engine pane."
+    },
+    "GECDEC": {
+      "title": "GECDEC \u2014 decays per echo",
+      "what": "How many WVDECA decay passes run on the wavetable between echoes \u2014 sets how fast the timbre fades.",
+      "how": "Higher GECDEC = more amplitude subtracted per echo = a faster-dying sound.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "GWFRM": {
+      "title": "GWFRM \u2014 waveform address",
+      "what": "16-bit pointer to the source waveform bytes GWAVE copies into the live $24..$6B table.",
+      "how": "Set per sound from a preset table (sine, square, harmonic mix, \u2026); the copy is what WVDECA then mutates in place for echoes.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "GWFRQ": {
+      "title": "GWFRQ \u2014 frequency-table address",
+      "what": "16-bit pointer into the per-note pitch (GPER) pattern table the GWAVE melody steps through.",
+      "how": "Each note advances the pointer; the value read becomes the next GPER (dwell-per-sample), so this table *is* the tune.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "FOFSET": {
+      "title": "FOFSET \u2014 frequency offset",
+      "what": "Signed value added to each note's period \u2014 transposes the whole GWAVE melody up or down.",
+      "how": "Applied as the pattern table is read; negative raises pitch (shorter period), positive lowers it.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "GDFINC": {
+      "title": "GDFINC \u2014 delta-frequency increment",
+      "what": "Per-step amount added to the running pitch delta, gliding GWAVE's pitch across a note.",
+      "how": "Accumulated each sample so the period drifts smoothly instead of jumping \u2014 the source of GWAVE's slides/swells.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "PRDECA": {
+      "title": "PRDECA \u2014 pre-decay factor",
+      "what": "Amount the WVDECA pass subtracts from the wavetable amplitude before each echo.",
+      "how": "Bigger PRDECA = the echoes lose volume faster; the knob behind the characteristic decaying timbre.",
+      "where": "Footer of the Wavetable engine pane."
+    },
+    "LOPER": {
+      "title": "LOPER \u2014 VARI low period",
+      "what": "How long (in counts) the VARI engine holds the DAC at its low level each cycle.",
+      "how": "Paired with HIPER: the LOPER:HIPER ratio is the duty cycle and their sum is the period (pitch). LODT/LOMOD ramp LOPER over the sound's life, sliding pitch + timbre. The VARI pane's blue 'LO' bar is LOCNT counting down from LOPER.",
+      "where": "VARI engine \u2014 SAW, FOSHIT, QUASAR, spinner sounds. Zero page $13 (Defender/Stargate), $12 (Robotron)."
+    },
+    "HIPER": {
+      "title": "HIPER \u2014 VARI high period",
+      "what": "How long (in counts) the VARI engine holds the DAC at its high level each cycle.",
+      "how": "Paired with LOPER to set the square wave's duty cycle and period. HIDT ramps it over the sound's life. The VARI pane's green 'HI' bar is HICNT counting down from HIPER.",
+      "where": "VARI engine. Zero page $14 (Defender/Stargate), $13 (Robotron)."
+    },
+    "envelope": {
+      "title": "envelope \u2014 amplitude over time",
+      "what": "The loudness contour of a sound from onset to decay. The Williams board has no dedicated envelope generator.",
+      "how": "Envelopes are faked: GWAVE decays a RAM copy of the wavetable (WVDECA), VARI ramps its timers, and tune engines just stop writing. The shape is baked into the routine.",
+      "where": "Why each sound's tail sounds the way it does \u2014 see WVDECA for the GWAVE case."
+    },
+    "SETUP": {
+      "title": "SETUP \u2014 boot routine",
+      "what": "The code each ROM runs from reset: initialise the stack, clear RAM, then drop into the idle loop.",
+      "how": "Runs once at power-on (or when the explorer loads a game), then falls into BRA-self to wait for the first command.",
+      "where": "The first lane in the Stage swimlane before any sound fires."
+    },
+    "RTI": {
+      "title": "RTI \u2014 return from interrupt",
+      "what": "The 6800 instruction that ends an IRQ handler, restoring the registers saved when the interrupt fired.",
+      "how": "Pops CCR, B, A, X, and PC off the stack in order, resuming exactly where the CPU was \u2014 which on this board is the BRA-self idle.",
+      "where": "The last instruction of every sound's handler; the '\u25b8 IRQ' step lands just after the previous RTI."
+    },
+    "FFT": {
+      "title": "FFT \u2014 fast Fourier transform",
+      "what": "An algorithm that decomposes a slice of the output waveform into its frequency components.",
+      "how": "The explorer feeds the post-volume signal through a Web Audio AnalyserNode (which runs an FFT) and scrolls the magnitudes as the spectrogram \u2014 low frequencies at the bottom, high at the top.",
+      "where": "The Spectrogram panel. LITE's LFSR noise shows up as a broadband upward sweep."
+    }
+  }
+}

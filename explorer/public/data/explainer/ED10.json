@@ -1,0 +1,22 @@
+{
+  "title": "ED10 — Experimental GWAVE sound #10",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "One of three 'ED' (experimental development) GWAVE presets — `ED10`, `ED12`, `ED17` — likely named for the developer's per-test-build sequence. Each is a GWAVE preset with a unique combination of wavetable + echoes + pattern.",
+  "how": "The Defender source contains three sounds named `ED10`, `ED12`, `ED17` — the numbers don't match command codes (ED10 lives at $0B, ED12 at $0C, ED17 at $0D). Best guess: these are 'experimental sound, build #10/#12/#17' — leftover test sounds that survived into the released ROM because changing the dispatch table would have shifted every command code.\n\nEach has its own preset bytes in `SVTAB`; the engine code is the same GWAVE used by HBDV. Useful as A/B exploration material — fire each and compare what changes.",
+  "watch": [
+    "Standard GWAVE indicators."
+  ],
+  "code": [
+    "`ED10` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**ED12 / ED17** — companions.",
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Notable: dead/unused code",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

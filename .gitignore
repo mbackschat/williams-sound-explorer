@@ -1,0 +1,23 @@
+.DS_Store
+*.log
+
+# vasm/preprocessor intermediates
+tools/build/
+tools/vasm-build/
+tools/VSNDRM*.s68
+tools/VSNDRM*.bin
+tools/VSNDRM*.log
+tools/mwenge_*
+
+# Host-specific compiled vasm binary (built from tools/vasm-build/)
+tools/vasm6800_oldstyle
+
+# Rendered WAVs from tools/render_sound.ts
+out/
+
+# NOTE: `research/` is a PRIVATE git submodule (ROM source + findings +
+# assembled roms/*.bin).  It is NOT ignored (it's a tracked
+# submodule gitlink), and its contents are never committed to the public repo.
+
+# Local Claude Code settings (machine-specific)
+.claude/

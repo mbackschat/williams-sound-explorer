@@ -1,0 +1,20 @@
+{
+  "title": "BON2 — Bonus #2 (re-trigger optimised)",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A GWAVE preset specifically tuned for fast re-triggering — short, snappy, deterministic. Used when the game wants to *play it again* immediately if the player keeps banking bonuses.",
+  "how": "BON2 (also documented as `BONV`) is GWAVE with a small preset footprint: short `GECHO`, deterministic pitch pattern, minimal `WVDECA` impact. The point is consistency — the game CPU can fire it repeatedly without the player noticing 'previous one is still echoing'.",
+  "watch": [
+    "Stage swimlane — re-fire `$12` rapidly and watch BON2 bands stack with minimal overlap."
+  ],
+  "code": [
+    "`BON2` preset in `SVTAB`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

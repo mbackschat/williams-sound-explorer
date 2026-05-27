@@ -1,0 +1,24 @@
+{
+  "title": "BBSV — Big-Ben chime",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Sine wavetable + 15 echoes (the largest `GECHO` in any preset) + slow `WVDECA` decay. Produces the long, slowly-fading 'bell' sound — a literal Big Ben evocation.",
+  "how": "BBSV's distinctive feature is *15* echo iterations — `GECHO=15` in the preset, vs HBDV's 8. Each echo plays the same GS72 sine wavetable with `WVDECA` halving the amplitude. Half-amplitude per echo means after 15 echoes the level is 2^-15 = effectively silent.\n\nThe pitch pattern uses a small `FOFSET` modulation that creates a subtle 'bell partials' coloration as different harmonics of the sine fade at slightly different rates.",
+  "watch": [
+    "GWAVE engine view's `GECNT` countdown — starts at 15 and counts down slowly.",
+    "Wavetable bars halving each pass thanks to WVDECA.",
+    "Try toggling **Skip WVDECA** (Pattern 3) — the chime sustains at full amplitude forever."
+  ],
+  "code": [
+    "`BBSV` preset in `SVTAB` — `GECHO=15`.",
+    "Same engine as HBDV."
+  ],
+  "see": [
+    "[MANUAL.md](MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — Skip WVDECA experiment.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

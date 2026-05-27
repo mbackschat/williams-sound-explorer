@@ -1,0 +1,26 @@
+{
+  "title": "LITE — Lightning sweep",
+  "engine": "LFSR",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A 16-bit linear-feedback shift register clocked at LFREQ rate. Its bottom bit drives the DAC's MSB, producing broadband white-noise that sweeps as LFREQ decays.",
+  "how": "An LFSR is the simplest noise source a CPU can implement: a shift register where a feedback bit (computed by XORing two specific taps) gets shoved into the high end as the rest shifts down. With a well-chosen tap pattern the register cycles through 2^16 − 1 distinct states before repeating, which is long enough to *sound* random.\n\nLITE keeps the shift register at `$09/$0A` (HI/LO). Every iteration it computes the feedback bit, shifts, and writes the bottom bit of the result to the DAC's most-significant bit. So the speaker swings between roughly +full and 0 at a rate set by `LFREQ` — the cycle-counter that controls how often the LFSR advances.\n\n`LFREQ` itself decays over the course of the sound (the iconic 'pitch dropping' part of the lightning sweep). When `CYCNT` runs out, the sound ends and the CPU returns to its `BRA *` idle.",
+  "watch": [
+    "Code panel's `LFSR:` line — shows the 16-bit register `state`, the just-output `bitOut`, the `lfreq` divider, and `cycnt` (outer counter).",
+    "Spectrogram — broadband noise sweep upward as `LFREQ` decreases.",
+    "Byte tape — every DAC write is `$00` or `$FF` (pure ±full), nothing in between."
+  ],
+  "code": [
+    "`LITE` at `$F88C` (Defender) / `$F55C` (Robotron) — entry point: arm the LFSR and set initial `LFREQ`/`CYCNT`.",
+    "`LITEN` — inner loop that decrements `LFREQ` and shifts the register on each pass.",
+    "Source: `VSNDRM1.SRC:250` (Defender), `VSNDRM3.SRC:828` (Robotron)."
+  ],
+  "see": [
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §LFSR-noise",
+    "[MANUAL.md](MANUAL.md#tutorial-2--slow-down-lite-watch-the-lfsr-shift) Tutorial 2 — slow down LITE",
+    "[MANUAL.md](MANUAL.md#tutorial-6--freeze-the-lfsr-whats-noise-without-the-shift) Tutorial 6 — Freeze the LFSR"
+  ]
+}

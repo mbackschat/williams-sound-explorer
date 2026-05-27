@@ -1,0 +1,22 @@
+{
+  "title": "ORGANN — Organ note (Defender only; multi-byte protocol)",
+  "engine": "ORGAN",
+  "games": [
+    "defender"
+  ],
+  "tldr": "A *four-byte* command sequence. `$1C` alone just arms `ORGFLG = 3`; the next three IRQs deliver `osc-hi / osc-lo / note#` data bytes that build up the OSCIL bitmask + note. Lets Defender's main CPU compose ad-hoc organ notes outside the pre-built ORGTAB tunes. Gutted to a single `RTS` on Stargate and Robotron.",
+  "how": "Defender's `$1C` is `LDAA #3; STAA ORGFLG; RTS` — sets the flag and bails. The IRQ tail then takes a *different* branch in the ORG-flag check: positive ORGFLG → `JSR ORGNN1`, which DECs ORGFLG, shifts OSCIL left by 4 bits, and ORs in the latest command byte. After three more IRQs (each fed a data byte by the game CPU), ORGFLG hits 0 and ORGNN2 actually plays the assembled note via the same OSCIL+RDELAY engine that ORGANT uses.\n\nThe explorer's cmdInfo panel renders a small picker (osc / dly / note) on Defender so you can fire all 4 bytes in sequence with one click.",
+  "watch": [
+    "ORGAN engine view's OSCIL byte building up over 3 successive IRQ ticks.",
+    "Stage swimlane — three quick `ORGNN1` bands followed by ORGNN2 → ORGANL → ORGAN1.",
+    "On Stargate / Robotron firing `$1C` is silent — the routine is a `RTS` placeholder."
+  ],
+  "code": [
+    "`ORGANN` at the Defender ORGAN entry (`VSNDRM1.SRC:554`) — `LDAA #3; STAA ORGFLG; RTS`.",
+    "`ORGNN1` / `ORGNN2` — the multi-IRQ note-builder."
+  ],
+  "see": [
+    "**ORGANT** ($1B) — sibling, plays pre-built tunes from ORGTAB.",
+    "[MANUAL.md](MANUAL.md#common-pitfalls) — note that Stargate/Robotron `$1C` is gutted."
+  ]
+}

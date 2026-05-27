@@ -1,0 +1,24 @@
+{
+  "title": "STDV — Start fanfare swell",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "GWAVE preset for the wave-start fanfare: a rising-then-falling sine sweep on the GS72 wavetable, fewer echoes than HBDV but with a smoother attack envelope.",
+  "how": "Same GWAVE engine as HBDV — different preset bytes in `SVTAB`. STDV picks the smooth 72-byte sine wavetable (GS72) and a pitch pattern that climbs through the GFRTAB indices before falling back — the 'fanfare swell' arc.\n\nThe `FOFSET` modulator drives the rise-then-fall: each echo iteration adjusts the GFRTAB lookup index by a +N then -N delta sequence, so the *same* wavetable plays at progressively higher pitches before reversing.",
+  "watch": [
+    "GWAVE wavetable view — bars stay smooth (sine) instead of stepping (HBDV's square).",
+    "`FOFSET` ticking up then down across the echo iterations.",
+    "Spectrogram — rising-then-falling pitch arc."
+  ],
+  "code": [
+    "`STDV` preset in `SVTAB` (Defender). See `docs/defender_sound_catalogue.md` §GWAVE presets for the byte breakdown.",
+    "Same `GWLD` → `GWAVE` engine code as HBDV."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card.",
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §GWAVE preset details"
+  ]
+}

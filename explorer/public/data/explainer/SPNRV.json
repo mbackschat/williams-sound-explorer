@@ -1,0 +1,23 @@
+{
+  "title": "SPNRV — Spinner drip",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Minimal GWAVE preset: `GPER=$40`, only 5 echo cycles. The brief tonal blip when you nudge the spinner — repeats fast enough to feel like a continuous interaction.",
+  "how": "SPNRV is engineered to fire *often* and *briefly*. Its `GPER` (period) is a single value of $40 — no pattern walking — and `GECHO=5` keeps total duration to a few tens of ms. The game CPU re-triggers it on every spinner tick during gameplay.\n\nThis is the GWAVE equivalent of a 'sample' — predictable, short, parameter-less.",
+  "watch": [
+    "GWAVE engine view — `GPER=$40` stable across all 5 echoes, no FOFSET modulation.",
+    "Stage swimlane — brief band of SPNRV that re-appears whenever the spinner is moved."
+  ],
+  "code": [
+    "`SPNRV` preset in `SVTAB`.",
+    "Often fired by spinner-handler code in the main game CPU."
+  ],
+  "see": [
+    "**SP1 / CABSHK** ($0E) — VARI-side spinner sound for the same gesture.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

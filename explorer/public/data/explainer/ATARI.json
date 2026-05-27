@@ -1,0 +1,18 @@
+{
+  "title": "ATARI — SING engine with VEC02X (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "SING preset using `VEC02X` — possibly an homage to a specific Atari arcade sound (the name suggests so).",
+  "how": "Single-oscillator SING engine with the `VEC02X` parameter block. Different envelope / pitch shape than HSTD.",
+  "watch": [
+    "SING engine readouts; A/B against HSTD."
+  ],
+  "code": [
+    "`ATARI` dispatch → `VEC02X` → `SING`."
+  ],
+  "see": [
+    "**HSTD** — canonical SING card."
+  ]
+}

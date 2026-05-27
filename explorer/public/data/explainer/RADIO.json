@@ -1,0 +1,22 @@
+{
+  "title": "RADIO — Radio chatter",
+  "engine": "RADIO",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A 16-byte sample loop, read repeatedly and output to the DAC. Not a *synthesis* engine — actual sampled audio (a 16-byte LUT) played back at fixed rate. The intercom-static chatter Defender uses for cinematic moments.",
+  "how": "Unlike LFSR / VARI / GWAVE / FNOISE which *generate* samples algorithmically, RADIO simply loops over a small lookup table (`RADSND`) and writes each byte to the DAC. The 16 bytes (`$8C, $5B, $B6, $40, $BF, $49, $A4, $73, $73, $A4, $49, $BF, $40, $B6, $5B, $8C`) form a symmetric waveform that approximates radio-static-like noise when looped fast.\n\nThis is the closest thing to a 'sample' in the Williams sound ROM — and at 16 bytes, the smallest one possible.",
+  "watch": [
+    "Byte tape — repeating 16-byte pattern visible as a steady cycle.",
+    "Stage swimlane — single `RADIO` band for the duration."
+  ],
+  "code": [
+    "`RADIO` routine + `RADSND` 16-byte LUT.",
+    "Source: `VSNDRM1.SRC:1020` (`RADSND` LUT) and the RADIO routine entry."
+  ],
+  "see": [
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §RADIO"
+  ]
+}

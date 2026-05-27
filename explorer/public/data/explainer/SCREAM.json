@@ -1,0 +1,25 @@
+{
+  "title": "SCREAM — Death scream",
+  "engine": "SCREAM",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Four detuned voices summed at the DAC. Each voice cascades into the next as its FREQ counts down to a trigger threshold — what you hear is voices entering one by one and decaying at slightly different rates.",
+  "how": "SCREAM (Robotron `$1A`) is a 4-voice additive synthesiser. The state lives at `STABLE` ($12) as 4 × (FREQ, TIMER) pairs. The inner loop walks all 4 voices each iteration: `TIMER += FREQ`; if the result is negative (bit 7 set), add an amplitude value to the output accumulator. After 4 voices, write the accumulated sum to the DAC.\n\nEach voice's amplitude is *half* the previous one (`LSR TEMPA` shrinks the contribution per voice). So voice 0 contributes 128, voice 1 contributes 64, voice 2 contributes 32, voice 3 contributes 16 — the classic 'first voice dominates, others colour' arrangement.\n\nThe cascade: SCREAM starts with voice 0's FREQ at `$40` and the others at 0. Each outer-loop iteration the active voices' FREQ values are decremented (`DEC FREQ,X`). When a voice's FREQ reaches `$37`, it triggers the *next* voice by writing `$41` to its FREQ cell — so voice 1 starts a few hundred ms after voice 0, voice 2 a few hundred ms after that, etc. The 'swarm of detuned voices' effect.",
+  "watch": [
+    "SCREAM engine view — four phase wheels (one per voice) + paired FREQ/TIMER bars. Watch the voices spawn one at a time.",
+    "Try the **Build-up ↑** / **Tear-down ↓** sequencer in the SCREAM pane — mutes individual voices on a 700 ms timer so you can hear each contribution in isolation.",
+    "Voice mute checkboxes — Pattern 4 control gates each voice's TIMER write so its `ADDA TIMER,FREQ` stays positive → no contribution to the DAC sum."
+  ],
+  "code": [
+    "`SCREAM` at `$F87A` (Robotron) — preset init: zero all FREQ/TIMER, set voice 0's FREQ to `$40`.",
+    "`SCREM3` — inner per-voice loop: TIMER += FREQ, BPL skip, ADDB TEMPA.",
+    "`SCREM5..SCREM7` — outer per-voice loop: decrement each FREQ, trigger next voice if `FREQ == $37`.",
+    "Source: `VSNDRM3.SRC:1290`."
+  ],
+  "see": [
+    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §SCREAM",
+    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — Pattern 5 sliders",
+    "Pattern 4 voice mute — turn voices on/off one at a time"
+  ]
+}

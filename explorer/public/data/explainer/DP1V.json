@@ -1,0 +1,24 @@
+{
+  "title": "DP1V — Sweep blip",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Minimal GWAVE preset: a 1-byte pitch pattern (`DP1SND`) plus a constant +1 slide on every iteration. The short upward 'blip' that punctuates UI interactions.",
+  "how": "DP1V is the simplest possible GWAVE configuration that still sweeps. Where HBDV uses a 22-step pattern table and 8 echoes, DP1V has just **one byte** in its pattern and a tiny `GDFINC` (+1) that nudges the frequency offset up each iteration.\n\nResult: a brief upward chirp. Useful as a 'something just happened' notifier — bonuses, level changes — without the dramatic envelope of HBDV.",
+  "watch": [
+    "GWAVE pattern table — only 1 byte long; the engine cycles through it once per echo.",
+    "`GDFINC` = +1 — the linear pitch climb.",
+    "Total duration: tens of ms only."
+  ],
+  "code": [
+    "`DP1V` preset + `DP1SND` 1-byte pattern in `SVTAB` (Defender).",
+    "Same `GWAVE` engine code as HBDV."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card.",
+    "**XBV** ($04) — similar simple climb but louder/longer."
+  ]
+}

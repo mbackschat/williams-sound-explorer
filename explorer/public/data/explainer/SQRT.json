@@ -1,0 +1,20 @@
+{
+  "title": "SQRT — Random-frequency SING zap (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "SING engine with the frequency seeded from the LFSR random source — every fire produces a different pitch. The \"zap\" with unpredictable timbre.",
+  "how": "Before invoking SING, SQRT reads from the `RANDOM` cell (the LFSR's LO byte, conveniently a free random source) and uses it as the initial frequency. So each fire of `$34` gives a different note — useful for variety in what would otherwise be a repetitive enemy-zap sound.",
+  "watch": [
+    "Fire SQRT several times in a row and listen to pitch variations.",
+    "Code panel — check `RANDOM` ($06 on Robotron) cell at fire-time."
+  ],
+  "code": [
+    "`SQRT` at `VSNDRM3.SRC:622`."
+  ],
+  "see": [
+    "**HSTD** — canonical SING card.",
+    "**LITE** — the LFSR that SQRT borrows from."
+  ]
+}

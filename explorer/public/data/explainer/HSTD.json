@@ -1,0 +1,20 @@
+{
+  "title": "HSTD — SING engine with VEC08X + echoes (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron's `SING` engine — a single-oscillator synth with envelope shaping, fed by a parameter vector. HSTD uses `VEC08X` and adds an echo / repeat structure.",
+  "how": "SING is conceptually simpler than PLAY: one oscillator at a time, but with a more elaborate envelope. Each preset (`VEC08X`, `VEC02X`, etc.) supplies frequency, amplitude, decay rate, and timing parameters. The SING engine code is at `$F349` (per the labelmap).\n\nHSTD specifically adds echo behaviour — the same vector replays multiple times with diminishing amplitude.",
+  "watch": [
+    "SING-engine state cells (if exposed).",
+    "Spectrogram — single pitch with echo trail."
+  ],
+  "code": [
+    "`HSTD` dispatch → `VEC08X` → `SING`.",
+    "`SING` at `$F349` (Robotron)."
+  ],
+  "see": [
+    "**ATARI / SIREN / ORRRR / PERK / SQRT** — other SING presets."
+  ]
+}

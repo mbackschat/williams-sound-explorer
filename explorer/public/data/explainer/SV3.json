@@ -1,0 +1,21 @@
+{
+  "title": "SV3 — Test/effect (rarely used)",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A GWAVE preset in `SVTAB` that the catalogue marks as 'rarely used' — likely a developer test sound left in the ROM. Fires cleanly through the standard GWAVE engine.",
+  "how": "SV3 occupies command slot $0A but isn't referenced from documented main-CPU code paths. Its preset bytes are a generic GWAVE configuration — sine wavetable, moderate echo count, no exotic parameters. Probably an experimental variant from the development process that was kept around 'just in case'.\n\nFiring it shows what a 'baseline' GWAVE sound looks like in the explorer without any of the distinctive shape that HBDV (echo decay) or XBV (climb) carry.",
+  "watch": [
+    "All standard GWAVE engine indicators — wavetable bars, GECNT, FOFSET — nothing distinctive."
+  ],
+  "code": [
+    "`SV3` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card.",
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Notable: dead/unused code"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "_comment": "Hand-curated cross-game sound relationships. Used by the Genealogy panel (Step 5.4) to populate A/B diff with related-pair picks. 'family' groups identical or near-identical implementations across games; 'kinship' notes algorithmic descent (same engine, different parameters).",
+  "families": [
+    {
+      "name": "Lightning (LFSR)",
+      "engine": "LFSR",
+      "members": [
+        { "game": "defender", "cmd": 17, "label": "LITE" },
+        { "game": "stargate", "cmd": 17, "label": "LITE" },
+        { "game": "robotron", "cmd": 18, "label": "APPEAR" }
+      ],
+      "notes": "Defender + Stargate share the LITE engine byte-for-byte (modulo the Stargate IRQ-stub probe). Robotron's APPEAR ($12) re-uses the same LFSR routine with a different LFREQ seed."
+    },
+    {
+      "name": "Heartbeat (GWAVE)",
+      "engine": "GWAVE",
+      "members": [
+        { "game": "defender", "cmd": 1, "label": "HBDV" },
+        { "game": "stargate", "cmd": 1, "label": "HBDV" }
+      ],
+      "notes": "Heart-beat divorted-from-vermin. Both games use the same wavetable + WVDECA decay structure."
+    },
+    {
+      "name": "Variable-duty saw (VARI)",
+      "engine": "VARI",
+      "members": [
+        { "game": "defender", "cmd": 29, "label": "SAW" },
+        { "game": "stargate", "cmd": 29, "label": "SAW" }
+      ],
+      "notes": "Descending-pitch square wave produced by alternating LOCNT/HICNT countdowns with per-sweep LODT/HIDT deltas."
+    },
+    {
+      "name": "Scream (SCREAM)",
+      "engine": "SCREAM",
+      "members": [
+        { "game": "defender", "cmd": 26, "label": "SCREAM" },
+        { "game": "stargate", "cmd": 26, "label": "SCREAM" },
+        { "game": "robotron", "cmd": 26, "label": "SCREAM" }
+      ],
+      "notes": "4 detuned voices summed at the DAC, each with independently-decaying FREQ/TIMER. Present in all three games — born on Defender (whose game CPU never triggers it in play); Robotron adds per-voice seed-detune on voice spawn for the swarm-of-echoes effect."
+    },
+    {
+      "name": "Organ (ORGAN)",
+      "engine": "ORGAN",
+      "members": [
+        { "game": "defender", "cmd": 27, "label": "ORGANT (Phantom / Taccata)" },
+        { "game": "stargate", "cmd": 27, "label": "ORGANT (Fifth / Ninth)" },
+        { "game": "robotron", "cmd": 27, "label": "ORGANT (Beethoven 9th)" },
+        { "game": "defender", "cmd": 28, "label": "ORGANN (one-note)" },
+        { "game": "robotron", "cmd": 28, "label": "ORGANN (one-note)" }
+      ],
+      "notes": "Polyphonic via OSCIL bitmask popcount; the RDELAY scratchpad mutates per tune step. In all three games — Defender plays PHANTOM / TACCATA, Stargate & Robotron play Fifth / Ninth (the famous wave-start jingle). Stargate's ORGANN ($1C) is gutted to a no-op stub."
+    }
+  ],
+  "_format_notes": "members[].cmd is the DECIMAL command code (so $1A = 26). The A/B panel converts decimal → hex display on the way in."
+}

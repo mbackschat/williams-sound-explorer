@@ -1,0 +1,19 @@
+{
+  "title": "WHIST — \"OOOOH NOOOO\" falling sine (Robotron)",
+  "engine": "WHIST",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Hand-coded routine producing a descending sine-ish whistle — the comedic \"ohhh nooo\" sound when something bad happens. Possibly a riff on the falling-bomb-whistle trope.",
+  "how": "Custom routine that walks a sine-shape sample table while reducing the playback rate — sine pitch drops continuously. Possibly uses a per-iteration `LDX` into a small sine LUT with `GPER` slowly increasing.",
+  "watch": [
+    "Spectrogram — descending pure tone."
+  ],
+  "code": [
+    "`WHIST` at the `$3D` dispatch entry (Robotron)."
+  ],
+  "see": [
+    "**PLANE** — similar descending tone but square-wave instead of sine.",
+    "**PROTV** — GWAVE-side descending sound."
+  ]
+}

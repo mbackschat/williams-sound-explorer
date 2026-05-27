@@ -1,0 +1,27 @@
+{
+  "title": "HBDV — Heartbeat distorto",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A 72-byte wavetable read repeatedly through a pitch pattern, with each echo iteration self-decaying via `WVDECA`. The iconic low pulsing 'heartbeat' that opens Defender.",
+  "how": "GWAVE is the most elaborate of Williams' engines: a programmable wavetable synthesiser with pitch sequencing, echo decay, and frequency offset. `HBDV` (Heartbeat distorto) configures it with a particular preset — a low square-ish wavetable, a pitch pattern (`HBDSND`) that drops the pitch step by step across each beat, and a non-trivial `GECHO` count so the pulse repeats while `WVDECA` halves the wavetable's amplitude each pass.\n\nThe inner loop walks the X register through `GWTAB` ($24..$6B = 72 bytes of live wavetable RAM), writing each byte to the DAC. The *speed* of that walk is set by `GPER` (period). After each pass through the table, `GWAVE` decrements `GECNT`; when zero, it runs `WVDECA` which shifts every wavetable byte right by one — so the next echo plays the same shape but half-amplitude. That's the 'distorto' decaying character.\n\nThe pitch pattern (`HBDSND`) is a sequence of single-byte values added to `FOFSET` each iteration; those values are step *deltas* in the lookup into the master frequency table `GFRTAB`. So the pitch isn't directly the bytes — it's an index advance per beat.",
+  "watch": [
+    "GWAVE engine view — 72-bar wavetable bar chart with yellow cursor on the live sample index. Watch the bars *decay* each echo as WVDECA shifts them right.",
+    "`GPER` (period), `GECHO` (echo iterations remaining), `FOFSET` (current pitch offset).",
+    "Spectrogram — characteristic 'pulsing' harmonic stack at the heartbeat rate."
+  ],
+  "code": [
+    "`GWLD` — loader: copies the preset's parameter block from `GFRTAB`/`HBDSND` etc. into the GWAVE zero-page cells.",
+    "`GWAVE` (`$FB81` Defender / `$F9DE` Robotron) — main loop: walk wavetable, write DAC, count echoes.",
+    "`WVDECA` (`$FC87` Defender / `$FAE4` Robotron) — per-echo decay: shift every wavetable byte right.",
+    "Source: `VSNDRM1.SRC:785` (Defender), `VSNDRM3.SRC:1581` (Robotron)."
+  ],
+  "see": [
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §GWAVE wavetable",
+    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag a parameter slider",
+    "[MANUAL.md](MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — toggle Skip WVDECA + scrub"
+  ]
+}

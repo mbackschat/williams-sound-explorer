@@ -1,0 +1,26 @@
+{
+  "title": "BG1 — Background drone (engine layer)",
+  "engine": "FNOISE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "An FNOISE preset configured as a *background* loop — the IRQ handler polls `BG1FLG` after each command and re-enters the BG1 routine, keeping the drone sustained between sound-effect bursts. How Defender does 'continuous background music' without giving up the single sound CPU.",
+  "how": "FNOISE itself is a one-shot — it counts down `SAMPC` and ends. Continuous backgrounds are achieved by a control-flow trick: `BG1` sets `BG1FLG` non-zero so that the IRQ handler's tail (`IRQ3`) jumps back into `BG1` instead of spinning at `BEQ *` after each foreground sound finishes. So the engine drones for ~5 s, finishes, and would normally idle — but the IRQ tail keeps re-arming it.\n\nThe game CPU also fires `$10 BG2INC` periodically; each pulse ticks `BG2FLG` and (depending on the routine) modifies BG1's frequency parameters to ramp the drone's pitch upward over time — that's the 'tension rising' effect in Defender gameplay.\n\n`$13 BGEND` is the off-switch: clears `BG1FLG` and `BG2FLG`, so the next IRQ-3 sees both at zero and reverts to the silent `BEQ *` idle.",
+  "watch": [
+    "Stage swimlane — `BG1` band recurring at the bottom every IRQ tick.",
+    "FNOISE engine view bars and slope LEDs.",
+    "Try firing `$0F` (BG1), then `$10` a few times (BG2INC ratchets pitch up), then `$13` (BGEND) to silence."
+  ],
+  "code": [
+    "`BG1` at `$F8A2` (Defender) — sets `BG1FLG`, configures FNOISE, then jumps to FNOISE inner loop.",
+    "`IRQ3` exit path — checks `BG1FLG`/`BG2FLG`, re-enters BG1/BG2 if non-zero.",
+    "Source: `VSNDRM1.SRC:338`."
+  ],
+  "see": [
+    "**BG2INC** (`$10`) — ratchets the BG drone pitch upward over time.",
+    "**BGEND** (`$13`) — clears both BG flags.",
+    "[MANUAL.md](MANUAL.md#common-pitfalls) — note that `$13` alone is silent (it just clears flags)."
+  ]
+}

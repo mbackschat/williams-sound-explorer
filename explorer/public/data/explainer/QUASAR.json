@@ -1,0 +1,26 @@
+{
+  "title": "QUASAR — Reverse-polarity VARI zap",
+  "engine": "VARI",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "VARI with `HIPER` initialised to `$81` (bit 7 set). That high bit flips the sweep direction in the period-modulator math — instead of ramping period *down* over time (like SAW), QUASAR ramps it *up*, giving an upward-bending zap.",
+  "how": "All four VARI presets share the same engine code; what they differ in is the parameter block in `VVECT`. Comparing SAW and QUASAR's first two bytes:\n\n```\nSAW    $40, $01, ...   ; LOPER=$40, HIPER=$01\nQUASAR $28, $81, ...   ; LOPER=$28, HIPER=$81\n```\n\n`HIPER=$81` has bit 7 set. When the VARI modulator updates HIPER each outer iteration, it treats that high bit as a sign-like flag — the *direction* of the per-cycle period change is reversed. Net result: where SAW's period shrinks (frequency rises… wait, the catalogue says SAW *descends*, so period actually grows), QUASAR's period evolves in the opposite direction, giving the characteristic upward-bend 'zap' character.\n\nThe other deltas in the preset bytes (LODT/HIDT/HIEN/LOMOD modulator rates) further shape how steep the bend is.",
+  "watch": [
+    "VARI engine view's HICNT/HIPER bar evolving opposite-to-SAW's pattern.",
+    "Compare against SAW (`$1D`) in the A/B diff — both VARI, ~5 bytes of preset difference, very different timbre.",
+    "Spectrogram — upward-bending pitch curve."
+  ],
+  "code": [
+    "`QUASAR` VARI preset at `VSNDRM1.SRC:1008`.",
+    "`VARILD` loader (`VSNDRM1.SRC:194`) copies the preset into the VARI cells.",
+    "`VARI` inner loop (`VSNDRM1.SRC:208`) — shared with SAW / FOSHIT / CABSHK."
+  ],
+  "see": [
+    "**SAW** (`$1D`) — same engine, opposite sweep direction. A/B them to hear the polarity flip.",
+    "**FOSHIT** (`$1E`) — third VARI preset, shorter version of SAW.",
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "title": "MOSQTO — Mosquito high tone",
+  "engine": "VARI",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron-only VARI preset with very small `LOPER` and `HIPER` — produces a high-pitched buzzing tone, the warning sound when a mosquito enemy approaches.",
+  "how": "MOSQTO sets both LOPER and HIPER to small values (high fundamental frequency), with a subtle modulator that makes the pitch wobble like an insect's flutter. Same VARI inner loop as SAW; differs only in the preset bytes.",
+  "watch": [
+    "VARI engine view — both LOCNT and HICNT bars are short (high frequency).",
+    "Spectrogram — high-pitched fundamental with subtle modulation."
+  ],
+  "code": [
+    "`MOSQTO` VARI preset in Robotron's `VVECT`.",
+    "Source: `VSNDRM3.SRC`."
+  ],
+  "see": [
+    "**SAW** — canonical VARI card.",
+    "**FOSHIT / QUASAR** — Defender VARI variants."
+  ]
+}

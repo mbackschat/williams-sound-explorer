@@ -1,0 +1,24 @@
+{
+  "title": "HYPER — Hyperspace warp",
+  "engine": "(special)",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Not a generic-engine preset — a hand-coded PWM (pulse-width modulated) sweep with a hard-coded delay loop. The whoosh-bloop of the player using hyperspace to escape danger.",
+  "how": "Unlike most Defender sounds (which dispatch to one of the seven engines), HYPER is its own little ~30-instruction routine. It walks two counters: a `TEMPA` sweep target and an inline `DECB` delay loop that controls the per-cycle period. Each pass writes a fresh PWM value to the DAC, with the duty cycle determined by where `TEMPA` falls in its sweep.\n\nThe result is a clean, *non-noise*, *non-wavetable* warble that descends in pitch and then disappears — distinctive from anything the GWAVE / VARI / FNOISE / LFSR engines produce. This is what 'special-purpose code' looks like when the standard engines don't fit the brief.",
+  "watch": [
+    "Stage swimlane — the whole sound lives inside the `HYPER` / `HYPER1..HYPER4` band — no engine slot populates because none of the engine-state extractors recognise these PC addresses.",
+    "Spectrogram — descending fundamental that fades rapidly into silence."
+  ],
+  "code": [
+    "`HYPER` at `$F8FA` (Defender) — main loop, sets `TEMPA` initial value.",
+    "`HYPER1` / `HYPER2` / `HYPER3` / `HYPER4` — nested counters that produce the PWM ripple.",
+    "Source: `VSNDRM1.SRC:456`."
+  ],
+  "see": [
+    "Compare against `LITE` (LFSR) and `SAW` (VARI) to hear what a special-purpose routine adds beyond the standard engines.",
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Special routines — HYPER, HBOMB, KNOCK, ZIREN, WHIST are all hand-coded."
+  ]
+}

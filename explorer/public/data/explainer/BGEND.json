@@ -1,0 +1,22 @@
+{
+  "title": "BGEND — End background",
+  "engine": "—",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Clears `BG1FLG` and `BG2FLG`. Silent on its own; *re-silences* the BG drones that BG1 / BG2INC armed earlier. Without this, the background never stops.",
+  "how": "`$13` is the only mechanism the main game CPU has for *ending* the background music — there's no time-based fade-out, no decay envelope. The sound CPU's `BGEND` handler simply zeroes the two flag cells, so the next IRQ-3 tail evaluation sees both at zero and reverts to the silent `BEQ *` idle.\n\nIf you fire `$13` without previously firing `$0F` (BG1) or `$10` (BG2INC), nothing audible happens — there are no flags to clear.",
+  "watch": [
+    "Log line should report `Fired $13` but the explorer's render produces no DAC events (the corpus marks it `∅ no DAC events`).",
+    "The audible test: fire `$0F`, hear the drone, then fire `$13` and confirm silence."
+  ],
+  "code": [
+    "`BGEND` clears `BG1FLG` / `BG2FLG` (`VSNDRM1.SRC:659`)."
+  ],
+  "see": [
+    "**BG1** ($0F) — the engine BGEND silences.",
+    "**BG2INC** ($10) — the modulator BGEND also silences."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "title": "SF10 — S/F 10 (Robotron, STDSND-based)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset using the `STDSND` pattern (39-step) — long, evolving timbre. Used for cinematic transitions.",
+  "how": "The 39-step `STDSND` is one of Robotron's longest pitch patterns. SF10 uses it with `$41, $02, $D0, $00, $00, 39, STDSND-GFRTAB` — short echoes per step but the pattern length itself gives the sound its multi-second character.",
+  "watch": [
+    "GWAVE engine view — long pattern walk through STDSND.",
+    "Spectrogram — extended evolving timbre."
+  ],
+  "code": [
+    "`SF10` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**STDV** ($02) — uses a shorter STDSND-like pattern."
+  ]
+}

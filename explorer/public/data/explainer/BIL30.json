@@ -1,0 +1,18 @@
+{
+  "title": "BIL30 — Bill 30 (Robotron, SPNSND-based)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset using `SPNSND` (the spinner-pattern table). Long, sustained tone used for in-game alerts.",
+  "how": "GWAVE preset `FCB $03, $15, $11, $FF, $00, 13, SPNSND-GFRTAB`. The 13-iteration echo count + SPNSND pattern produces a sustained alert-like tone.",
+  "watch": [
+    "GWAVE engine view's `GECNT` counting through 13 echoes."
+  ],
+  "code": [
+    "`BIL30` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

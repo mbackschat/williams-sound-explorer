@@ -1,0 +1,19 @@
+{
+  "title": "SPNV — Spinner-alt GWAVE preset (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron alternative to `SPNRV` — different wavetable / period combination, used in some spinner contexts.",
+  "how": "GWAVE preset, short-echo, single-period — same family as SPNRV but with its own preset bytes. Useful as an A/B comparison against SPNRV to hear how two different parameter choices produce different perceived \"spinner gestures\".",
+  "watch": [
+    "A/B vs SPNRV in the diff panel."
+  ],
+  "code": [
+    "`SPNV` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**SPNRV** — Defender's canonical spinner-drip preset.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

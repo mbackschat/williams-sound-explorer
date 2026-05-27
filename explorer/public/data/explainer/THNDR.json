@@ -1,0 +1,19 @@
+{
+  "title": "THNDR — \"Thunder\" 3-oscillator (Robotron)",
+  "engine": "PLAY",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "PLAY preset designed to evoke distant thunder — low-frequency oscillator dominant, with two slightly-detuned partials adding rumble. Uses `VEC*X` data of its own.",
+  "how": "The three PLAY oscillators are configured at very low frequencies — close-to-DC waveforms that produce a sub-bass rumble rather than discrete pitches. Slight detuning between the three creates a slow beating effect that mimics thunder rolling.",
+  "watch": [
+    "Spectrogram — energy concentrated in the low-frequency band.",
+    "All three oscillators audible but very close in pitch."
+  ],
+  "code": [
+    "`THNDR` dispatch → its parameter block → `PLAY`."
+  ],
+  "see": [
+    "**SND2 / SND5 / SND16 / SND17** — other PLAY presets."
+  ]
+}

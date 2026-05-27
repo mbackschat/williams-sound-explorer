@@ -1,0 +1,18 @@
+{
+  "title": "SND17 — 3-oscillator preset VEC017 (Robotron)",
+  "engine": "PLAY",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "PLAY engine with the `VEC017X` parameter block. Companion to SND16.",
+  "how": "Same PLAY engine; different (FREQ, COUNTER) triplet.",
+  "watch": [
+    "A/B against SND2 / SND5 / SND16."
+  ],
+  "code": [
+    "`SND17` dispatch → `VEC017X` → `PLAY`."
+  ],
+  "see": [
+    "**SND2** — canonical PLAY card."
+  ]
+}

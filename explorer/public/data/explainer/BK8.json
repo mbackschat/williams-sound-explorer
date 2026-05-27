@@ -1,0 +1,18 @@
+{
+  "title": "BK8 — Back-8 cool-down (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset with `COOLDN-GFRTAB` pattern — descending tones marking a cool-down period. Robotron's variant on Defender's `CLDWNV`.",
+  "how": "GWAVE preset bytes pointing at the `COOLDN` pattern in `GFRTAB`. Each echo iteration steps down through the pattern, producing a descending arpeggio similar to CLDWNV's shape.",
+  "watch": [
+    "GWAVE engine view — descending pattern walk."
+  ],
+  "code": [
+    "`BK8` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**CLDWNV** ($09) — Defender's similar descending sound."
+  ]
+}

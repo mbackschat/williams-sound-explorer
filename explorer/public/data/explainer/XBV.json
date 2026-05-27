@@ -1,0 +1,23 @@
+{
+  "title": "XBV — Extra-bonus climb",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "GWAVE square-wavetable preset with a per-echo +N pitch slide. The cascading 'climbing' sound when an extra bonus arrives — pitches stair-step upward across multiple echo iterations.",
+  "how": "XBV uses the same engine as HBDV but combines a *square* wavetable (GSQ22) with a *positive* `GDFINC` (frequency-delta increment). Each echo iteration nudges the pitch lookup higher, producing a stepped climb instead of a constant pitch.\n\nThe square wavetable gives it more harmonic content than DP1V's chirp — feels more 'celebratory' than 'notification'.",
+  "watch": [
+    "Wavetable bars — square (stepped) profile, not sine.",
+    "Pitch climbing through the spectrogram as each echo fires."
+  ],
+  "code": [
+    "`XBV` preset in `SVTAB` (Defender).",
+    "Same engine as HBDV / DP1V / STDV."
+  ],
+  "see": [
+    "**DP1V** — simpler 1-byte-pattern version of the same idea.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

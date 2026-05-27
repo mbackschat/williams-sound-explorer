@@ -1,0 +1,21 @@
+{
+  "title": "LAUNCH — LFSR launch sweep",
+  "engine": "LFSR",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron's own LFSR sweep — distinct preset from LITE / TURBO / APPEAR. The \"vehicle launch\" cue.",
+  "how": "Robotron's LFSR ranges around `$F55C..$F59D`, slightly different addresses from Defender but the same algorithm. LAUNCH picks a particular `LFREQ` / `CYCNT` combination that produces a distinctively-pitched whoosh — the game uses it for the bonus-vehicle launch sequence.",
+  "watch": [
+    "Code panel's `LFSR:` line.",
+    "Compare against LITE: same engine, different sweep envelope."
+  ],
+  "code": [
+    "`LAUNCH` entry at the LFSR jump-table entry for `$39`; shares the LITE inner loop.",
+    "Source: `VSNDRM3.SRC` (Robotron)."
+  ],
+  "see": [
+    "**LITE** — canonical LFSR card.",
+    "**APPEAR / TURBO** — other LFSR variants."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "HUNV — 100-point rescue jingle (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Bright climbing GWAVE preset celebrating a 100-point human rescue. Wavetable + ascending pattern, longer than DP1V but punchier than HBDV.",
+  "how": "GWAVE preset specific to Robotron's `$20` slot. Uses a square/sine hybrid wavetable and a short ascending pattern (`HBTSND`) — produces a confident \"ding-dong-ding\" sweep that signals \"you saved someone, +100 points\".",
+  "watch": [
+    "GWAVE engine view — climbing pitch pattern, short total duration.",
+    "Stage swimlane — single band of HUNV / GWLD / GWAVE."
+  ],
+  "code": [
+    "`HUNV` preset in Robotron's `SVTAB` (line 2009 of `VSNDRM3.SRC`)."
+  ],
+  "see": [
+    "**GDYUKV** ($28) — Family-rescue jingle, related-but-different.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "title": "CLDWNV — Cool-down chirp",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "3-echo GWAVE preset with a descending pitch pattern — the brief downward chirp marking 'something cooled down', typically a weapon ready-state.",
+  "how": "CLDWNV is the inverse of XBV: small `GECHO=3` and a *negative* `GDFINC` (or descending pattern bytes) for a quick downward sweep. Three echoes = three quick pitch steps before silence. Compact and unambiguous.",
+  "watch": [
+    "GWAVE engine view's `GECNT` countdown — 3, 2, 1, then idle.",
+    "Spectrogram — three descending steps."
+  ],
+  "code": [
+    "`CLDWNV` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**PROTV** — similar descending profile but longer.",
+    "**XBV** — the ascending counterpart."
+  ]
+}

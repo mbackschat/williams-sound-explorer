@@ -1,0 +1,18 @@
+{
+  "title": "SND16 — 3-oscillator preset VEC016 (Robotron)",
+  "engine": "PLAY",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "PLAY engine with the `VEC016X` parameter block — yet another three-oscillator chord configuration.",
+  "how": "Same PLAY engine as SND2 etc.; this preset's specific FREQ values give it a distinct character. Treat as another point in the PLAY parameter space.",
+  "watch": [
+    "A/B against SND2 / SND5."
+  ],
+  "code": [
+    "`SND16` dispatch → `VEC016X` → `PLAY`."
+  ],
+  "see": [
+    "**SND2** — canonical PLAY card."
+  ]
+}

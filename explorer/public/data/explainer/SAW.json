@@ -1,0 +1,25 @@
+{
+  "title": "SAW — Descending saw",
+  "engine": "VARI",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A two-counter square-wave generator (`LOCNT`, `HICNT`) whose period shrinks each iteration, producing a downward-sweeping pitch. The simplest synthesiser on the board.",
+  "how": "VARI is just two CPU counters driving a square wave: when `LOCNT` underflows, the DAC flips to its low value; when `HICNT` underflows, it flips back to high. The *periods* of those counters (`LOPER` for low, `HIPER` for high) set the half-cycle durations. Equal LOPER/HIPER = symmetric square wave; unequal = duty-cycle skew.\n\nSAW sets `LOPER=$40, HIPER=$01` at fire-time. The wide LOPER + tiny HIPER produces an asymmetric pulse: long low half, short high spike. Then a per-iteration *modulator* (`LOMOD` / `HIEN`) decrements `LOPER` slightly each cycle of the outer loop — so the pitch glides downward as `LOPER` shrinks toward `HIPER`.\n\nFor `LOPER = HIPER` you'd get a perfectly symmetric square at that period; the practical descending-saw effect comes from the asymmetric setup PLUS the period decay.",
+  "watch": [
+    "VARI engine view — two countdown bars (LOCNT/LOPER and HICNT/HIPER) plus a one-period duty-cycle preview that's wide on one side, narrow on the other.",
+    "`LOPER` slowly shrinking — drag the slider to override it (Pattern 5).",
+    "Spectrogram — descending fundamental + harmonics characteristic of a swept square."
+  ],
+  "code": [
+    "`VARILD` — preset loader (copies the SAW preset bytes into the VARI cells).",
+    "`VARI` at `$F82A` (Defender) / `$F4F0` (Robotron) — the LOCNT/HICNT inner loop.",
+    "Source: `VSNDRM1.SRC:194` (Defender VARILD), `VSNDRM1.SRC:208` (VARI inner loop)."
+  ],
+  "see": [
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square",
+    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag the LOPER slider"
+  ]
+}

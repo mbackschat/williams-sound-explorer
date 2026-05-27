@@ -1,0 +1,19 @@
+{
+  "title": "SND5 — 3-oscillator preset VEC05 (Robotron)",
+  "engine": "PLAY",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Another PLAY engine preset. Different (FREQ, COUNTER) triplet than SND2 — different three-voice chord.",
+  "how": "Same PLAY engine as SND2; `VEC05X` provides the parameter block. The three oscillators produce a different harmonic combination than SND2's chord.",
+  "watch": [
+    "A/B against SND2 — same engine, different chord."
+  ],
+  "code": [
+    "`SND5` dispatch → `VEC05X` → `PLAY`."
+  ],
+  "see": [
+    "**SND2** — canonical PLAY card.",
+    "**THNDR** — third PLAY preset."
+  ]
+}

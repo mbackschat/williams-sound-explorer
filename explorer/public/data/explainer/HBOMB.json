@@ -1,0 +1,22 @@
+{
+  "title": "HBOMB — H-bomb noise",
+  "engine": "FNOISE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Robotron's FNOISE preset for the big H-bomb explosion — long sustain, high `FMAX`, max distortion. Where CANNON is a percussive pop, HBOMB is a sustained roar that decays over seconds.",
+  "how": "Same FNOISE engine as CANNON; differs in preset bytes — bigger `SAMPC` (longer total duration), `FMAX` at max ($FF), `DSFLG` on (full distortion). The result is a long, broad noise-burst that *feels* like an explosion shockwave rather than CANNON's instant thump.",
+  "watch": [
+    "FNOISE engine view — `SAMPC` countdown takes seconds to drain (vs CANNON's ~1 s).",
+    "Distortion LED on; spectrogram shows broadband noise across the whole range."
+  ],
+  "code": [
+    "`HBOMB` preset entry — sets FMAX=$FF, DSFLG on, SAMPC large; jumps to FNOISE.",
+    "Source: `VSNDRM3.SRC` (Robotron)."
+  ],
+  "see": [
+    "**CANNON** — short FNOISE burst.",
+    "**THRUST** — quiet FNOISE drone.",
+    "**CDR** — composite noise engine using parallel FNOISE-like oscillators."
+  ]
+}

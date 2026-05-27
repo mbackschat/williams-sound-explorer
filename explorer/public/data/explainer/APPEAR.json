@@ -1,0 +1,22 @@
+{
+  "title": "APPEAR — Enemy-appear descent",
+  "engine": "LFSR",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "LFSR-noise with a *descending* clock — `LFREQ` increases over the sound's lifetime, so the noise pitch *falls*. The \"uh-oh, something just spawned\" cue.",
+  "how": "The LFSR generates the same broadband noise as LITE, but APPEAR's outer loop steers `LFREQ` upward (longer period between shifts → lower-frequency noise). Where LITE's pitch *rises* over time, APPEAR's *drops*. Same engine, opposite ramp direction.",
+  "watch": [
+    "Spectrogram — descending broadband noise vs LITE's ascending.",
+    "`LFREQ` *increasing* over time (look at the Code panel's LFSR line)."
+  ],
+  "code": [
+    "`APPEAR` entry, then shared LFSR inner loop."
+  ],
+  "see": [
+    "**LITE** — canonical LFSR card.",
+    "**TURBO** — short, bright variant."
+  ]
+}

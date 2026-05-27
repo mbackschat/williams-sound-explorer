@@ -1,0 +1,23 @@
+{
+  "title": "TURBO — Bright LFSR burst",
+  "engine": "LFSR",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Same LFSR engine as LITE, but a *short* burst with a higher initial `LFREQ` — produces a bright, fading noise transient. Used for turbo-boost / weapon-charging UI events.",
+  "how": "TURBO and LITE share the LFSR inner loop; what differs is the initial parameter setup. TURBO starts with a small `LFREQ` (higher LFSR clock rate → brighter noise) and a smaller `CYCNT` (shorter total duration). The result is a brief \"psh!\" rather than LITE's full sweep.",
+  "watch": [
+    "Code panel's `LFSR:` line — same shift-register readout as LITE.",
+    "`LFREQ` and `CYCNT` start lower than LITE — note the smaller numbers.",
+    "Spectrogram — a brief broadband transient instead of a long sweep."
+  ],
+  "code": [
+    "`TURBO` entry sets `LFREQ` / `CYCNT` to its preset values then falls through to LITE-style inner loop."
+  ],
+  "see": [
+    "**LITE** — canonical LFSR card.",
+    "**APPEAR** — third LFSR variant."
+  ]
+}

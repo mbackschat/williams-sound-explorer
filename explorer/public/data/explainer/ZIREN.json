@@ -1,0 +1,20 @@
+{
+  "title": "ZIREN — Air-raid siren / second-order glissando (Robotron)",
+  "engine": "ZIREN",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Hand-coded *second-order* pitch glissando — the pitch's *rate of change* itself accelerates over time. Produces an air-raid siren that wails ever faster.",
+  "how": "Where a first-order glissando (like SAW or PROTV) changes pitch linearly, ZIREN's pitch-modulator state has its own acceleration term. Each iteration the *period delta* grows, so the pitch sweep gets steeper as time goes on.\n\nThe result is an air-raid-siren-style wail that doesn't just rise-fall — it rises faster and faster, producing the urgent escalating warning.",
+  "watch": [
+    "Spectrogram — pitch curve that's not a straight line; the slope itself increases.",
+    "Stage swimlane — single `ZIREN` band."
+  ],
+  "code": [
+    "`ZIREN` at the `$3C` dispatch entry (Robotron). Special-purpose routine; no shared engine."
+  ],
+  "see": [
+    "**SIREN** ($31) — simpler two-pitch alternation.",
+    "**WHIST** — companion specialty routine."
+  ]
+}

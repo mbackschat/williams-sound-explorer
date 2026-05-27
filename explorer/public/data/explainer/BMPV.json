@@ -1,0 +1,18 @@
+{
+  "title": "BMPV — Bump (Robotron, BWSSND)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "The \"bump into a wall\" sound — short percussive GWAVE preset using the `BWSSND` pitch pattern.",
+  "how": "GWAVE preset with `BWSSND` pattern — a 2-3 byte sequence designed to feel like a brief percussive thud. Echo count is small (3-4) so total duration is under 100 ms.",
+  "watch": [
+    "Stage swimlane — single short band."
+  ],
+  "code": [
+    "`BMPV` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

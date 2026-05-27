@@ -1,0 +1,18 @@
+{
+  "title": "SP1V — Spinner-1 (Robotron, SP2SND)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset using the `SP2SND` pattern — Robotron's primary spinner-feedback sound. Different parameters from SPNV / SPNRV.",
+  "how": "GWAVE preset with `SP2SND` pitch table. SP1V is Robotron's main \"spinner clicked\" feedback — short, punchy, with a distinctive pitch envelope.",
+  "watch": [
+    "GWAVE engine view's cursor walking SP2SND quickly."
+  ],
+  "code": [
+    "`SP1V` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**SPNV / SPNRV** — companion spinner-feedback presets."
+  ]
+}

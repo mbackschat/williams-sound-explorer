@@ -1,0 +1,23 @@
+{
+  "title": "BG2INC — Background tension ratchet",
+  "engine": "—",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Not an audible sound on its own — `$10` increments `BG2FLG` (and on Robotron, also touches a BG2-specific FNOISE preset). The cumulative effect over multiple fires: the BG1 drone climbs in urgency. Defender's wave-pressure-rising mechanic.",
+  "how": "The main game CPU fires `$10` every time the on-screen enemy count crosses a threshold. The sound CPU's handler increments `BG2FLG` (and on Robotron, also touches `FREQ1`/`FREQ2` cells used by a turbine-like FNOISE preset). Once `BG2FLG` is non-zero, the IRQ-3 tail switches from polling `BG1` to a more frenetic BG2 loop — same FNOISE engine, different parameters.\n\nFire `$10` a few times in a row and the drone audibly ramps up. Fire `$13` (`BGEND`) to silence both layers.",
+  "watch": [
+    "Fire `$0F` first (BG1 drone), then `$10` repeatedly (1, 2, 3 times) — listen for the pitch / energy climbing.",
+    "Stage swimlane — BG1 / BG2 bands alternating as the IRQ tail picks which to re-enter."
+  ],
+  "code": [
+    "`BG2INC` increments `BG2FLG` (`VSNDRM1.SRC:666`).",
+    "IRQ-3 tail's `BG1FLG`/`BG2FLG` check decides which background re-enters."
+  ],
+  "see": [
+    "**BG1** ($0F) — the drone that BG2INC modulates.",
+    "**BGEND** ($13) — silence both layers."
+  ]
+}

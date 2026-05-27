@@ -1,0 +1,23 @@
+{
+  "title": "SP1 — Spinner #1 / cabinet shake",
+  "engine": "VARI",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "The fourth VARI preset (`CABSHK`), wrapped by a small dispatcher that *advances* the pitch each fire. Each time the player nudges the spinner, the sound starts one step higher than last time — the per-trigger pitch advance is what makes it feel responsive.",
+  "how": "SP1 isn't strictly a VARI preset on its own — it's a small dispatcher that uses the `CABSHK` VARI preset bytes but maintains state across fires. Each call increments a counter that shifts the starting `LOPER` upward by a fixed step.\n\nThe audible result: rapid spinner gestures produce a *rising* arpeggio of brief square-wave blips, not a single repeated tone. That's the difference between a 'lifeless' spinner sound and one that responds to player intention.\n\nThe 4th VARI preset (`CABSHK`) parameters at `VSNDRM1.SRC:1009`:\n\n```\nCABSHK $FF, $01, $00, $18, $41, $04, $80, $00, $FF\n```\n\nWide LOPER ($FF = max), tiny HIPER ($01) — like SAW but bigger initial period.",
+  "watch": [
+    "VARI engine view — LOCNT bar swings wide on first fire, then narrower on each subsequent fire as SP1's per-fire dispatcher steps up the starting period.",
+    "Fire `$0E` rapidly to hear the rising arpeggio."
+  ],
+  "code": [
+    "`SP1` dispatcher + `CABSHK` VARI preset at `VSNDRM1.SRC:1009`.",
+    "Shares the `VARI` inner loop with SAW / FOSHIT / QUASAR."
+  ],
+  "see": [
+    "**SAW / FOSHIT / QUASAR** — the other VARI presets.",
+    "**SPNRV** — GWAVE-side spinner sound (compare timbres)."
+  ]
+}

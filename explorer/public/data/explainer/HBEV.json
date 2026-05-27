@@ -1,0 +1,25 @@
+{
+  "title": "HBEV — Heartbeat echo",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "HBDV's quieter sibling — same wavetable engine, but a 4-echo (vs 8) variant on the GS72 sine instead of the GSQ22 square. A *softer*, more sustained heartbeat for less-tense moments.",
+  "how": "HBEV uses the same `GWAVE` engine as `HBDV` (heartbeat distorto) but with a different preset. Where HBDV picks the **GSQ22** wavetable (a 22-byte staircased square, which gives the punchy edge) and 8 echo iterations, HBEV picks **GS72** (a smooth 72-byte sine) and only 4 echoes. The pitch pattern is also half the size — `HBESND` is a 14-step pattern vs `HBDSND`'s 22 steps.\n\nNet effect: same heartbeat *shape* (pulse → decay → silence), but smoother timbre and shorter total duration. A useful A/B comparison against HBDV in the explorer's diff view — only ~6 bytes differ in the preset, but the sound is meaningfully different.",
+  "watch": [
+    "GWAVE engine view's wavetable bars — smooth bell-curve instead of HBDV's square steps.",
+    "GECHO drops to 4 (vs HBDV's 8) — fewer pulses in the spectrogram.",
+    "A/B diff against HBDV to see the preset deltas byte-for-byte (open the A/B section, fire HBDV vs HBEV)."
+  ],
+  "code": [
+    "`HBEV` preset at `VSNDRM1.SRC:1107` — `FCB $41,$45,0,0,0,15,HBESND-GFRTAB,6`.",
+    "Same `GWLD` → `GWAVE` → `WVDECA` engine code as HBDV (see the HBDV card)."
+  ],
+  "see": [
+    "**HBDV** — fire `$01` then `$06` to A/B them.",
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §GWAVE wavetable",
+    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §GWAVE presets — compare all 14 wavetable sounds"
+  ]
+}

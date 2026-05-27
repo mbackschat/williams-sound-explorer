@@ -1,0 +1,19 @@
+{
+  "title": "SIREN — Looping SING (VEC03X → VEC04X) (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "SING engine driven with *two* vectors in alternation — `VEC03X` then `VEC04X` then back. Produces the classic two-pitch air-raid siren wail.",
+  "how": "A small wrapper around SING that alternates between two parameter blocks on each cycle of the engine. The two vectors define the high and low pitches of the siren; the alternation rate sets the warble speed.",
+  "watch": [
+    "Spectrogram — two pitches alternating in a continuous wail.",
+    "Stage swimlane — repeating SIREN / SING band pairs."
+  ],
+  "code": [
+    "`SIREN` dispatch + small alternation wrapper → `SING`."
+  ],
+  "see": [
+    "**ZIREN** ($3C) — different siren (air-raid alarm with glissando)."
+  ]
+}

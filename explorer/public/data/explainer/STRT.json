@@ -1,0 +1,19 @@
+{
+  "title": "STRT — Start (Robotron YUKSND)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "GWAVE preset using the `YUKSND` pitch pattern — a custom multi-step climb. Plays at level start as the \"go!\" cue.",
+  "how": "GWAVE preset bytes: `FCB $13, $10, $00, $FF, $00, 09, YUKSND-GFRTAB` (Robotron `VSNDRM3.SRC:2012`). The 7th byte `YUKSND-GFRTAB` indexes into the master frequency table; YUKSND is a per-note delta sequence that the GWAVE engine walks through to produce a multi-step pitch climb. The 9-iteration echo count (the `09` byte) gives it more pulses than DP1V.",
+  "watch": [
+    "GWAVE engine view — pattern walks through YUKSND deltas."
+  ],
+  "code": [
+    "`STRT` preset at `VSNDRM3.SRC:2012`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card.",
+    "**GDYUKV** ($28) — another YUKSND-based preset."
+  ]
+}

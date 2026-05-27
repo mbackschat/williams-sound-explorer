@@ -1,0 +1,21 @@
+{
+  "title": "ED12 — Experimental GWAVE sound #12",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Second of three 'ED' experimental GWAVE presets. See **ED10** for the broader context — these are developer test sounds left in the released ROM.",
+  "how": "GWAVE preset with its own unique configuration in `SVTAB`. Engine code identical to HBDV; firing it explores a particular point in the GWAVE parameter space.",
+  "watch": [
+    "Standard GWAVE indicators — see how ED12 differs from ED10 / ED17 in the engine view."
+  ],
+  "code": [
+    "`ED12` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**ED10**, **ED17** — companions.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "KNOCK — KNKTAB-driven thud (Robotron)",
+  "engine": "KNOCK",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "A short percussive thud driven by the `KNKTAB` parameter table. Notable in the source: this routine **clobbers `SOUND+2` (PIA control register) directly** to bypass normal data-write path, then restores it on exit. The only routine that does this.",
+  "how": "KNOCK is unusual at the hardware level. At entry it writes `CLR SOUND+2`, which alters the PIA's port-B configuration. The routine then writes a sequence of bytes from `KNKTAB` (a small parameter table) to the DAC at a fixed rate — using the *altered* PIA state. At exit it restores `SOUND+2` to `#$80` (the normal config).\n\nThis trick exists because the standard data-write path adds a few cycles of overhead that throw off the timing of a very short percussive sample. By temporarily reconfiguring the PIA, KNOCK gets a faster write path — at the cost of correctly bracketing the PIA state.\n\nThe audible result: a quick, punchy \"thunk\" with no envelope decay.",
+  "watch": [
+    "Stage swimlane — single `KNOCK` band, very short (< 100 ms).",
+    "The PIA-control clobber is invisible from outside (the explorer doesn't model PIA-control register state changes for visualization)."
+  ],
+  "code": [
+    "`KNOCK` at the `$3B` dispatch entry (Robotron). `CLR SOUND+2` at entry; `STAA SOUND+2 / #$80` at exit.",
+    "Source: `VSNDRM3.SRC:500-541` (`KNOCK` routine + `KNKTAB` pattern)."
+  ],
+  "see": [
+    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §KNOCK — notes the PIA clobber."
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "title": "ORRRR — SING engine with VEC05X (Robotron)",
+  "engine": "SING",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "SING preset producing a sustained vocal-ish \"orrrr\" sound — the name in the source is descriptive of the audible result.",
+  "how": "SING engine with `VEC05X` — particular envelope + pitch combination that approximates a sustained vocal vowel.",
+  "watch": [
+    "Spectrogram — single formant cluster."
+  ],
+  "code": [
+    "`ORRRR` dispatch → `VEC05X` → `SING`."
+  ],
+  "see": [
+    "**HSTD** — canonical SING card."
+  ]
+}

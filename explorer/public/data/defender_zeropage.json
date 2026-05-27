@@ -1,0 +1,422 @@
+{
+  "game": "defender",
+  "source": "VSNDRM1.SRC",
+  "cells": [
+    {
+      "addr": 4,
+      "span": 1,
+      "name": "BG1FLG",
+      "desc": "Background sound 1",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 5,
+      "span": 1,
+      "name": "BG2FLG",
+      "desc": "Background sound 2",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 6,
+      "span": 1,
+      "name": "SP1FLG",
+      "desc": "Spinner flag",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 7,
+      "span": 1,
+      "name": "B2FLG",
+      "desc": "Bonus #2 flag",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 8,
+      "span": 1,
+      "name": "ORGFLG",
+      "desc": "Organ flag",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 9,
+      "span": 1,
+      "name": "HI",
+      "desc": "Random seed",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 10,
+      "span": 1,
+      "name": "LO",
+      "desc": "Random seed",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 11,
+      "span": 2,
+      "name": "TEMPX",
+      "desc": "X temps",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 13,
+      "span": 2,
+      "name": "XPLAY",
+      "desc": "",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 15,
+      "span": 2,
+      "name": "XPTR",
+      "desc": "",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 17,
+      "span": 1,
+      "name": "TEMPA",
+      "desc": "Acca temp",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 18,
+      "span": 1,
+      "name": "TEMPB",
+      "desc": "",
+      "engine": null,
+      "region": "global"
+    },
+    {
+      "addr": 19,
+      "span": 1,
+      "name": "FMAX",
+      "desc": "Maximum_frequency",
+      "engine": "fnoise",
+      "region": "engine"
+    },
+    {
+      "addr": 19,
+      "span": 1,
+      "name": "GECHO",
+      "desc": "Echo flag",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 19,
+      "span": 1,
+      "name": "DECAY",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 19,
+      "span": 2,
+      "name": "DUR",
+      "desc": "Note duration",
+      "engine": "organ",
+      "region": "engine"
+    },
+    {
+      "addr": 19,
+      "span": 8,
+      "name": "STABLE",
+      "desc": "Scream table",
+      "engine": "scream",
+      "region": "engine"
+    },
+    {
+      "addr": 19,
+      "span": 1,
+      "name": "LOPER",
+      "desc": "Lo period",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 20,
+      "span": 1,
+      "name": "FHI",
+      "desc": "Frequency",
+      "engine": "fnoise",
+      "region": "engine"
+    },
+    {
+      "addr": 20,
+      "span": 1,
+      "name": "GCCNT",
+      "desc": "Cycle count",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 20,
+      "span": 1,
+      "name": "NAMP",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 20,
+      "span": 1,
+      "name": "HIPER",
+      "desc": "Hiperiod",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 21,
+      "span": 1,
+      "name": "GECDEC",
+      "desc": "# of decays per echo",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 21,
+      "span": 1,
+      "name": "CYCNT",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 21,
+      "span": 1,
+      "name": "OSCIL",
+      "desc": "Oscillators",
+      "engine": "organ",
+      "region": "engine"
+    },
+    {
+      "addr": 21,
+      "span": 1,
+      "name": "LODT",
+      "desc": "Period deltas",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 22,
+      "span": 2,
+      "name": "SAMPC",
+      "desc": "Sample count",
+      "engine": "fnoise",
+      "region": "engine"
+    },
+    {
+      "addr": 22,
+      "span": 1,
+      "name": "GDFINC",
+      "desc": "Delta freq inc",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 22,
+      "span": 2,
+      "name": "NFRQ1",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 22,
+      "span": 60,
+      "name": "RDELAY",
+      "desc": "Ram delay load",
+      "engine": "organ",
+      "region": "engine"
+    },
+    {
+      "addr": 22,
+      "span": 1,
+      "name": "HIDT",
+      "desc": "",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 23,
+      "span": 1,
+      "name": "GDCNT",
+      "desc": "Delta freq count",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 23,
+      "span": 1,
+      "name": "HIEN",
+      "desc": "End period",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 24,
+      "span": 1,
+      "name": "FDFLG",
+      "desc": "Frequency decrement flag",
+      "engine": "fnoise",
+      "region": "engine"
+    },
+    {
+      "addr": 24,
+      "span": 2,
+      "name": "GWFRM",
+      "desc": "Waveform address",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 24,
+      "span": 1,
+      "name": "NFFLG",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 24,
+      "span": 2,
+      "name": "SWPDT",
+      "desc": "Sweep period",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 25,
+      "span": 1,
+      "name": "DSFLG",
+      "desc": "Distortion flag",
+      "engine": "fnoise",
+      "region": "engine"
+    },
+    {
+      "addr": 25,
+      "span": 1,
+      "name": "LFREQ",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 26,
+      "span": 1,
+      "name": "PRDECA",
+      "desc": "Pre-decay factor",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 26,
+      "span": 1,
+      "name": "DFREQ",
+      "desc": "",
+      "engine": "lfsr",
+      "region": "engine"
+    },
+    {
+      "addr": 26,
+      "span": 1,
+      "name": "LOMOD",
+      "desc": "Base freq mod",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 27,
+      "span": 2,
+      "name": "GWFRQ",
+      "desc": "Freq table addr",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 27,
+      "span": 1,
+      "name": "VAMP",
+      "desc": "Amplitude",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 28,
+      "span": 1,
+      "name": "LOCNT",
+      "desc": "Period counters",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 29,
+      "span": 2,
+      "name": "FRQEND",
+      "desc": "End addr freq table",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 29,
+      "span": 1,
+      "name": "HICNT",
+      "desc": "",
+      "engine": "vari",
+      "region": "engine"
+    },
+    {
+      "addr": 31,
+      "span": 2,
+      "name": "WVEND",
+      "desc": "Wave end addr",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 33,
+      "span": 1,
+      "name": "GPER",
+      "desc": "Period",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 34,
+      "span": 1,
+      "name": "GECNT",
+      "desc": "# of echoes counter",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 35,
+      "span": 1,
+      "name": "FOFSET",
+      "desc": "Frequency offset",
+      "engine": "gwave",
+      "region": "engine"
+    },
+    {
+      "addr": 36,
+      "span": 72,
+      "name": "GWTAB",
+      "desc": "Wave table",
+      "engine": "gwave",
+      "region": "engine"
+    }
+  ]
+}

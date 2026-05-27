@@ -1,0 +1,24 @@
+{
+  "title": "FOSHIT — Foe-hit (short VARI saw)",
+  "engine": "VARI",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Same engine as SAW, but `LOPER=$28` (vs SAW's $40) — narrower initial low-half period, higher fundamental, and a shorter cycle count. The brief 'hit confirmed' blip when you destroy an enemy.",
+  "how": "Comparing SAW and FOSHIT bytes side-by-side:\n\n```\nSAW    $40, $01, $00, $10, $E1, $00, $80, $FF, $FF\nFOSHIT $28, $01, $00, $08, $81, $02, $00, $FF, $FF\n```\n\nThree meaningful deltas:\n\n1. `LOPER` shrinks from $40 to $28 → fundamental jumps an octave-ish higher (smaller period = higher pitch).\n2. The 4th byte (HIDT?) drops from $10 to $08 → faster per-iteration high-side decrement, so the sweep proceeds in *bigger* steps and the sound ends sooner.\n3. The 5th byte (HIEN/HIEN-related) changes $E1 → $81 → the high bit set there changes the modulator's sign in the same way QUASAR does, but with the smaller LOPER it gives a different character: snappy, percussive, short.\n\nNet: a high, short, sweeping 'pew' — appropriate for a per-kill blip where SAW's longer descent would feel wrong.",
+  "watch": [
+    "VARI engine view — LOCNT bar smaller than for SAW, sound finishes faster.",
+    "A/B diff vs SAW — see the 3-byte preset difference."
+  ],
+  "code": [
+    "`FOSHIT` VARI preset at `VSNDRM1.SRC:1007`.",
+    "Same `VARILD` / `VARI` engine code as SAW + QUASAR + CABSHK."
+  ],
+  "see": [
+    "**SAW** ($1D) — longer, lower variant. A/B against FOSHIT.",
+    "**QUASAR** ($1F) — VARI with reverse polarity.",
+    "**CABSHK** — fourth VARI preset, used internally by `SP1` (spinner)."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "title": "START — Electric buzzy drone (Robotron)",
+  "engine": "(special)",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Hand-coded electric / static drone — neither GWAVE nor any standard engine. Plays at \"round start\" as a tense atmospheric layer.",
+  "how": "Custom routine that writes alternating high/low values to the DAC at a hand-tuned rate, with periodic interruptions producing the \"static\" character. Likely uses inline counters and small LUTs rather than one of the standard engines.",
+  "watch": [
+    "Stage swimlane — `START` band only (no engine slot populates).",
+    "Byte tape — distinctive alternating pattern unlike GWAVE wavetable reads."
+  ],
+  "code": [
+    "`START` routine at Robotron's `$35` dispatch entry."
+  ],
+  "see": [
+    "**HYPER** — another hand-coded special routine on Defender."
+  ]
+}

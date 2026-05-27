@@ -1,0 +1,23 @@
+{
+  "title": "PROTV — Protector death",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "GWAVE sine preset with `GDFINC` set negative — the frequency offset *decreases* each echo iteration, sliding the pitch downward. The sad-descent sound when your protector dies.",
+  "how": "Where most GWAVE sweep presets (XBV / DP1V) use a *positive* `GDFINC` to climb, PROTV uses a *negative* value (signed-byte form like `$FF` = −1). Each echo iteration drops the pitch a step, producing a descending sine arpeggio.\n\nThe GS72 sine wavetable keeps the timbre clean — appropriate for the melancholy intent.",
+  "watch": [
+    "`GDFINC` displayed as a negative signed byte in the GWAVE engine view.",
+    "Wavetable cursor walking the same sine each echo, but the *speed* (period) gets longer each pass.",
+    "Spectrogram — descending pitch arc."
+  ],
+  "code": [
+    "`PROTV` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**XBV / DP1V** — same engine, positive (ascending) GDFINC.",
+    "**HBDV** — canonical GWAVE card."
+  ]
+}

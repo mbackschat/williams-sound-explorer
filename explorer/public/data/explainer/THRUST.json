@@ -1,0 +1,26 @@
+{
+  "title": "THRUST — Ship-thruster whoosh",
+  "engine": "FNOISE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "FNOISE without distortion: a clean low-frequency noise drone. Defender's player-ship-thruster whoosh — fires repeatedly while the player holds thrust.",
+  "how": "THRUST shares its inner loop with `CANNON` and `BG1` — the FNOISE engine that runs the `FHI:FLO` accumulator → DAC ripple. But where `CANNON` enables `DSFLG` (random-distortion modulation, sets `FMAX`=$FF for a loud peak) and frames itself as a finite burst, THRUST is the *minimal* configuration: distortion off, low `FMAX`=3, no sample countdown — just a continuous-ish drone with mostly-zero high byte.\n\nThe game CPU re-fires `$16` every few frames while the thrust key is held, so what you hear is a *stuttered* drone — each fire is a fresh ~5 s decay (the explorer's render cap), but in the game new fires keep arriving so the drone sustains.",
+  "watch": [
+    "FNOISE engine view — `FREQ` bar stays low (FMAX=3 is tiny), distortion LED **off**.",
+    "Compare against CANNON: CANNON has the LED on and a high `FMAX`; THRUST does not.",
+    "Spectrogram — broad low-frequency band, no upward sweep (since `FMAX` is low and reached almost immediately)."
+  ],
+  "code": [
+    "`THRUST` at `$F940` (Defender) — sets `DSFLG=0`, `B=3` (= `FMAX`), jumps to `FNOISE`.",
+    "Shares `FNOISE` inner loop with `CANNON` and `BG1`.",
+    "Source: `VSNDRM1.SRC:346`."
+  ],
+  "see": [
+    "**CANNON** — same engine with distortion on + bigger amplitude. Compare them via the A/B diff.",
+    "**BG1** — another FNOISE preset, configured as a background loop.",
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE"
+  ]
+}

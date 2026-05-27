@@ -1,0 +1,25 @@
+{
+  "title": "CANNON — Filtered-noise cannon",
+  "engine": "FNOISE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "A 16-bit frequency accumulator (`FHI:FLO`) sloped up then down between 0 and `FMAX`, with random-distortion modulation, gated by a sample countdown. The percussive cannon thump.",
+  "how": "FNOISE (filtered noise) is the percussion engine: cannon, thrust, BG1. A 16-bit accumulator at `$14:$15` (Defender) holds the current 'frequency' — actually a tick-rate for the DAC pulses. Each iteration adds or subtracts a small delta to the accumulator (controlled by `FDFLG`: 0 = sloping up, non-zero = sloping down), and when the high byte rolls past a threshold the DAC toggles.\n\n`FMAX` is the *peak* the accumulator is allowed to reach — when `FHI` reaches `FMAX`, the engine flips `FDFLG` and starts sloping back down. Combined with `DSFLG` (distortion enable), the result is a rising-then-falling pitch swept *with* a noise component layered in — that's the 'thump-then-roar' of a cannon shot.\n\n`SAMPC` counts down the total samples for the burst. When it underflows, the sound ends.",
+  "watch": [
+    "FNOISE engine view — current `FREQ` bar relative to `FMAX` peak, `SAMPC` countdown bar, slope arrow (↑/↓), distortion LED (on/off).",
+    "`FDFLG` flipping when `FREQ` reaches `FMAX` — that's the slope direction change.",
+    "Spectrogram — single-pitch sweep upward + downward, broadened by the distortion if `DSFLG` is set."
+  ],
+  "code": [
+    "`CANNON` at `$F920` (Defender) — preset loader: sets `FMAX`, initial `FHI:FLO`, `SAMPC`, `FDFLG=0`, `DSFLG`.",
+    "`FNOISE` — generic inner loop reused by CANNON, THRUST, BG1.",
+    "Source: `VSNDRM1.SRC:353` (Defender CANNON), `VSNDRM1.SRC:364` (FNOISE inner loop)."
+  ],
+  "see": [
+    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE filtered noise",
+    "Compare CANNON vs THRUST vs BG1 (all FNOISE presets) in the A/B diff"
+  ]
+}

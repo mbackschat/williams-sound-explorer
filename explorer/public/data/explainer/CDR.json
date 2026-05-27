@@ -1,0 +1,24 @@
+{
+  "title": "CDR — Crowd Roar (Robotron's most elaborate routine)",
+  "engine": "(composite)",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Two parallel noise oscillators (`CR1`, `CR2`) layered under a sliding referee-whistle sequencer. The whistle reads from an 8-step parameter DSL at `WS1`, where each step is 5 bytes `(WHIS, WFRQ2, DFRQ2, WCNT2, MINWIS)` and a zero terminates the sequence. By far the most software per ROM byte in either Williams sound ROM.",
+  "how": "CDR is a *small interpreted program* embedded in the ROM. At entry it points X at `WS1` (whistle params), saves to `PTRHI`, and calls `WISLD` (whistle loader) — which reads 5 bytes and configures the whistle oscillator's frequency / decay / counter / minimum. Then it seeds two parallel white-noise oscillators (`CR1` at low decay, `CR2` at upward-sweep) and calls `NINIT` / `NINIT2` to launch them.\n\nThe whistle oscillator advances through the WS1 table autonomously — when its current step finishes (counter underflow), it loads the next 5 bytes and the whistle changes pitch/duration smoothly. Eight steps + a `0` terminator = the characteristic 'stadium crowd roar with that wandering referee whistle on top' that Robotron uses for human-rescue moments.\n\nThe parameter DSL is the trick: instead of hand-coding each whistle note, the ROM stores them as data that the engine interprets at run time. This is the only Williams sound that has a *script*, not just a preset.",
+  "watch": [
+    "Stage swimlane — alternating bands of `CDR`, `WISLD`, `NOISLD`, `NINIT`, `NINIT2` as the routine spins through its layers.",
+    "RAM heatmap — the noise + whistle state at `$12..$1F` (Robotron layout) lights up rapidly.",
+    "Spectrogram — two broad noise bands underneath a sliding higher-frequency formant (the whistle)."
+  ],
+  "code": [
+    "`CDR` entry at `$F84A` (Robotron) — sets up whistle + noise oscillators.",
+    "`WS1` whistle param table at `VSNDRM3.SRC:928` — 8 × 5-byte steps + 0 terminator.",
+    "`CR1` / `CR2` noise param blocks at `VSNDRM3.SRC:937–938`.",
+    "Source: `VSNDRM3.SRC:916`."
+  ],
+  "see": [
+    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §CDR — full byte-level DSL description.",
+    "[research/findings_robotron_sound.md](research/findings_robotron_sound.md) — line-by-line analysis of `WISLD` / `NOISLD` / `NINIT`."
+  ]
+}

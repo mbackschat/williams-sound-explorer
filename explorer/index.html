@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Williams Sound Explorer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      html, body { height: 100%; }
+      body {
+        background: #1a1a1d; color: #e8e8ea; margin: 0; padding: 1.25rem 1.5rem;
+        overflow-y: auto;
+      }
+      /* Page fills the window up to a generous upper bound so the
+         visualisations (spectrogram, swimlane, byte tape) get all the width
+         they can use.  Margin auto keeps very wide screens centred; below
+         the cap the layout simply uses the full width. */
+      .page { max-width: 2400px; margin: 0 auto; }
+      h1 { font-size: 1.05rem; font-weight: 600; margin: 0 0 1rem; color: #ffd866; }
+      h2 {
+        font-size: 0.82rem; font-weight: 600; color: #a9dc76;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        margin: 2rem 0 0.7rem;
+        padding-top: 1rem;
+        border-top: 1px solid #2a2f37;
+      }
+      /* First h2 doesn't need a divider above it. */
+      .page > h2:first-of-type { margin-top: 1.4rem; }
+      /* Collapsible top-level sections — summary styled like an h2 so the
+         look matches the rest of the page, with a rotating disclosure
+         triangle prefixed to make the collapsibility discoverable. */
+      details.section { margin: 1.4rem 0 0; }
+      .page > details.section:first-of-type { margin-top: 1rem; }
+      details.section > summary {
+        font-size: 0.82rem; font-weight: 600; color: #a9dc76;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        padding: 0.9rem 0 0.55rem;
+        border-top: 1px solid #2a2f37;
+        cursor: pointer; user-select: none; list-style: none;
+      }
+      details.section > summary::-webkit-details-marker { display: none; }
+      details.section > summary::before {
+        content: "▶"; display: inline-block;
+        font-size: 0.75em; color: #5a5e68;
+        transition: transform 0.15s ease;
+        margin-right: 0.45em; width: 0.9em;
+      }
+      details.section[open] > summary::before { transform: rotate(90deg); }
+      details.section > summary:hover { color: #d8f0a8; }
+      details.section > summary:hover::before { color: #abafb6; }
+      /* In-column variant: no top divider, no top padding/margin — the
+         column already opens a fresh visual block. */
+      details.section.in-column { margin-top: 0; }
+      details.section.in-column > summary {
+        border-top: none; padding-top: 0;
+      }
+      p { color: #abafb6; line-height: 1.4; margin: 0.3rem 0; font-size: 0.85rem; }
+      .row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin: 0.3rem 0; }
+      .sep { width: 1px; height: 1.6rem; background: #353a44; margin: 0 0.2rem; }
+      button, select, input[type="range"], input[type="text"] {
+        background: #2a2a2f; color: #e8e8ea; border: 1px solid #404045;
+        font: inherit; padding: 0.35rem 0.65rem; border-radius: 4px;
+      }
+      button:hover:not(:disabled) { background: #3a3a3f; cursor: pointer; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      /* Primary action — Fire — much louder than the secondary buttons.
+         Yellow body, larger padding, slight glow on hover so the eye can
+         find it instantly even in a row of similar-looking controls. */
+      button#fire {
+        background: #ffd866; color: #1a1a1d; border-color: #ffd866;
+        font-weight: 700; padding: 0.5rem 1.1rem;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        font-size: 0.92rem;
+      }
+      button#fire:hover:not(:disabled) {
+        background: #ffe488; border-color: #ffe488; color: #1a1a1d;
+        box-shadow: 0 0 0 2px rgba(255, 216, 102, 0.35);
+      }
+      button#fire:disabled {
+        background: #4a4530; color: #abafb6; border-color: #4a4530;
+      }
+      /* "Fire ⏸" sibling — visually paired with Fire but a touch quieter
+         so Fire is clearly the primary action. */
+      button#firePaused {
+        background: #2a2a2f; color: #ffd866; border-color: #ffd866;
+        font-weight: 600;
+      }
+      button#firePaused:hover:not(:disabled) {
+        background: #3a3a3f; box-shadow: 0 0 0 2px rgba(255, 216, 102, 0.2);
+      }
+      button.preset { min-width: 3.6rem; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+      button.chip {
+        min-width: 2.4rem; padding: 0.2rem 0.55rem; font-size: 0.78rem;
+        background: #1f2228; border-color: #353a44;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+      }
+      button.chip:hover:not(:disabled) { background: #2a2f37; border-color: #4a5060; }
+      button.chip .chip-cmd { color: #ffd866; font-weight: 600; font-variant-numeric: tabular-nums; }
+      button.chip .chip-name { color: #d1d4dc; }
+      .chip-engine {
+        display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+        background: #5a5e68;
+      }
+      /* Per-engine colour for the leading dot — matches the genealogy panel.
+         Each rule also targets the "Dot =" legend so the swatch colours are
+         defined exactly once and can't drift from the chips. */
+      button.chip[data-engine="LFSR"]   .chip-engine,
+      .legend-item[data-engine="LFSR"]  .chip-engine { background: #78dce8; }
+      button.chip[data-engine="GWAVE"]  .chip-engine,
+      .legend-item[data-engine="GWAVE"] .chip-engine,
+      .engine-view-pane[data-engine="gwave"] .chip-engine { background: #a9dc76; }
+      button.chip[data-engine="VARI"]   .chip-engine,
+      .legend-item[data-engine="VARI"]  .chip-engine,
+      .engine-view-pane[data-engine="vari"] .chip-engine { background: #ffd866; }
+      button.chip[data-engine="SCREAM"] .chip-engine,
+      .legend-item[data-engine="SCREAM"] .chip-engine,
+      .engine-view-pane[data-engine="scream"] .chip-engine { background: #ff6188; }
+      button.chip[data-engine="ORGAN"]  .chip-engine,
+      .legend-item[data-engine="ORGAN"] .chip-engine,
+      .engine-view-pane[data-engine="organ"] .chip-engine { background: #ab9df2; }
+      button.chip[data-engine="FNOISE"] .chip-engine,
+      .legend-item[data-engine="FNOISE"] .chip-engine,
+      .engine-view-pane[data-engine="fnoise"] .chip-engine { background: #fc9867; }
+      /* Dot sits inline before the engine name in each pane's panel-label —
+         larger here than in the chips/legend since the engine colours are the
+         primary key and the panel-label has room to make them distinguishable. */
+      .panel-label .chip-engine { width: 13px; height: 13px; margin-right: 0.28rem; vertical-align: middle; }
+      /* "Show:" legend — one wrapping row of engine toggles that filter the
+         chip list.  Buttons reset off the global button styling. */
+      .chip-legend { margin-top: 0.2rem; }
+      .chip-legend-items {
+        display: flex; flex-wrap: wrap; gap: 0.1rem 0.7rem;
+        flex: 1 1 0; min-width: 0; font-size: 0.72rem; color: #9098a6;
+      }
+      .legend-item {
+        display: inline-flex; align-items: center; gap: 0.28rem;
+        background: none; border: 0; padding: 0.1rem 0.15rem; margin: 0;
+        font: inherit; font-size: 0.72rem; color: #9098a6; cursor: pointer;
+        border-radius: 3px;
+      }
+      .legend-item:hover { color: #d1d4dc; background: #20242c; }
+      /* Toggled off — dimmed + struck through; its dot fades but keeps hue. */
+      .legend-item[aria-pressed="false"] { opacity: 0.4; text-decoration: line-through; }
+      /* Wrapping container — fills the available row width and wraps to as
+         many lines as the active game's command count needs. */
+      .cmd-chips {
+        display: flex; flex-wrap: wrap; gap: 0.3rem;
+        flex: 1 1 0; min-width: 0;
+      }
+      /* Firing a sound acts on the live CPU, which is frozen during scrub —
+         dim + disable the Try chips so it's clear they're inert until Live. */
+      .cmd-chips.scrub-disabled { opacity: 0.45; pointer-events: none; }
+      .cmd-chips-empty {
+        font-size: 0.78rem; color: #9098a6;
+      }
+      button.term {
+        padding: 0.18rem 0.55rem; font-size: 0.78rem;
+        background: #1a2329; border-color: #2c4451; color: #78dce8;
+        cursor: pointer;
+      }
+      button.term:hover { background: #213039; border-color: #3a5868; }
+      a.term-link {
+        color: #78dce8; text-decoration: underline dotted; cursor: pointer;
+      }
+      a.term-link:hover { color: #a4ecf3; }
+      label { color: #abafb6; font-size: 0.85rem; }
+      .log {
+        background: #111114; border: 1px solid #2a2a2f; padding: 0.6rem;
+        font-size: 0.76rem; max-height: 9rem; overflow-y: auto; white-space: pre-wrap;
+      }
+      .ok { color: #a9dc76; }
+      .err { color: #ff6188; }
+      kbd {
+        background: #2a2a2f; border: 1px solid #404045; padding: 0.05rem 0.4rem;
+        border-radius: 3px; font-size: 0.82rem;
+      }
+      /* Two-column main area: control + state on left, glossary on right. */
+      .columns {
+        display: grid; gap: 1.25rem;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+      @media (max-width: 900px) { .columns { grid-template-columns: 1fr; } }
+      #cmdInfo {
+        margin-top: 0.3rem; padding: 0.55rem 0.7rem;
+        background: #11141a; border-left: 3px solid #ffd866;
+        font-size: 0.85rem; color: #d1d4dc; min-height: 2.2rem;
+      }
+      #state {
+        background: #111114; border: 1px solid #2a2a2f;
+        padding: 0.55rem 0.7rem; font-size: 0.82rem; line-height: 1.4;
+        margin: 0; color: #d1d4dc;
+      }
+      .live-grid {
+        display: grid;
+        /* auto-fit reflows on the grid's own width (not a viewport breakpoint).
+           300px min so Code + Eye + Swimlane pack into as many columns as fit
+           (typically 2 — Code | Eye — at the left column's width).  Ear spans
+           the full width (see .live-span) since the oscilloscope reads best wide. */
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 0.6rem;
+        margin: 0.4rem 0;
+      }
+      /* Ear (oscilloscope) takes a full row; Code / Eye / Swimlane flow in the
+         300px grid below it. */
+      .live-grid > .live-span { grid-column: 1 / -1; }
+      .panel {
+        background: #111114; border: 1px solid #2a2a2f; border-radius: 4px;
+        padding: 0.5rem 0.55rem 0.6rem;
+        display: flex; flex-direction: column; min-width: 0;
+      }
+      .panel-label {
+        font-size: 0.72rem; color: #abafb6; letter-spacing: 0.04em;
+        text-transform: uppercase; margin-bottom: 0.35rem;
+      }
+      .panel canvas {
+        width: 100%; height: 130px; display: block; background: #0c0e12;
+        border-radius: 3px;
+      }
+      .code-panel {
+        margin: 0; padding: 0.45rem 0.55rem; height: 130px;
+        background: #0c0e12; border-radius: 3px;
+        font-size: 0.78rem; line-height: 1.45; color: #d1d4dc;
+        overflow: auto; box-sizing: border-box;
+      }
+      #termPopover {
+        display: none; margin-top: 0.5rem; padding: 0.7rem 0.9rem;
+        background: #11141a; border-left: 3px solid #78dce8;
+        font-size: 0.82rem; color: #d1d4dc; line-height: 1.5;
+      }
+      /* Two-column page layout — sticky controls + live grid on the left,
+         scrollable secondary panels on the right.  Below 1100 px collapses
+         to a single stack via the absence of the @media rule below. */
+      .page-layout {
+        display: grid;
+        gap: 1.25rem;
+      }
+      /* Below the two-column breakpoint, the splitter is irrelevant — the
+         layout is a single linear stack. */
+      .col-splitter { display: none; }
+      @media (min-width: 1100px) {
+        .page-layout {
+          /* 3-column grid: left | splitter | right.  --left-width and
+             --right-width are CSS custom properties updated by the drag
+             handler (sum stays ~100fr); persisted to localStorage. */
+          grid-template-columns:
+            minmax(360px, var(--left-width, 1fr))
+            10px
+            minmax(360px, var(--right-width, 1fr));
+          gap: 0;
+          column-gap: 0.6rem;
+          align-items: start;
+        }
+        .left-col {
+          position: sticky;
+          top: 0.6rem;
+          /* When the left column is taller than the viewport (unusual at
+             desktop sizes but possible with a tall live grid), it grows its
+             own scrollbar instead of escaping the viewport. */
+          max-height: calc(100vh - 1.2rem);
+          overflow-y: auto;
+          padding-right: 0.4rem;
+        }
+        .left-col::-webkit-scrollbar { width: 6px; }
+        .left-col::-webkit-scrollbar-thumb { background: #353a44; border-radius: 3px; }
+        /* Cancel the first-section's "no top divider" rule per column.  Each
+           column starts fresh so its first section is treated as such. */
+        .left-col > details.section:first-of-type,
+        .right-col > details.section:first-of-type,
+        .right-col > .columns:first-of-type details.section { margin-top: 1rem; }
+        /* Splitter — a draggable vertical bar between the columns.  Sticky
+           so it tracks the visible boundary as the page scrolls; full
+           viewport height so the user can grab it from anywhere. */
+        .col-splitter {
+          display: block;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          width: 10px;
+          margin: 0 -2px;            /* slight overlap with column edges */
+          background: transparent;
+          cursor: col-resize;
+          touch-action: none;
+          z-index: 5;
+        }
+        .col-splitter::before {
+          /* The visible centred 2px divider line. */
+          content: "";
+          position: absolute;
+          left: 4px; top: 0; bottom: 0;
+          width: 2px;
+          background: #2a2f37;
+          border-radius: 1px;
+          transition: background 0.12s, width 0.12s, left 0.12s;
+        }
+        .col-splitter:hover::before {
+          background: #4a5060; width: 3px; left: 3.5px;
+        }
+        .col-splitter.dragging::before,
+        .col-splitter:active::before {
+          background: #ffd866; width: 4px; left: 3px;
+        }
+        /* Tiny grip handle in the middle — visual hint that this is grabbable. */
+        .col-splitter::after {
+          content: "";
+          position: absolute;
+          left: 1px; top: 50%; width: 8px; height: 30px;
+          margin-top: -15px;
+          background:
+            linear-gradient(#5a5e68 0 0) center / 2px 100% no-repeat,
+            linear-gradient(#5a5e68 0 0) left 1px center / 2px 100% no-repeat,
+            linear-gradient(#5a5e68 0 0) right 1px center / 2px 100% no-repeat;
+          opacity: 0;
+          transition: opacity 0.12s;
+          pointer-events: none;
+        }
+        .col-splitter:hover::after,
+        .col-splitter.dragging::after { opacity: 1; }
+      }
+
+      /* Engine view — all engines visible at once, laid out as a responsive
+         grid.  The active engine's panel gets a yellow border highlight so
+         the user can spot which one's live without losing context on the
+         others.  At narrow widths the grid collapses to a single column. */
+      .engine-view-stack {
+        display: grid; gap: 0.5rem;
+        /* Auto-fit so the grid adds columns as the panel widens — 1 col at
+           narrow widths, 2 at the default left-column width, 3 if the user
+           drags the splitter to give the right column more room. */
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      }
+      .engine-view-stack > .engine-view-pane {
+        transition: border-color 0.15s, box-shadow 0.15s;
+        border: 1px solid #2a2a2f;
+      }
+      .engine-view-stack[data-active="vari"]   > .engine-view-pane[data-engine="vari"],
+      .engine-view-stack[data-active="gwave"]  > .engine-view-pane[data-engine="gwave"],
+      .engine-view-stack[data-active="scream"] > .engine-view-pane[data-engine="scream"],
+      .engine-view-stack[data-active="organ"]  > .engine-view-pane[data-engine="organ"],
+      .engine-view-stack[data-active="fnoise"] > .engine-view-pane[data-engine="fnoise"] {
+        border-color: #ffd866;
+        box-shadow: 0 0 0 1px rgba(255, 216, 102, 0.35);
+      }
+      .engine-view-stack > .engine-view-idle {
+        font-size: 0.78rem; color: #9098a6; padding: 0.6rem 0.8rem;
+        background: #11141a; border: 1px dashed #353a44;
+        border-radius: 4px; grid-column: 1 / -1;
+      }
+      /* Hide the help caption once any engine is active (keeps the grid
+         compact when the user is busy listening). */
+      .engine-view-stack[data-active]:not([data-active=""]) > .engine-view-idle { display: none; }
+      /* Intro + freeze-toggles cell — a plain panel, no active highlight. */
+      .engine-view-stack > .engine-view-info { border: 1px solid #2a2a2f; }
+      /* GWAVE field readouts (above + below the bars canvas) — field names are
+         glossary term-links; values fill from WavetableView.  Margin gives the
+         breathing room between the graph and the text. */
+      .gwave-readout {
+        display: flex; flex-wrap: wrap; gap: 0.15rem 0.8rem;
+        font-family: ui-monospace, monospace; font-size: 0.72rem; color: #9098a6;
+        margin: 0.5rem 0;
+      }
+      .gwave-readout [data-gw] { color: #d1d4dc; }
+      /* Cursor is a 0..71 decimal counter — reserve a fixed 2-char slot so the
+         following fields don't jump as it crosses 9 → 10 and back. */
+      .gwave-readout [data-gw="cursor"] {
+        display: inline-block; min-width: 2ch; text-align: right;
+      }
+
+      /* Segmented game switcher (Phase 5+). */
+      .game-switcher {
+        display: inline-flex; border: 1px solid #404045; border-radius: 5px;
+        overflow: hidden; background: #1a1d24;
+      }
+      .game-switcher .game-pick {
+        background: transparent; border: none; border-right: 1px solid #353a44;
+        border-radius: 0; padding: 0.4rem 0.85rem; color: #abafb6;
+        font: inherit;
+      }
+      .game-switcher .game-pick:last-child { border-right: none; }
+      .game-switcher .game-pick:hover:not(:disabled) {
+        background: #2a2f37; color: #d1d4dc; cursor: pointer;
+      }
+      .game-switcher .game-pick.active {
+        background: #ffd866; color: #1a1a1d; font-weight: 600;
+        cursor: default;
+      }
+      .game-switcher .game-pick.active::before {
+        content: "✓ "; font-weight: 700;
+      }
+      .game-switcher .game-pick.loading {
+        background: #4a4530; color: #1a1a1d; cursor: progress;
+      }
+      .game-switcher .game-pick.loading::before { content: "⟳ "; }
+      .game-switcher .game-pick:disabled:not(.active):not(.loading) {
+        opacity: 0.4; cursor: not-allowed;
+      }
+      /* No ROM stored yet — dimmed + lock glyph, but still clickable (opens onboarding). */
+      .game-switcher .game-pick.locked { opacity: 0.6; }
+      .game-switcher .game-pick.locked::before { content: "🔒 "; }
+      /* A/B diff + Genealogy chips (Steps 5.3 / 5.4). */
+      .genealogy-row {
+        padding: 0.4rem 0.55rem; margin-bottom: 0.4rem;
+        background: #11141a; border: 1px solid #2a2f37; border-radius: 4px;
+      }
+      .genealogy-head {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-size: 0.85rem; color: #d1d4dc;
+      }
+      .engine-dot {
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      }
+      .engine-tag {
+        font-size: 0.7rem; color: #9098a6;
+        background: #1a1d24; border: 1px solid #353a44; border-radius: 3px;
+        padding: 0.04rem 0.4rem; letter-spacing: 0.05em;
+      }
+      .genealogy-members {
+        display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.3rem 0;
+      }
+      .genealogy-member {
+        font-size: 0.78rem; padding: 0.25rem 0.55rem;
+        background: #1f2228; border: 1px solid #353a44; border-radius: 4px;
+        color: #abafb6; display: inline-flex; align-items: center; gap: 0.3rem;
+      }
+      .genealogy-member .game { color: #9098a6; }
+      .genealogy-member .cmd { color: #ffd866; font-weight: 600; }
+      .genealogy-member .label { color: #d1d4dc; }
+      .genealogy-member .badge {
+        font-size: 0.7rem; font-weight: 700; min-width: 0.9em; text-align: center;
+        color: transparent;
+      }
+      .genealogy-member.slot-a { border-color: #78dce8; }
+      .genealogy-member.slot-a .badge { color: #78dce8; }
+      .genealogy-member.slot-b { border-color: #ff6188; }
+      .genealogy-member.slot-b .badge { color: #ff6188; }
+      .genealogy-member:hover { background: #2a2f37; border-color: #4a5060; }
+      .genealogy-notes {
+        font-size: 0.75rem; color: #9098a6; margin: 0.2rem 0 0;
+      }
+      .genealogy-compare {
+        margin-top: 0.4rem;
+        font-size: 0.78rem; padding: 0.25rem 0.7rem;
+        background: #1a2329; border: 1px solid #2c4451; border-radius: 4px;
+        color: #78dce8; cursor: pointer;
+      }
+      .genealogy-compare:hover { background: #213039; border-color: #3a5868; }
+      /* Pattern 5 parameter sliders — compact rows below an engine canvas.
+         Force checkbox pins the value, slider follows live RAM when off. */
+      .param-sliders {
+        display: flex; flex-direction: column; gap: 0.25rem;
+        padding: 0.4rem 0.55rem 0.5rem;
+        border-top: 1px solid #2a2a2f;
+        margin-top: 0.4rem;
+      }
+      .param-row {
+        display: grid; align-items: center;
+        grid-template-columns: 18px 52px 1fr 56px;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+      }
+      .param-row .param-force-cb { margin: 0; accent-color: #ffd866; cursor: pointer; }
+      .param-row .param-label { color: #9098a6; font-variant-numeric: tabular-nums; }
+      .param-row .param-slider {
+        width: 100%; padding: 0; margin: 0; height: 14px;
+        accent-color: #5a6068;
+      }
+      .param-row .param-value {
+        color: #abafb6; text-align: right;
+        font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace;
+      }
+      /* Active state — when the user has the force checkbox on, the row
+         turns yellow to signal "this is an override, not the CPU's value." */
+      .param-row.forced .param-label { color: #ffd866; }
+      .param-row.forced .param-value { color: #ffd866; font-weight: 600; }
+      .param-row.forced .param-slider { accent-color: #ffd866; }
+      /* Pattern 4 / Step 6.1 — SCREAM per-voice mute + Build-up / Tear-down.
+         Lives inside the SCREAM engine pane below the canvas. */
+      .voice-mute-row, .voice-seq-row {
+        display: flex; align-items: center; gap: 0.4rem;
+        padding: 0.35rem 0.55rem 0;
+        font-size: 0.78rem; color: #abafb6;
+        flex-wrap: wrap;
+      }
+      .voice-mute-row .voice-label { min-width: 3.6rem; }
+      .voice-toggle {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        padding: 0.15rem 0.45rem;
+        background: #1f2228; border: 1px solid #353a44; border-radius: 4px;
+        cursor: pointer; user-select: none;
+      }
+      .voice-toggle input { margin: 0; accent-color: #ff6188; cursor: pointer; }
+      .voice-toggle:has(input:checked) {
+        background: #2a1820; border-color: #ff6188; color: #ff6188;
+      }
+      .voice-hint { font-size: 0.72rem; color: #5a5e68; margin-left: auto; }
+      .voice-seq-row { padding-bottom: 0.45rem; }
+      button.voice-seq-btn {
+        font-size: 0.78rem; padding: 0.22rem 0.7rem;
+        background: #1a2329; border-color: #2c4451; color: #78dce8;
+      }
+      button.voice-seq-btn:hover:not(:disabled) {
+        background: #213039; border-color: #3a5868;
+      }
+      button.voice-seq-stop { padding: 0.22rem 0.55rem; }
+      button.voice-seq-btn.running {
+        background: #2a2520; border-color: #ffd866; color: #ffd866;
+      }
+      /* Pattern 12 / Step 6.5 — "Hide help" toggle.  When body.hide-help is
+         set, every explanatory surface is hidden so the user predicts the
+         algorithm from the data alone.  Help comes back the moment the
+         toggle is flipped.  What still shows: button labels, hex values,
+         segment markers, the engine view canvases, the log — i.e. anything
+         that is *data*. */
+      body.hide-help .help-text,
+      body.hide-help details.help,
+      body.hide-help #cmdInfo,
+      body.hide-help #termPopover,
+      body.hide-help #glossarySection,
+      body.hide-help .voice-hint,
+      body.hide-help [data-help] { display: none !important; }
+      body.hide-help a.term-link {
+        color: inherit; text-decoration: none; cursor: default;
+      }
+      button#hideHelpToggle {
+        font-size: 0.78rem; padding: 0.25rem 0.7rem;
+        background: #1f2228; border-color: #353a44; color: #abafb6;
+      }
+      button#hideHelpToggle:hover:not(:disabled) {
+        background: #2a2f37; border-color: #4a5060; color: #d1d4dc;
+      }
+      body.hide-help button#hideHelpToggle {
+        background: #2a2520; border-color: #ffd866; color: #ffd866;
+      }
+      /* Pattern 3 engine toggles — checkbox + label pairs in a flex row. */
+      .engine-toggle {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.2rem 0.55rem; border: 1px solid #353a44; border-radius: 4px;
+        background: #1f2228; cursor: pointer; user-select: none;
+        color: #abafb6;
+      }
+      .engine-toggle input { margin: 0; cursor: pointer; accent-color: #ffd866; }
+      .engine-toggle:hover { background: #2a2f37; border-color: #4a5060; }
+      .engine-toggle.active {
+        background: #2a2520; border-color: #ffd866; color: #ffd866;
+      }
+      /* Collapsible help blocks — closed by default to save vertical space. */
+      details.help { font-size: 0.78rem; color: #abafb6; }
+      details.help > summary {
+        cursor: pointer; user-select: none;
+        color: #78dce8; padding: 0.1rem 0;
+      }
+      details.help > summary:hover { color: #a4ecf3; }
+      details.help[open] > summary { color: #a4ecf3; margin-bottom: 0.2rem; }
+      /* Step 6.4 — Quiz panel. */
+      .quiz-panel button.quiz-start {
+        background: #ffd866; color: #1a1a1d; border-color: #ffd866;
+        font-weight: 600; padding: 0.4rem 0.9rem;
+      }
+      .quiz-panel button.quiz-start:hover:not(:disabled) {
+        background: #ffe488; border-color: #ffe488;
+      }
+      .quiz-panel button.quiz-choice {
+        padding: 0.45rem 0.6rem; font-size: 0.95rem; font-weight: 600;
+        background: #1a1d24; border: 2px solid #353a44; border-radius: 4px;
+        cursor: pointer; transition: background 0.12s, transform 0.08s;
+      }
+      .quiz-panel button.quiz-choice:hover { background: #2a2f37; }
+      .quiz-panel button.quiz-choice:active { transform: scale(0.97); }
+      .quiz-panel button.quiz-secondary {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem;
+        background: #1f2228; border-color: #353a44; color: #abafb6;
+      }
+      .quiz-panel button.quiz-secondary:hover { background: #2a2f37; color: #d1d4dc; }
+      /* Step 6.3 — Explainer card sub-sections.  Plain markdown-ish text
+         + a left accent border keyed to the engine colour. */
+      .explainer-card a { color: #78dce8; text-decoration: underline dotted; }
+      .explainer-card a:hover { color: #a4ecf3; }
+      .explainer-card code {
+        background: #1a1d24; border: 1px solid #2a2f37; border-radius: 3px;
+        padding: 0 0.25em; font-size: 0.92em; color: #d1d4dc;
+      }
+      .explainer-card ul { margin: 0.3rem 0 0.5rem 1.2rem; padding: 0; }
+      .explainer-card li { font-size: 0.82rem; color: #abafb6; line-height: 1.5; margin: 0.15rem 0; }
+      details.explainer-sub { margin: 0.35rem 0 0.2rem; }
+      details.explainer-sub > summary {
+        cursor: pointer; user-select: none; font-size: 0.78rem; color: #a9dc76;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        padding: 0.15rem 0;
+      }
+      details.explainer-sub > summary:hover { color: #d8f0a8; }
+      details.explainer-sub[open] > summary { color: #d8f0a8; margin-bottom: 0.2rem; }
+      #pauseState { font-size: 0.82rem; color: #abafb6; margin-left: 0.2rem; }
+      #speedReadout { font-size: 0.85rem; color: #abafb6; min-width: 3rem; }
+      /* Scrub slider + per-segment markers laid out as an overlay above the
+         range input.  Marker layer needs enough vertical room for the hex
+         label that sits above each start tick. */
+      /* Scrub / Live as a segmented toggle, styled like the game switcher:
+         the active mode is highlighted yellow, the other segment is the
+         action (enter scrub / return to live). */
+      .mode-switcher {
+        display: inline-flex; border: 1px solid #404045; border-radius: 5px;
+        overflow: hidden; background: #1a1d24;
+      }
+      .mode-switcher > button {
+        background: transparent; border: none; border-right: 1px solid #353a44;
+        border-radius: 0; padding: 0.4rem 0.85rem; color: #abafb6; font: inherit;
+      }
+      .mode-switcher > button:last-child { border-right: none; }
+      .mode-switcher > button:hover:not(:disabled):not(.active) {
+        background: #2a2f37; color: #d1d4dc; cursor: pointer;
+      }
+      .mode-switcher > button.active {
+        background: #ffd866; color: #1a1a1d; font-weight: 600;
+        opacity: 1; cursor: default;
+      }
+      .scrub-track {
+        position: relative; padding-top: 28px; margin: 0.2rem 0;
+      }
+      /* Custom-styled so the thumb has a known width (14px) and the track
+         spans edge-to-edge — the shared input[type=range] padding/border was
+         insetting the track ~11px, leaving the thumb stranded right of the
+         "0%" markers.  The marker overlay below is inset by half the thumb
+         width to match the thumb's centre-travel range exactly. */
+      .scrub-track input[type="range"] {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; display: block; margin: 0; padding: 0; border: 0;
+        background: transparent; height: 16px; cursor: pointer;
+      }
+      .scrub-track input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px; background: #2a2a2f; border: 1px solid #404045; border-radius: 4px;
+      }
+      .scrub-track input[type="range"]::-moz-range-track {
+        height: 6px; background: #2a2a2f; border: 1px solid #404045; border-radius: 4px;
+      }
+      .scrub-track input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 14px; height: 14px; margin-top: -5px; border-radius: 50%;
+        background: #8ab4f8; border: none; cursor: pointer;
+      }
+      .scrub-track input[type="range"]::-moz-range-thumb {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: #8ab4f8; border: none; cursor: pointer;
+      }
+      .scrub-track input[type="range"]:disabled { opacity: 0.5; }
+      .scrub-track input[type="range"]:disabled::-webkit-slider-thumb { background: #5a6068; }
+      .scrub-track input[type="range"]:disabled::-moz-range-thumb { background: #5a6068; }
+      /* Inset by half the 14px thumb so 0%/100% line up with the thumb's
+         centre at value min/max (native thumbs can't reach the track edge). */
+      .scrub-markers {
+        position: absolute; left: 7px; right: 7px; top: 0; height: 28px;
+        pointer-events: none;
+      }
+      .scrub-marker {
+        position: absolute; bottom: 0;
+        width: 3px; height: 10px;
+        background: #ffd866; border-radius: 1px;
+        transform: translateX(-1px);
+        pointer-events: auto; cursor: pointer;
+      }
+      .scrub-marker .label {
+        position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+        font-size: 0.66rem; color: #ffd866; line-height: 1; white-space: nowrap;
+        font-variant-numeric: tabular-nums; pointer-events: none;
+      }
+      .scrub-marker:hover { background: #fff; height: 12px; }
+      .scrub-marker:hover .label { color: #fff; }
+      .scrub-marker[data-active="true"] {
+        background: #ff6188; height: 12px;
+        box-shadow: 0 0 4px rgba(255, 97, 136, 0.6);
+      }
+      .scrub-marker[data-active="true"] .label { color: #ff6188; }
+      .scrub-end-marker {
+        position: absolute; bottom: 0;
+        width: 1px; height: 8px;
+        background: #5a5e68;
+        pointer-events: auto; cursor: pointer;
+      }
+      .scrub-end-marker:hover { background: #abafb6; height: 10px; }
+
+      /* dB-scaled meter.  Full width = 0 dB, empty = -60 dB.  Tick marks at
+         -40, -20, -10, -6, -3 dB (positions computed from (60+db)/60). */
+      #volumeMeter {
+        width: 180px; height: 14px; background: #0c0e12; border: 1px solid #2a2f37;
+        border-radius: 3px; overflow: hidden; position: relative;
+      }
+      #volumeMeter .tick {
+        position: absolute; top: 0; bottom: 0; width: 1px; background: #353a44;
+        pointer-events: none;
+      }
+      #volumeMeter .tick-label {
+        position: absolute; top: -14px; transform: translateX(-50%);
+        font-size: 0.62rem; color: #5a5e68; line-height: 1; white-space: nowrap;
+        pointer-events: none;
+      }
+      #volumeMeterRms {
+        position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+        background: linear-gradient(90deg, #a9dc76 0%, #a9dc76 67%, #ffd866 83%, #ff6188 95%);
+        transition: width 60ms linear;
+      }
+      #volumeMeterPeak {
+        position: absolute; top: 0; bottom: 0; width: 2px; background: #e8e8ea;
+        transform: translateX(-1px);
+        transition: left 60ms linear;
+      }
+
+      /* ── Onboarding overlay (audio/onboarding.ts) ───────────────────────── */
+      #onboarding {
+        display: none;            /* shown by main.ts when no ROM is stored */
+        position: fixed; inset: 0; z-index: 1000;
+        background: #0c0e12; color: #d1d4dc; overflow: auto;
+        padding: 2.5rem 1rem;
+      }
+      .onboarding-card { max-width: 760px; margin: 0 auto; }
+      .onboarding-card h1 { margin: 0 0 0.8rem; }
+      .onboarding-card p { font-size: 0.9rem; line-height: 1.55; color: #c4c8d0; }
+      .onboarding-note {
+        font-size: 0.82rem !important; color: #9098a6 !important;
+        background: #11141a; border-left: 3px solid #78dce8;
+        padding: 0.6rem 0.8rem; border-radius: 3px;
+      }
+      #onboardingSlots { margin: 1.2rem 0; display: grid; gap: 0.6rem; }
+      .rom-slot {
+        border: 1px dashed #2c3340; border-radius: 6px; padding: 0.7rem 0.9rem;
+        background: #11141a; transition: border-color 80ms, background 80ms;
+      }
+      .rom-slot.dragover { border-color: #ffd866; background: #1a1a1d; }
+      .rom-slot.filled { border-style: solid; }
+      .rom-slot-name { font-weight: 600; }
+      .rom-slot-controls {
+        display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+        margin-top: 0.35rem;
+      }
+      .rom-slot-status { font-size: 0.8rem; color: #9098a6; flex: 1 1 auto; }
+      .rom-slot-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+      .rom-slot-sha {
+        font: 0.72rem ui-monospace, monospace; color: #6b7280;
+        word-break: break-all; margin-top: 0.3rem;
+      }
+      .rom-slot button { font-size: 0.8rem; padding: 0.25rem 0.6rem; }
+      .tier-ok { color: #a9dc76; }
+      .tier-warn { color: #ffd866; }
+      .tier-reject { color: #ff6188; }
+      .onboarding-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.5rem; }
+      #onboardingEnter {
+        background: #ffd866; color: #1a1a1d; border: none; font-weight: 600;
+        padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;
+      }
+      #onboardingEnter:disabled { background: #3a3a40; color: #777; cursor: not-allowed; }
+      #onboardingHint { font-size: 0.8rem; color: #9098a6; }
+    </style>
+  </head>
+  <body>
+    <!-- Onboarding overlay (shown by main.ts when no ROM is stored).  The app
+         ships no copyrighted ROM bytes; the user supplies their own, stored
+         locally in IndexedDB.  Slots are built by audio/onboarding.ts. -->
+    <div id="onboarding">
+      <div class="onboarding-card">
+        <h1>Williams Sound Explorer</h1>
+        <p>
+          This explorer emulates the original Williams arcade <strong>sound ROMs</strong>
+          (Defender 1980, Stargate 1981, Robotron 2084 1982).  Those ROM images are
+          © Williams Electronics and are <strong>not distributed here</strong> — supply
+          your own copy below.
+        </p>
+        <p class="onboarding-note">
+          🔒 Files are read <strong>in your browser only</strong> and stored locally
+          (IndexedDB) — nothing is uploaded to any server.  You need the
+          <em>sound</em> ROM for each game (from a MAME romset you're licensed to use,
+          or dumped from your own board).  You can also build them from source with
+          <code>tools/build_roms.sh</code>.  Drop a file on a slot — the app checks it
+          and shows its SHA-1.
+        </p>
+        <div id="onboardingSlots"></div>
+        <div class="onboarding-actions">
+          <button id="onboardingEnter" disabled title="Enter the explorer with the ROM(s) you've added — you can add the others later.">Enter the explorer →</button>
+          <span id="onboardingHint">Add at least one ROM to continue.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="page">
+      <h1>Williams Sound Explorer</h1>
+
+      <!-- Two-column desktop layout (Phase 5+ UI restructure).
+           ≥1100 px: left column holds the controls + tape scrubber + the live
+           grid (Ear · Code / Eye · Swimlane) and sticks to the viewport; right
+           column holds the secondary panels (engine view, spectrogram, RAM
+           heatmap, quiz, explainer, A/B, glossary).
+           <1100 px: collapses to a single linear stack via the media query
+           below. -->
+      <div id="pageLayout" class="page-layout">
+        <aside class="left-col">
+      <!-- Top bar: segmented game switcher.  Click a button → the worklet
+           disposes the current runner and inits the picked game in one go.
+           The active game's button is disabled with a leading checkmark. -->
+      <div class="row">
+        <span style="color: #abafb6;">Game:</span>
+        <div id="gameSwitcher" class="game-switcher" role="radiogroup" aria-label="Game">
+          <button class="game-pick" data-game="defender" role="radio" aria-checked="false">Defender</button>
+          <button class="game-pick" data-game="stargate" role="radio" aria-checked="false">Stargate / Defender II</button>
+          <button class="game-pick" data-game="robotron" role="radio" aria-checked="false">Robotron 2084</button>
+        </div>
+        <span class="sep"></span>
+        <button id="hideHelpToggle" aria-pressed="false"
+                title="Pattern 12 — hide all help text, term-link styling, and the glossary so you predict the sound's algorithm from data alone. Click again to bring help back.">
+          Hide help
+        </button>
+      </div>
+
+      <!-- All playback controls on one row: Fire is right next to Pause/Step -->
+      <details class="section" open>
+        <summary>Playback</summary>
+      <p class="help-text" style="font-size: 0.72rem; margin: 0 0 0.4rem;">
+        Pick a game above to load its ROM, then fire a hex command, slow time
+        down, or pause and step the 6800 one instruction at a time (each step
+        is audible).  Underlined terms like
+        <a class="term-link" data-term="DAC">DAC</a>,
+        <a class="term-link" data-term="LFSR">LFSR</a>, and
+        <a class="term-link" data-term="IRQ">IRQ</a> are clickable.
+      </p>
+      <div class="row">
+        <label for="cmd">Cmd&nbsp;hex:</label>
+        <input id="cmd" type="text" value="11" maxlength="2" style="width: 3.5rem; text-align: center;" />
+        <button id="fire" disabled title="Send the command in the Cmd hex box to the sound CPU and play it at the current speed.">Fire</button>
+        <button id="firePaused" disabled title="Fire the command AND pause immediately — first Step ▸ takes the IRQ vector">Fire ⏸</button>
+        <button id="exportWav" title="Render this command offline (clean ROM sound, 48 kHz mono) and download it as a .wav file. Works without Init.">⬇ .wav</button>
+        <span class="sep"></span>
+        <button id="pause" disabled title="Pause the sound CPU — output holds click-free at the last level. Click again to resume.">Pause</button>
+        <button id="step" disabled title="Advance one 6800 instruction">Step ▸</button>
+        <button id="stepDac" disabled title="Advance to the next DAC write (next sample of sound)">▸ DAC</button>
+        <button id="stepIrq" disabled title="Advance to the next IRQ handler entry">▸ IRQ</button>
+        <span id="pauseState">running</span>
+      </div>
+      <details class="help" style="margin: 0.2rem 0 0.4rem;">
+        <summary>What do the step buttons do?</summary>
+        <p class="help-text" style="font-size: 0.78rem; margin: 0.3rem 0 0;">
+          <kbd>Step ▸</kbd> advances one 6800 instruction.
+          <kbd>▸ <a class="term-link" data-term="DAC">DAC</a></kbd> runs until the next
+          <a class="term-link" data-term="DAC">DAC</a> write — one sample of sound.
+          <kbd>▸ <a class="term-link" data-term="IRQ">IRQ</a></kbd> runs until the next
+          <a class="term-link" data-term="IRQ">IRQ</a> handler entry — one sound-engine tick.
+        </p>
+      </details>
+
+      <div id="cmdInfo">Type a hex code to see what it does.</div>
+
+      <!-- Cmd-chip browser — populated by main.ts from the active game's
+           glossary so the user can see every available sound without having
+           to remember hex codes. -->
+      <div class="row" style="align-items: flex-start;">
+        <span style="font-size: 0.8rem; color: #abafb6; min-width: 2.4rem; padding-top: 0.25rem;">Try:</span>
+        <div id="cmdChips" class="cmd-chips"></div>
+      </div>
+      <!-- Engine legend + filter.  Each item is a toggle: click to show/hide
+           that engine's chips above (all on by default).  Swatches reuse the
+           same `.chip-engine` + data-engine CSS as the chips, so colours can
+           never drift.  Always visible (it's a control, not just help) so a
+           filtered list always has a visible way to undo it. -->
+      <div class="row chip-legend" style="align-items: flex-start;">
+        <span style="font-size: 0.72rem; color: #abafb6; min-width: 2.4rem;" title="Click an engine to show/hide its sounds in the Try list">Show:</span>
+        <div class="chip-legend-items" id="chipLegend">
+          <!-- Order mirrors the Engine view grid (ORGAN·SCREAM·FNOISE·GWAVE·VARI,
+               by prevalence) so the colour key reads the same in both places;
+               LFSR is paneless (textual in the Code panel) so it trails the
+               paneled engines, and "none / control" sits last. -->
+          <button type="button" class="legend-item" data-engine="ORGAN"  aria-pressed="true" title="Show/hide ORGAN sounds (polyphonic organ tunes) in the Try list."><span class="chip-engine"></span>ORGAN</button>
+          <button type="button" class="legend-item" data-engine="SCREAM" aria-pressed="true" title="Show/hide SCREAM sounds (4-voice additive) in the Try list."><span class="chip-engine"></span>SCREAM</button>
+          <button type="button" class="legend-item" data-engine="FNOISE" aria-pressed="true" title="Show/hide FNOISE sounds (slope-limited noise) in the Try list."><span class="chip-engine"></span>FNOISE</button>
+          <button type="button" class="legend-item" data-engine="GWAVE"  aria-pressed="true" title="Show/hide GWAVE sounds (wavetable) in the Try list."><span class="chip-engine"></span>GWAVE</button>
+          <button type="button" class="legend-item" data-engine="VARI"   aria-pressed="true" title="Show/hide VARI sounds (variable-duty square) in the Try list."><span class="chip-engine"></span>VARI</button>
+          <button type="button" class="legend-item" data-engine="LFSR"   aria-pressed="true" title="Show/hide LFSR sounds (shift-register noise) in the Try list."><span class="chip-engine"></span>LFSR</button>
+          <button type="button" class="legend-item" data-engine="NONE"   aria-pressed="true" title="Show/hide control / silent commands in the Try list."><span class="chip-engine"></span>none / control</button>
+        </div>
+      </div>
+      </details>
+
+      <!-- Speed + volume — collapsed by default per user preference. -->
+      <details class="section">
+        <summary>Speed &amp; volume</summary>
+      <div class="row">
+        <label style="min-width: 3.6rem;">Speed:</label>
+        <button class="preset" data-speed="1" title="Play at 1× — full arcade speed (894.886 kHz CPU clock).">1×</button>
+        <button class="preset" data-speed="0.25" title="Play at ¼× — pitch drops two octaves; per-sample motion becomes visible.">¼×</button>
+        <button class="preset" data-speed="0.1" title="Play at ¹⁄₁₀× — individual DAC writes become an audible click train.">¹⁄₁₀×</button>
+        <button class="preset" data-speed="0.01" title="Play at ¹⁄₁₀₀× — extreme slow-mo; the LFSR / wavetable clock crawls.">¹⁄₁₀₀×</button>
+        <span id="speedReadout">1.00×</span>
+      </div>
+      <!-- Volume + output meter on their own row so they never wrap into the
+           speed presets. -->
+      <div class="row">
+        <label for="volume" style="min-width: 3.6rem;">Volume:</label>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.3" style="width: 8rem;" />
+        <span id="volumeReadout" style="min-width: 2.6rem; font-size: 0.85rem; color: #abafb6;">30%</span>
+        <div id="volumeMeter" title="post-volume output level — bar = RMS, marker = peak. Scale -60..0 dB.">
+          <!-- dB tick marks at -40, -20, -10, -6, -3.  Positions: (60+db)/60 × 100% -->
+          <span class="tick" style="left: 33.3%;"><span class="tick-label">-40</span></span>
+          <span class="tick" style="left: 66.7%;"><span class="tick-label">-20</span></span>
+          <span class="tick" style="left: 83.3%;"><span class="tick-label">-10</span></span>
+          <span class="tick" style="left: 90%;"></span>
+          <span class="tick" style="left: 95%;"></span>
+          <div id="volumeMeterRms"></div>
+          <div id="volumeMeterPeak" style="left: 0%;"></div>
+        </div>
+        <span id="meterReadout" style="font-size: 0.78rem; color: #abafb6; min-width: 7.5rem; font-variant-numeric: tabular-nums;">silent</span>
+      </div>
+      </details>
+
+      <!-- Tape-loop scrubber: drag through recorded DAC history -->
+      <details class="section" open>
+        <summary>Tape scrubber</summary>
+      <p class="help-text" style="font-size: 0.78rem; margin: 0 0 0.3rem;">
+        Drag through the recorded <a class="term-link" data-term="DAC">DAC</a>
+        history.  Reverse speeds play the
+        <a class="term-link" data-term="LFSR">LFSR</a> backwards.
+      </p>
+      <div class="row">
+        <div class="mode-switcher">
+          <button id="scrubStart" disabled title="Enter scrub mode and pause live CPU">Scrub</button>
+          <button id="scrubLive" disabled title="Exit scrub mode and resume live CPU">▶ Live</button>
+        </div>
+        <button id="scrubReset" disabled title="Clear the recording and segment markers — blanks the tape">⟲ Reset</button>
+        <button id="scrubMode" disabled title="Toggle between compact (skip silence between sounds) and real-time slider mapping">📍 Compact</button>
+        <button class="preset scrub-preset" data-scrub-speed="-1" disabled title="Replay the recording backward at 1× — plays the DAC history (and the LFSR) in reverse.">⏪ 1×</button>
+        <button class="preset scrub-preset" data-scrub-speed="-0.25" disabled title="Replay backward at ¼× — slow reverse.">⏪ ¼×</button>
+        <button id="scrubPlay" disabled title="Toggle play/freeze at the last non-zero speed">▶</button>
+        <button class="preset scrub-preset" data-scrub-speed="0.25" disabled title="Replay forward at ¼× — slow forward.">¼× ⏩</button>
+        <button class="preset scrub-preset" data-scrub-speed="1" disabled title="Replay the recording forward at 1×.">1× ⏩</button>
+        <span class="sep"></span>
+        <button id="scrubLoop" disabled title="Cycle through loop modes: none / range / segment">🔁 Loop: off</button>
+      </div>
+      <div class="scrub-track">
+        <div id="scrubMarkers" class="scrub-markers"></div>
+        <input id="scrubPos" type="range" min="0" max="1000" step="1" value="1000" disabled />
+      </div>
+      <div class="row" style="margin-top: 0.2rem;">
+        <span id="scrubReadout" style="font-size: 0.82rem; color: #abafb6; min-width: 14rem; font-variant-numeric: tabular-nums;">no recording yet</span>
+      </div>
+      <details class="help" style="margin: 0.3rem 0 0;">
+        <summary>How the scrubber works</summary>
+        <p class="help-text" style="font-size: 0.78rem; margin: 0.3rem 0 0;">
+          Click <kbd>Scrub</kbd>, then a yellow marker to jump to that
+          sound's start.  Speed is frozen by default — press ⏩ to play,
+          ⏪ for reverse.  Gray ticks mark where each sound ends; the gap
+          after a gray tick is the silence between sounds.
+          <br>
+          <strong>Loop modes</strong>:
+          <em>off</em> = stop at end ·
+          <em>range</em> = wrap whole recording ·
+          <em>segment</em> = wrap within current sound (clicking a marker
+          switches to this mode for repeat-listening).
+        </p>
+      </details>
+      </details>
+
+      <!-- Live grid (Step 3.1 / Pattern 1, + swimlane moved in): a 2×2 of
+           Ear · Code / Eye · Swimlane. -->
+      <details class="section" open>
+        <summary>Ear · Code · Eye · Swimlane</summary>
+      <div class="live-grid">
+        <section class="panel live-span">
+          <div class="panel-label">
+            Ear — dual-trace oscilloscope: raw
+            <a class="term-link" data-term="DAC">DAC</a> +
+            post-<a class="term-link" data-term="LPF">LPF</a>
+          </div>
+          <canvas id="earCanvas"></canvas>
+        </section>
+        <section class="panel">
+          <div class="panel-label">
+            Code — current instruction + registers
+            (<a class="term-link" data-term="BRA-self">BRA-self</a> idle when no sound is playing)
+          </div>
+          <pre id="codePanel" class="code-panel">(pick a game above to see CPU state)</pre>
+        </section>
+        <section class="panel">
+          <div class="panel-label">
+            Eye — <a class="term-link" data-term="DAC">DAC</a> byte tape
+            (hover a cell for cycle + PC)
+          </div>
+          <canvas id="eyeCanvas"></canvas>
+        </section>
+        <section class="panel">
+          <div class="panel-label">Swimlane — which ROM routine is running</div>
+          <canvas id="swimlaneCanvas"></canvas>
+        </section>
+      </div>
+      </details>
+
+      <!-- Log moved to the bottom of the left column, collapsed by default. -->
+      <details class="section">
+        <summary>Log</summary>
+        <div class="log" id="log"></div>
+      </details>
+        </aside>
+
+        <!-- Drag this divider left/right to set the L/R column proportion.
+             Double-click to reset to 50/50.  Below 1100 px the splitter is
+             hidden via the media query above. -->
+        <div id="colSplitter" class="col-splitter" role="separator"
+             aria-orientation="vertical" aria-label="Resize columns"
+             tabindex="0" title="Drag to resize · double-click for 50/50"></div>
+
+        <main class="right-col">
+      <!-- Step 4.2 / 4.3 / 4.4 — per-engine views + Pattern 3 toggles.
+           Single-panel-at-a-time variant (Phase 5+ UI): the canvas for the
+           currently-active engine is shown; the rest are hidden via the
+           `data-active` attribute on the stack wrapper. -->
+      <details class="section" open>
+        <summary>Engine view <span style="color:#9098a6; font-size: 0.75em; text-transform: none; letter-spacing: normal; font-weight: normal;">per-routine inner state</span></summary>
+        <!-- All engine canvases are shown at once in a responsive grid; the
+             active engine's pane gets a yellow highlight (set via `data-active`
+             from the snapshot).  The intro + Pattern-3 freeze toggles ride in
+             the first grid cell so an odd engine count doesn't waste a column.
+             Every canvas still gets update() calls so it's ready instantly. -->
+        <div id="engineStack" class="engine-view-stack" data-active="">
+          <section class="panel engine-view-info">
+            <div class="panel-label">Engine state &amp; toggles</div>
+            <p class="help-text" style="font-size: 0.78rem; margin: 0 0 0.5rem;">
+              The active sound's engine state.  LFSR (LITE) also surfaces in the
+              Code panel above; VARI shows
+              <a class="term-link" data-term="duty cycle">duty-cycle</a> bars; GWAVE
+              shows the live 72-byte wavetable + sample cursor.
+            </p>
+            <div id="engineToggleRow" class="row" style="font-size: 0.78rem; margin: 0;">
+              <span style="color: #abafb6; min-width: 5.5rem;" title="Freeze toggles (Pattern 3): each one pins a single piece of engine state — a zero-page RAM cell — by discarding the engine's writes to it. Removing that value's motion lets you hear exactly what it contributes. Hover each toggle for specifics.">Toggles:</span>
+              <!-- Populated by main.ts from ENGINE_TOGGLE_META so labels stay in sync. -->
+            </div>
+          </section>
+          <section class="panel engine-view-pane" data-engine="organ">
+            <div class="panel-label"><span class="chip-engine"></span><a class="term-link" data-term="ORGAN">ORGAN</a> — polyphonic tune (OSCIL voices + RDELAY)</div>
+            <canvas id="organCanvas" style="height: 170px;"></canvas>
+            <!-- Pattern 4 expansion — ORGAN voice mute (Robotron only).
+                 8 OSCIL bits mapped to 8 voice mute checkboxes; Build-up /
+                 Tear-down sequences them on a timer atop SCREAM's plumbing
+                 (but firing $1B + tune 2 = NINTH on Robotron — Beethoven). -->
+            <div class="voice-mute-row">
+              <span class="voice-label"><a class="term-link" data-term="OSCIL">OSCIL</a>:</span>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="0" /><span>b0</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="1" /><span>b1</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="2" /><span>b2</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="3" /><span>b3</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="4" /><span>b4</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="5" /><span>b5</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="6" /><span>b6</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="organ-voice-cb" data-bit="7" /><span>b7</span></label>
+              <span class="voice-hint">checked = muted</span>
+            </div>
+            <div class="voice-seq-row">
+              <button id="organBuildUp" class="voice-seq-btn"
+                      title="Mute all 8 OSCIL bits, fire $1B + tune 2 on the loaded game (NINTH/Beethoven on Stargate & Robotron, TACCATA on Defender), then un-mute b0..b7 in 700 ms steps so each popcount voice joins the chord."
+                >Build-up ↑</button>
+              <button id="organTearDown" class="voice-seq-btn"
+                      title="Fire $1B + tune 2 (NINTH/Beethoven on Stargate & Robotron, TACCATA on Defender) with all OSCIL bits open, then mute b7..b0 in 700 ms steps so each voice's contribution is audible as it leaves."
+                >Tear-down ↓</button>
+              <button id="organSeqStop" class="voice-seq-btn voice-seq-stop" disabled
+                      title="Cancel the running sequence and clear all OSCIL mutes.">■</button>
+            </div>
+          </section>
+          <section class="panel engine-view-pane" data-engine="scream">
+            <div class="panel-label"><span class="chip-engine"></span><a class="term-link" data-term="SCREAM">SCREAM</a> — 4 detuned voices (phase + FREQ/TIMER)</div>
+            <canvas id="screamCanvas" style="height: 170px;"></canvas>
+            <!-- Pattern 4 / Step 6.1 — per-voice mute + Build-up / Tear-down
+                 sequencer.  The 4 checkboxes pin each voice's TIMER cell to 0
+                 (via PC-gated write discard); the sequencer fires SCREAM
+                 ($1A) on Robotron and flips the mutes one at a time on a
+                 timer so the user hears voices enter or leave. -->
+            <div class="voice-mute-row">
+              <span class="voice-label" title="SCREAM sums four independent oscillators. Mute one to hear the scream without that layer — the cheapest way to pick out each voice. Use Build-up / Tear-down to add or remove them one at a time. Checked = muted.">Voices:</span>
+              <label class="voice-toggle"><input type="checkbox" class="voice-cb" data-voice="0" /><span>v0</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="voice-cb" data-voice="1" /><span>v1</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="voice-cb" data-voice="2" /><span>v2</span></label>
+              <label class="voice-toggle"><input type="checkbox" class="voice-cb" data-voice="3" /><span>v3</span></label>
+              <span class="voice-hint">checked = muted</span>
+            </div>
+            <div class="voice-seq-row">
+              <button id="screamBuildUp" class="voice-seq-btn"
+                      title="Mute all 4 voices, fire SCREAM on the loaded game (Defender / Stargate / Robotron all have it), then add v0..v3 in 700 ms steps so each layer is audible as it enters."
+                >Build-up ↑</button>
+              <button id="screamTearDown" class="voice-seq-btn"
+                      title="Fire SCREAM (on whichever game is loaded — all three have it) with all voices on, then mute v3..v0 in 700 ms steps so each voice's contribution is audible as it leaves."
+                >Tear-down ↓</button>
+              <button id="screamSeqStop" class="voice-seq-btn voice-seq-stop" disabled
+                      title="Cancel the running sequence and clear all voice mutes.">■</button>
+            </div>
+          </section>
+          <section class="panel engine-view-pane" data-engine="fnoise">
+            <div class="panel-label"><span class="chip-engine"></span><a class="term-link" data-term="FNOISE">FNOISE</a> — slope-limited noise (FREQ vs FMAX)</div>
+            <canvas id="fnoiseCanvas" style="height: 170px;"></canvas>
+          </section>
+          <section class="panel engine-view-pane" data-engine="gwave">
+            <div class="panel-label"><span class="chip-engine"></span><a class="term-link" data-term="GWAVE">GWAVE</a> — live wavetable ($24..$6B) + sample cursor</div>
+            <!-- Field readouts are HTML (not canvas-drawn) so each name is a
+                 clickable glossary term-link, like VARI's LOPER/HIPER.  The
+                 canvas (between the rows) draws only the bars + sample cursor;
+                 WavetableView.ts fills the value spans each frame. -->
+            <div class="gwave-readout">
+              <span>wavetable (72 bytes) · cursor <span data-gw="cursor">—</span></span>
+              <span><a class="term-link" data-term="GPER">GPER</a>=<span data-gw="gper">$00</span></span>
+              <span><a class="term-link" data-term="GECHO">GECHO</a>=<span data-gw="gecho">○</span></span>
+              <span><a class="term-link" data-term="GECNT">GECNT</a>=<span data-gw="gecnt">0</span></span>
+            </div>
+            <canvas id="wavetableCanvas" style="height: 150px;"></canvas>
+            <div class="gwave-readout">
+              <span><a class="term-link" data-term="GWFRM">GWFRM</a>=<span data-gw="gwfrm">$0000</span></span>
+              <span><a class="term-link" data-term="GWFRQ">GWFRQ</a>=<span data-gw="gwfrq">$0000</span></span>
+              <span><a class="term-link" data-term="FOFSET">FOFSET</a>=<span data-gw="fofset">+$00</span></span>
+              <span><a class="term-link" data-term="GDFINC">GDFINC</a>=<span data-gw="gdfinc">+$00</span></span>
+              <span><a class="term-link" data-term="PRDECA">PRDECA</a>=<span data-gw="prdeca">$00</span></span>
+              <span><a class="term-link" data-term="GECDEC">GECDEC</a>=<span data-gw="gecdec">$00</span></span>
+            </div>
+          </section>
+          <section class="panel engine-view-pane" data-engine="vari">
+            <div class="panel-label"><span class="chip-engine"></span><a class="term-link" data-term="VARI">VARI</a> — variable-duty square wave</div>
+            <canvas id="variCanvas" style="height: 170px;"
+                    title="LO / HI bars = the low- and high-phase counters (LOCNT / HICNT) counting down from their periods LOPER / HIPER. Their ratio is the duty cycle previewed below; the sweep deltas LODT / HIDT / LOMOD reshape it over the sound's life."></canvas>
+            <!-- Pattern 5 / Step 6.2 — drag a slider to override the period
+                 cell live.  Force checkbox pins the value; off = the slider
+                 tracks live RAM as a read-only display.  Per-game addresses
+                 since Robotron's zero-page layout differs from D/S. -->
+            <div class="param-sliders">
+              <div class="param-row"
+                   data-addr-defender="13" data-addr-stargate="13" data-addr-robotron="12"
+                   title="LOPER — VARI low-phase period. The blue LO bar (LOCNT) counts down from it; with HIPER it sets the duty cycle and pitch. Tick 'force' to pin the cell and drag the slider.">
+                <input type="checkbox" class="param-force-cb" title="Force this value (pin the RAM cell)" />
+                <span class="param-label"><a class="term-link" data-term="LOPER">LOPER</a></span>
+                <input type="range" class="param-slider" min="0" max="255" step="1" value="0" />
+                <span class="param-value">$00</span>
+              </div>
+              <div class="param-row"
+                   data-addr-defender="14" data-addr-stargate="14" data-addr-robotron="13"
+                   title="HIPER — VARI high-phase period. The green HI bar (HICNT) counts down from it; with LOPER it sets the duty cycle and pitch. Tick 'force' to pin the cell and drag the slider.">
+                <input type="checkbox" class="param-force-cb" title="Force this value (pin the RAM cell)" />
+                <span class="param-label"><a class="term-link" data-term="HIPER">HIPER</a></span>
+                <input type="range" class="param-slider" min="0" max="255" step="1" value="0" />
+                <span class="param-value">$00</span>
+              </div>
+            </div>
+          </section>
+          <!-- LFSR has no canvas pane — its state lives in the Code panel's
+               "LFSR: …" line.  The idle caption below mentions it for the
+               user who lands here while LITE is firing. -->
+          <div class="engine-view-idle">Active engine highlighted in yellow.  LFSR state (LITE) appears as a textual line in the Code panel.</div>
+        </div>
+      </details>
+
+      <!-- Spectrogram — full width.  The Stage swimlane that used to share
+           this row moved into the left Ear/Swimlane/Eye/Code grid.  Step 3.2. -->
+      <details class="section" open>
+        <summary>Spectrogram</summary>
+        <p class="help-text" style="font-size: 0.78rem; margin: 0 0 0.4rem;">
+          Scrolling <a class="term-link" data-term="FFT">FFT</a> of the
+          post-volume signal — low freq bottom, high top.
+          LITE's <a class="term-link" data-term="LFSR">LFSR</a> noise is a
+          broadband upward sweep.
+        </p>
+        <section class="panel" style="padding: 0;">
+          <canvas id="spectroCanvas" style="height: 180px;"></canvas>
+        </section>
+      </details>
+
+      <!-- Step 6.6 — RAM heatmap.  Sits just below the spectrogram.  128
+           zero-page cells coloured by recent write activity; hot = just
+           written, cold = idle.  Collapsed by default so the page loads compact. -->
+      <details class="section" open>
+        <summary>RAM heatmap <span style="color:#9098a6; font-size: 0.75em; text-transform: none; letter-spacing: normal; font-weight: normal;">zero-page write activity</span></summary>
+        <p class="help-text" style="font-size: 0.78rem; margin: 0 0 0.4rem;">
+          Each cell of the sound CPU's 128-byte zero-page RAM.  Red intensity
+          fades over ~1 second since last write.  Watching which cells light
+          up while a sound plays is the cheapest way to find an engine's
+          working set.
+        </p>
+        <section class="panel" style="padding: 0;">
+          <canvas id="ramHeatmapCanvas" style="height: 220px;"></canvas>
+        </section>
+      </details>
+
+      <!-- Explainer card (Pattern 9) + Glossary, paired two-up directly below
+           the RAM heatmap.  Explainer loads on fire (collapsed until then);
+           Glossary is clickable term reference. -->
+      <div class="columns" style="margin-top: 0.4rem;">
+        <details id="glossarySection" class="section in-column" open>
+          <summary>Glossary</summary>
+          <p class="help-text" style="font-size: 0.78rem; margin-top: 0;">
+            Click a term to read what it means.  Engine names in the cmd-info
+            panel above are also clickable.
+          </p>
+          <div id="termList" class="row" style="gap: 0.3rem; flex-wrap: wrap; margin: 0.2rem 0;"></div>
+          <div id="termPopover"></div>
+        </details>
+        <details class="section in-column" open>
+          <summary>Explainer card <span style="color:#9098a6; font-size: 0.75em; text-transform: none; letter-spacing: normal; font-weight: normal;">algorithm walkthrough for the fired sound</span></summary>
+          <div id="explainerCard" class="explainer-card" style="border-left: 3px solid #353a44; padding: 0.6rem 0.85rem; background: #11141a; border-radius: 3px;"></div>
+        </details>
+      </div>
+
+      <!-- Step 6.4 — listen-then-look quiz (Pattern 10).  Random sound from
+           the catalogue, multiple-choice engine identification, reveal with
+           link into the explainer card.  Reuses the existing fire path but
+           does *not* trigger the explainer-card panel (would reveal the
+           answer) — the user has to click "Open explainer card" after
+           answering. -->
+      <details class="section">
+        <summary>Listen-then-look quiz <span style="color:#9098a6; font-size: 0.75em; text-transform: none; letter-spacing: normal; font-weight: normal;">predict the engine from the sound</span></summary>
+        <div id="quizPanel" class="quiz-panel" style="padding: 0.5rem 0.75rem; background: #11141a; border: 1px solid #2a2f37; border-radius: 4px;"></div>
+      </details>
+
+      <!-- Step 5.3 / 5.4 — A/B diff + Genealogy (Pattern 6 + Pattern 7).
+           Collapsed by default so the page loads compact; users open it
+           when they want cross-game comparison. -->
+      <details class="section">
+        <summary>A/B diff &amp; genealogy <span style="color:#9098a6; font-size: 0.75em; text-transform: none; letter-spacing: normal; font-weight: normal;">compare sounds across games</span></summary>
+        <p class="help-text" style="font-size: 0.78rem; margin: 0 0 0.4rem;">
+          Pick two <code>(game, cmd)</code> pairs and click <kbd>Compare</kbd>.  The
+          diff band between the two byte tapes flashes red where the streams
+          disagree.  Or click a family below to auto-load a canonical pair.
+        </p>
+        <div class="row">
+          <label>A:&nbsp;
+            <select id="abGameA">
+              <option value="defender">defender</option>
+              <option value="stargate">stargate</option>
+              <option value="robotron">robotron</option>
+            </select>
+            <input id="abCmdA" type="text" maxlength="2" value="01" style="width: 3rem; text-align: center;" />
+          </label>
+          <label>B:&nbsp;
+            <select id="abGameB">
+              <option value="defender">defender</option>
+              <option value="stargate" selected>stargate</option>
+              <option value="robotron">robotron</option>
+            </select>
+            <input id="abCmdB" type="text" maxlength="2" value="01" style="width: 3rem; text-align: center;" />
+          </label>
+          <button id="abRun" title="Render both commands offline and diff their DAC byte streams — the red band marks where they diverge.">Compare</button>
+          <span id="abSummary" style="font-size: 0.78rem; color: #abafb6;"></span>
+        </div>
+        <section class="panel" style="padding: 0; margin-top: 0.4rem;">
+          <canvas id="abCanvas" style="height: 200px;"></canvas>
+        </section>
+        <h3 style="font-size: 0.78rem; color: #a9dc76; text-transform: uppercase; letter-spacing: 0.05em; margin: 0.8rem 0 0.3rem; font-weight: 600;">Sound family tree</h3>
+        <div id="genealogyList"></div>
+      </details>
+
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="/src/audio/main.ts"></script>
+  </body>
+</html>

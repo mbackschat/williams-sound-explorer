@@ -1,0 +1,21 @@
+{
+  "title": "ED17 — Experimental GWAVE sound #17 (spinner-ish)",
+  "engine": "GWAVE",
+  "games": [
+    "defender",
+    "stargate",
+    "robotron"
+  ],
+  "tldr": "Third 'ED' experimental preset. The catalogue notes a 'spinner' character — possibly an alternate take on `SPNRV` (spinner drip) that didn't ship as the canonical version.",
+  "how": "GWAVE preset designed in the same vein as `SPNRV` — short, percussive, no pattern walking — but with different period / echo / wavetable choices. Useful for A/B against SPNRV to hear the parameter-space neighbourhood.",
+  "watch": [
+    "Standard GWAVE indicators — compare against SPNRV in A/B."
+  ],
+  "code": [
+    "`ED17` preset in `SVTAB` (Defender)."
+  ],
+  "see": [
+    "**SPNRV** — the canonical spinner drip.",
+    "**ED10 / ED12** — companion experimentals."
+  ]
+}

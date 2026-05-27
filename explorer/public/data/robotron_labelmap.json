@@ -1,0 +1,1826 @@
+{
+  "game": "robotron",
+  "source": "VSNDRM3.SRC",
+  "labels": [
+    {
+      "addr": 61469,
+      "label": "SETUP",
+      "src_line": 243
+    },
+    {
+      "addr": 61510,
+      "label": "PLAY",
+      "src_line": 268
+    },
+    {
+      "addr": 61519,
+      "label": "PLAY1",
+      "src_line": 272
+    },
+    {
+      "addr": 61529,
+      "label": "PLAY2",
+      "src_line": 279
+    },
+    {
+      "addr": 61532,
+      "label": "PLAY3",
+      "src_line": 281
+    },
+    {
+      "addr": 61588,
+      "label": "PLAY6",
+      "src_line": 307
+    },
+    {
+      "addr": 61598,
+      "label": "PLAY6A",
+      "src_line": 312
+    },
+    {
+      "addr": 61603,
+      "label": "PLAY6B",
+      "src_line": 315
+    },
+    {
+      "addr": 61613,
+      "label": "PLAY7",
+      "src_line": 322
+    },
+    {
+      "addr": 61618,
+      "label": "PLAY8",
+      "src_line": 324
+    },
+    {
+      "addr": 61623,
+      "label": "PLAY9",
+      "src_line": 326
+    },
+    {
+      "addr": 61626,
+      "label": "PLAY10",
+      "src_line": 327
+    },
+    {
+      "addr": 61648,
+      "label": "PLAY11",
+      "src_line": 338
+    },
+    {
+      "addr": 61664,
+      "label": "PLAY12",
+      "src_line": 346
+    },
+    {
+      "addr": 61667,
+      "label": "RDECAY",
+      "src_line": 351
+    },
+    {
+      "addr": 61675,
+      "label": "DECAYZ",
+      "src_line": 359
+    },
+    {
+      "addr": 61679,
+      "label": "THNDR",
+      "src_line": 364
+    },
+    {
+      "addr": 61682,
+      "label": "THNDR1",
+      "src_line": 365
+    },
+    {
+      "addr": 61691,
+      "label": "SND2",
+      "src_line": 369
+    },
+    {
+      "addr": 61696,
+      "label": "SND3",
+      "src_line": 371
+    },
+    {
+      "addr": 61701,
+      "label": "SND4",
+      "src_line": 373
+    },
+    {
+      "addr": 61706,
+      "label": "SND5",
+      "src_line": 375
+    },
+    {
+      "addr": 61711,
+      "label": "SND16",
+      "src_line": 377
+    },
+    {
+      "addr": 61716,
+      "label": "SND17",
+      "src_line": 379
+    },
+    {
+      "addr": 61721,
+      "label": "BONUS_",
+      "src_line": 385
+    },
+    {
+      "addr": 61736,
+      "label": "PLANE",
+      "src_line": 394
+    },
+    {
+      "addr": 61746,
+      "label": "PLANE1",
+      "src_line": 398
+    },
+    {
+      "addr": 61754,
+      "label": "PLANE2",
+      "src_line": 402
+    },
+    {
+      "addr": 61762,
+      "label": "PLANE3",
+      "src_line": 406
+    },
+    {
+      "addr": 61767,
+      "label": "ZIREN",
+      "src_line": 412
+    },
+    {
+      "addr": 61788,
+      "label": "ZIREN0",
+      "src_line": 421
+    },
+    {
+      "addr": 61792,
+      "label": "ZIREN1",
+      "src_line": 423
+    },
+    {
+      "addr": 61795,
+      "label": "ZIREN2",
+      "src_line": 424
+    },
+    {
+      "addr": 61823,
+      "label": "ZIREN5",
+      "src_line": 438
+    },
+    {
+      "addr": 61830,
+      "label": "ZIRLOP",
+      "src_line": 443
+    },
+    {
+      "addr": 61831,
+      "label": "ZIRLP1",
+      "src_line": 444
+    },
+    {
+      "addr": 61842,
+      "label": "ZIRLP4",
+      "src_line": 449
+    },
+    {
+      "addr": 61849,
+      "label": "ZIRT",
+      "src_line": 452
+    },
+    {
+      "addr": 61851,
+      "label": "ZIRLP2",
+      "src_line": 453
+    },
+    {
+      "addr": 61853,
+      "label": "ZIRLP3",
+      "src_line": 454
+    },
+    {
+      "addr": 61860,
+      "label": "WHIST",
+      "src_line": 461
+    },
+    {
+      "addr": 61868,
+      "label": "WHIST0",
+      "src_line": 465
+    },
+    {
+      "addr": 61872,
+      "label": "WHIST1",
+      "src_line": 467
+    },
+    {
+      "addr": 61874,
+      "label": "WHIST2",
+      "src_line": 468
+    },
+    {
+      "addr": 61912,
+      "label": "SINTBL",
+      "src_line": 489
+    },
+    {
+      "addr": 61976,
+      "label": "KNOCK",
+      "src_line": 500
+    },
+    {
+      "addr": 61984,
+      "label": "SQLP",
+      "src_line": 503
+    },
+    {
+      "addr": 62006,
+      "label": "LP0",
+      "src_line": 515
+    },
+    {
+      "addr": 62013,
+      "label": "LP1",
+      "src_line": 518
+    },
+    {
+      "addr": 62016,
+      "label": "LP11",
+      "src_line": 519
+    },
+    {
+      "addr": 62027,
+      "label": "LP2",
+      "src_line": 525
+    },
+    {
+      "addr": 62030,
+      "label": "LP22",
+      "src_line": 526
+    },
+    {
+      "addr": 62041,
+      "label": "XEND",
+      "src_line": 533
+    },
+    {
+      "addr": 62047,
+      "label": "KNKTAB",
+      "src_line": 540
+    },
+    {
+      "addr": 62077,
+      "label": "BONUS",
+      "src_line": 550
+    },
+    {
+      "addr": 62082,
+      "label": "SND1",
+      "src_line": 552
+    },
+    {
+      "addr": 62086,
+      "label": "SND1_",
+      "src_line": 554
+    },
+    {
+      "addr": 62090,
+      "label": "SND1__",
+      "src_line": 556
+    },
+    {
+      "addr": 62094,
+      "label": "SND1A",
+      "src_line": 558
+    },
+    {
+      "addr": 62097,
+      "label": "SND1B",
+      "src_line": 559
+    },
+    {
+      "addr": 62106,
+      "label": "SND1C",
+      "src_line": 564
+    },
+    {
+      "addr": 62122,
+      "label": "SND1D",
+      "src_line": 572
+    },
+    {
+      "addr": 62132,
+      "label": "SND1E",
+      "src_line": 577
+    },
+    {
+      "addr": 62139,
+      "label": "START",
+      "src_line": 581
+    },
+    {
+      "addr": 62149,
+      "label": "PERK",
+      "src_line": 589
+    },
+    {
+      "addr": 62154,
+      "label": "PERK1",
+      "src_line": 591
+    },
+    {
+      "addr": 62161,
+      "label": "ATARI",
+      "src_line": 594
+    },
+    {
+      "addr": 62166,
+      "label": "SIREN",
+      "src_line": 596
+    },
+    {
+      "addr": 62170,
+      "label": "SIREN1",
+      "src_line": 598
+    },
+    {
+      "addr": 62184,
+      "label": "ORRRR",
+      "src_line": 605
+    },
+    {
+      "addr": 62189,
+      "label": "PERK_",
+      "src_line": 607
+    },
+    {
+      "addr": 62192,
+      "label": "PERK_1",
+      "src_line": 608
+    },
+    {
+      "addr": 62198,
+      "label": "HSTD",
+      "src_line": 611
+    },
+    {
+      "addr": 62207,
+      "label": "PERK__",
+      "src_line": 615
+    },
+    {
+      "addr": 62216,
+      "label": "SQRT",
+      "src_line": 622
+    },
+    {
+      "addr": 62218,
+      "label": "SQRT1",
+      "src_line": 623
+    },
+    {
+      "addr": 62223,
+      "label": "SQRT2",
+      "src_line": 625
+    },
+    {
+      "addr": 62244,
+      "label": "ECHO",
+      "src_line": 641
+    },
+    {
+      "addr": 62253,
+      "label": "ECHO1",
+      "src_line": 646
+    },
+    {
+      "addr": 62256,
+      "label": "MOVE",
+      "src_line": 652
+    },
+    {
+      "addr": 62281,
+      "label": "SING",
+      "src_line": 668
+    },
+    {
+      "addr": 62283,
+      "label": "SING_",
+      "src_line": 669
+    },
+    {
+      "addr": 62292,
+      "label": "SING1",
+      "src_line": 674
+    },
+    {
+      "addr": 62298,
+      "label": "SING2",
+      "src_line": 677
+    },
+    {
+      "addr": 62313,
+      "label": "SING3",
+      "src_line": 687
+    },
+    {
+      "addr": 62343,
+      "label": "SING4",
+      "src_line": 702
+    },
+    {
+      "addr": 62364,
+      "label": "SING5",
+      "src_line": 714
+    },
+    {
+      "addr": 62370,
+      "label": "SING6",
+      "src_line": 717
+    },
+    {
+      "addr": 62372,
+      "label": "SNDTBL",
+      "src_line": 721
+    },
+    {
+      "addr": 62388,
+      "label": "NOTTBL",
+      "src_line": 723
+    },
+    {
+      "addr": 62404,
+      "label": "WAVFRM",
+      "src_line": 725
+    },
+    {
+      "addr": 62418,
+      "label": "VEC01",
+      "src_line": 727
+    },
+    {
+      "addr": 62446,
+      "label": "VEC02",
+      "src_line": 730
+    },
+    {
+      "addr": 62474,
+      "label": "VEC03",
+      "src_line": 733
+    },
+    {
+      "addr": 62502,
+      "label": "VEC04",
+      "src_line": 736
+    },
+    {
+      "addr": 62530,
+      "label": "VEC05",
+      "src_line": 739
+    },
+    {
+      "addr": 62558,
+      "label": "VEC06",
+      "src_line": 742
+    },
+    {
+      "addr": 62586,
+      "label": "VEC016",
+      "src_line": 745
+    },
+    {
+      "addr": 62614,
+      "label": "VEC017",
+      "src_line": 748
+    },
+    {
+      "addr": 62642,
+      "label": "VEC01X",
+      "src_line": 751
+    },
+    {
+      "addr": 62648,
+      "label": "VEC02X",
+      "src_line": 752
+    },
+    {
+      "addr": 62654,
+      "label": "VEC03X",
+      "src_line": 753
+    },
+    {
+      "addr": 62660,
+      "label": "VEC04X",
+      "src_line": 754
+    },
+    {
+      "addr": 62666,
+      "label": "VEC05X",
+      "src_line": 755
+    },
+    {
+      "addr": 62672,
+      "label": "VEC06X",
+      "src_line": 756
+    },
+    {
+      "addr": 62678,
+      "label": "VEC07X",
+      "src_line": 757
+    },
+    {
+      "addr": 62684,
+      "label": "VEC08X",
+      "src_line": 758
+    },
+    {
+      "addr": 62690,
+      "label": "VEC09X",
+      "src_line": 759
+    },
+    {
+      "addr": 62696,
+      "label": "VEC10X",
+      "src_line": 760
+    },
+    {
+      "addr": 62702,
+      "label": "VARILD",
+      "src_line": 764
+    },
+    {
+      "addr": 62720,
+      "label": "VTRAN",
+      "src_line": 774
+    },
+    {
+      "addr": 62723,
+      "label": "VARI",
+      "src_line": 778
+    },
+    {
+      "addr": 62728,
+      "label": "VAR0",
+      "src_line": 780
+    },
+    {
+      "addr": 62736,
+      "label": "V0",
+      "src_line": 784
+    },
+    {
+      "addr": 62738,
+      "label": "V0LP",
+      "src_line": 785
+    },
+    {
+      "addr": 62743,
+      "label": "V1",
+      "src_line": 787
+    },
+    {
+      "addr": 62754,
+      "label": "V2",
+      "src_line": 793
+    },
+    {
+      "addr": 62762,
+      "label": "VSWEEP",
+      "src_line": 798
+    },
+    {
+      "addr": 62768,
+      "label": "VS1",
+      "src_line": 801
+    },
+    {
+      "addr": 62799,
+      "label": "VARX",
+      "src_line": 816
+    },
+    {
+      "addr": 62800,
+      "label": "LAUNCH",
+      "src_line": 820
+    },
+    {
+      "addr": 62810,
+      "label": "LITE",
+      "src_line": 828
+    },
+    {
+      "addr": 62818,
+      "label": "APPEAR",
+      "src_line": 835
+    },
+    {
+      "addr": 62828,
+      "label": "LITEN",
+      "src_line": 843
+    },
+    {
+      "addr": 62837,
+      "label": "LITE0",
+      "src_line": 847
+    },
+    {
+      "addr": 62839,
+      "label": "LITE1",
+      "src_line": 848
+    },
+    {
+      "addr": 62858,
+      "label": "LITE2",
+      "src_line": 858
+    },
+    {
+      "addr": 62860,
+      "label": "LITE3",
+      "src_line": 859
+    },
+    {
+      "addr": 62875,
+      "label": "TURBO",
+      "src_line": 871
+    },
+    {
+      "addr": 62890,
+      "label": "MOISE",
+      "src_line": 883
+    },
+    {
+      "addr": 62892,
+      "label": "MOISE0",
+      "src_line": 884
+    },
+    {
+      "addr": 62894,
+      "label": "MOIS00",
+      "src_line": 885
+    },
+    {
+      "addr": 62898,
+      "label": "MOISE1",
+      "src_line": 887
+    },
+    {
+      "addr": 62918,
+      "label": "MOISE2",
+      "src_line": 898
+    },
+    {
+      "addr": 62923,
+      "label": "MOISE3",
+      "src_line": 900
+    },
+    {
+      "addr": 62944,
+      "label": "MSEND",
+      "src_line": 912
+    },
+    {
+      "addr": 62945,
+      "label": "CDR",
+      "src_line": 916
+    },
+    {
+      "addr": 62976,
+      "label": "WS1",
+      "src_line": 928
+    },
+    {
+      "addr": 63017,
+      "label": "CR1",
+      "src_line": 937
+    },
+    {
+      "addr": 63022,
+      "label": "CR2",
+      "src_line": 938
+    },
+    {
+      "addr": 63027,
+      "label": "NOISLD",
+      "src_line": 947
+    },
+    {
+      "addr": 63047,
+      "label": "NEND",
+      "src_line": 957
+    },
+    {
+      "addr": 63048,
+      "label": "NOISLG",
+      "src_line": 961
+    },
+    {
+      "addr": 63050,
+      "label": "NOIN",
+      "src_line": 965
+    },
+    {
+      "addr": 63052,
+      "label": "NO1",
+      "src_line": 969
+    },
+    {
+      "addr": 63092,
+      "label": "NO3",
+      "src_line": 987
+    },
+    {
+      "addr": 63100,
+      "label": "NSUB",
+      "src_line": 990
+    },
+    {
+      "addr": 63111,
+      "label": "NOISE1",
+      "src_line": 998
+    },
+    {
+      "addr": 63124,
+      "label": "NOISE2",
+      "src_line": 1009
+    },
+    {
+      "addr": 63139,
+      "label": "NOISE3",
+      "src_line": 1016
+    },
+    {
+      "addr": 63142,
+      "label": "RNT",
+      "src_line": 1020
+    },
+    {
+      "addr": 63153,
+      "label": "NW0",
+      "src_line": 1026
+    },
+    {
+      "addr": 63161,
+      "label": "NNW1",
+      "src_line": 1031
+    },
+    {
+      "addr": 63162,
+      "label": "RNA",
+      "src_line": 1033
+    },
+    {
+      "addr": 63172,
+      "label": "NW2",
+      "src_line": 1039
+    },
+    {
+      "addr": 63181,
+      "label": "NW3",
+      "src_line": 1044
+    },
+    {
+      "addr": 63182,
+      "label": "NINIT",
+      "src_line": 1047
+    },
+    {
+      "addr": 63195,
+      "label": "NINIT2",
+      "src_line": 1052
+    },
+    {
+      "addr": 63197,
+      "label": "WIN",
+      "src_line": 1053
+    },
+    {
+      "addr": 63227,
+      "label": "TRICNT",
+      "src_line": 1068
+    },
+    {
+      "addr": 63241,
+      "label": "NW4",
+      "src_line": 1075
+    },
+    {
+      "addr": 63249,
+      "label": "NW5",
+      "src_line": 1080
+    },
+    {
+      "addr": 63250,
+      "label": "TRIFRQ",
+      "src_line": 1082
+    },
+    {
+      "addr": 63263,
+      "label": "NW6",
+      "src_line": 1089
+    },
+    {
+      "addr": 63274,
+      "label": "WISLD",
+      "src_line": 1093
+    },
+    {
+      "addr": 63303,
+      "label": "NW7",
+      "src_line": 1108
+    },
+    {
+      "addr": 63304,
+      "label": "PEND",
+      "src_line": 1109
+    },
+    {
+      "addr": 63307,
+      "label": "NNW",
+      "src_line": 1113
+    },
+    {
+      "addr": 63317,
+      "label": "NW8",
+      "src_line": 1118
+    },
+    {
+      "addr": 63319,
+      "label": "NW9",
+      "src_line": 1120
+    },
+    {
+      "addr": 63320,
+      "label": "WINIT",
+      "src_line": 1121
+    },
+    {
+      "addr": 63332,
+      "label": "TRIDR",
+      "src_line": 1128
+    },
+    {
+      "addr": 63341,
+      "label": "GO",
+      "src_line": 1133
+    },
+    {
+      "addr": 63345,
+      "label": "NSEND",
+      "src_line": 1135
+    },
+    {
+      "addr": 63346,
+      "label": "BG1",
+      "src_line": 1140
+    },
+    {
+      "addr": 63355,
+      "label": "THRUST",
+      "src_line": 1147
+    },
+    {
+      "addr": 63360,
+      "label": "CANNON",
+      "src_line": 1152
+    },
+    {
+      "addr": 63365,
+      "label": "BG1TB",
+      "src_line": 1156
+    },
+    {
+      "addr": 63365,
+      "label": "FNTAB",
+      "src_line": 1156
+    },
+    {
+      "addr": 63371,
+      "label": "THTB",
+      "src_line": 1157
+    },
+    {
+      "addr": 63377,
+      "label": "CANTB",
+      "src_line": 1158
+    },
+    {
+      "addr": 63383,
+      "label": "HBMBTB",
+      "src_line": 1159
+    },
+    {
+      "addr": 63389,
+      "label": "RAIN",
+      "src_line": 1160
+    },
+    {
+      "addr": 63394,
+      "label": "HBOMB",
+      "src_line": 1162
+    },
+    {
+      "addr": 63397,
+      "label": "FNLOAD",
+      "src_line": 1166
+    },
+    {
+      "addr": 63411,
+      "label": "FNOISE",
+      "src_line": 1178
+    },
+    {
+      "addr": 63420,
+      "label": "FNOIS0",
+      "src_line": 1182
+    },
+    {
+      "addr": 63425,
+      "label": "FNOIS1",
+      "src_line": 1184
+    },
+    {
+      "addr": 63449,
+      "label": "FNOIS2",
+      "src_line": 1197
+    },
+    {
+      "addr": 63457,
+      "label": "FNOIS3",
+      "src_line": 1201
+    },
+    {
+      "addr": 63475,
+      "label": "FNOIS4",
+      "src_line": 1210
+    },
+    {
+      "addr": 63491,
+      "label": "FNOIS5",
+      "src_line": 1218
+    },
+    {
+      "addr": 63498,
+      "label": "FNOIS6",
+      "src_line": 1221
+    },
+    {
+      "addr": 63531,
+      "label": "RADIO",
+      "src_line": 1245
+    },
+    {
+      "addr": 63540,
+      "label": "RADIO1",
+      "src_line": 1249
+    },
+    {
+      "addr": 63556,
+      "label": "RADIO2",
+      "src_line": 1257
+    },
+    {
+      "addr": 63559,
+      "label": "RADIO3",
+      "src_line": 1259
+    },
+    {
+      "addr": 63576,
+      "label": "RADIO4",
+      "src_line": 1267
+    },
+    {
+      "addr": 63577,
+      "label": "HYPER",
+      "src_line": 1271
+    },
+    {
+      "addr": 63583,
+      "label": "HYPER1",
+      "src_line": 1274
+    },
+    {
+      "addr": 63584,
+      "label": "HYPER2",
+      "src_line": 1275
+    },
+    {
+      "addr": 63591,
+      "label": "HYPER3",
+      "src_line": 1278
+    },
+    {
+      "addr": 63593,
+      "label": "HYPER4",
+      "src_line": 1279
+    },
+    {
+      "addr": 63608,
+      "label": "SCREAM",
+      "src_line": 1290
+    },
+    {
+      "addr": 63611,
+      "label": "SCREM1",
+      "src_line": 1291
+    },
+    {
+      "addr": 63623,
+      "label": "SCREM2",
+      "src_line": 1297
+    },
+    {
+      "addr": 63631,
+      "label": "SCREM3",
+      "src_line": 1301
+    },
+    {
+      "addr": 63641,
+      "label": "SCREM4",
+      "src_line": 1306
+    },
+    {
+      "addr": 63663,
+      "label": "SCREM5",
+      "src_line": 1316
+    },
+    {
+      "addr": 63675,
+      "label": "SCREM6",
+      "src_line": 1322
+    },
+    {
+      "addr": 63678,
+      "label": "SCREM7",
+      "src_line": 1324
+    },
+    {
+      "addr": 63689,
+      "label": "ORGANT",
+      "src_line": 1334
+    },
+    {
+      "addr": 63693,
+      "label": "ORGNT1",
+      "src_line": 1336
+    },
+    {
+      "addr": 63698,
+      "label": "ORGASM",
+      "src_line": 1338
+    },
+    {
+      "addr": 63706,
+      "label": "ORGNT2",
+      "src_line": 1341
+    },
+    {
+      "addr": 63721,
+      "label": "ORGNT3",
+      "src_line": 1348
+    },
+    {
+      "addr": 63731,
+      "label": "ORGNT4",
+      "src_line": 1353
+    },
+    {
+      "addr": 63755,
+      "label": "ORGNT5",
+      "src_line": 1367
+    },
+    {
+      "addr": 63756,
+      "label": "ORGANN",
+      "src_line": 1371
+    },
+    {
+      "addr": 63757,
+      "label": "ORGANL",
+      "src_line": 1376
+    },
+    {
+      "addr": 63762,
+      "label": "LDLP",
+      "src_line": 1378
+    },
+    {
+      "addr": 63777,
+      "label": "LD2",
+      "src_line": 1386
+    },
+    {
+      "addr": 63785,
+      "label": "LD1",
+      "src_line": 1391
+    },
+    {
+      "addr": 63797,
+      "label": "ORGAN",
+      "src_line": 1401
+    },
+    {
+      "addr": 63799,
+      "label": "ORGAN1",
+      "src_line": 1402
+    },
+    {
+      "addr": 63844,
+      "label": "ORGAN2",
+      "src_line": 1432
+    },
+    {
+      "addr": 63845,
+      "label": "TRANS",
+      "src_line": 1436
+    },
+    {
+      "addr": 63846,
+      "label": "TRANS1",
+      "src_line": 1437
+    },
+    {
+      "addr": 63865,
+      "label": "BGEND",
+      "src_line": 1452
+    },
+    {
+      "addr": 63871,
+      "label": "BG2INC",
+      "src_line": 1459
+    },
+    {
+      "addr": 63883,
+      "label": "BG2I0",
+      "src_line": 1465
+    },
+    {
+      "addr": 63887,
+      "label": "BG2",
+      "src_line": 1471
+    },
+    {
+      "addr": 63900,
+      "label": "BG2LP",
+      "src_line": 1478
+    },
+    {
+      "addr": 63908,
+      "label": "SP1",
+      "src_line": 1487
+    },
+    {
+      "addr": 63920,
+      "label": "SP1A",
+      "src_line": 1493
+    },
+    {
+      "addr": 63927,
+      "label": "SP11",
+      "src_line": 1498
+    },
+    {
+      "addr": 63936,
+      "label": "SP12",
+      "src_line": 1503
+    },
+    {
+      "addr": 63943,
+      "label": "SP1LP",
+      "src_line": 1507
+    },
+    {
+      "addr": 63948,
+      "label": "BON2",
+      "src_line": 1512
+    },
+    {
+      "addr": 63961,
+      "label": "BON21",
+      "src_line": 1518
+    },
+    {
+      "addr": 63964,
+      "label": "GWLD",
+      "src_line": 1522
+    },
+    {
+      "addr": 64006,
+      "label": "GWLD2",
+      "src_line": 1549
+    },
+    {
+      "addr": 64019,
+      "label": "GWLD3",
+      "src_line": 1555
+    },
+    {
+      "addr": 64066,
+      "label": "GWAVE",
+      "src_line": 1581
+    },
+    {
+      "addr": 64070,
+      "label": "GWT4",
+      "src_line": 1583
+    },
+    {
+      "addr": 64074,
+      "label": "GPLAY",
+      "src_line": 1585
+    },
+    {
+      "addr": 64091,
+      "label": "GOUT",
+      "src_line": 1594
+    },
+    {
+      "addr": 64094,
+      "label": "GOUTLP",
+      "src_line": 1595
+    },
+    {
+      "addr": 64096,
+      "label": "GPRLP",
+      "src_line": 1596
+    },
+    {
+      "addr": 64104,
+      "label": "GPR1",
+      "src_line": 1600
+    },
+    {
+      "addr": 64124,
+      "label": "GEND",
+      "src_line": 1616
+    },
+    {
+      "addr": 64128,
+      "label": "GEND40",
+      "src_line": 1618
+    },
+    {
+      "addr": 64137,
+      "label": "GEND50",
+      "src_line": 1622
+    },
+    {
+      "addr": 64148,
+      "label": "GEND60",
+      "src_line": 1627
+    },
+    {
+      "addr": 64150,
+      "label": "GEND61",
+      "src_line": 1628
+    },
+    {
+      "addr": 64153,
+      "label": "GW0",
+      "src_line": 1630
+    },
+    {
+      "addr": 64166,
+      "label": "GW1",
+      "src_line": 1636
+    },
+    {
+      "addr": 64172,
+      "label": "GW2",
+      "src_line": 1639
+    },
+    {
+      "addr": 64177,
+      "label": "GW2A",
+      "src_line": 1642
+    },
+    {
+      "addr": 64183,
+      "label": "GW2B",
+      "src_line": 1646
+    },
+    {
+      "addr": 64192,
+      "label": "GW3",
+      "src_line": 1652
+    },
+    {
+      "addr": 64204,
+      "label": "GEND0",
+      "src_line": 1658
+    },
+    {
+      "addr": 64207,
+      "label": "GEND1",
+      "src_line": 1659
+    },
+    {
+      "addr": 64208,
+      "label": "WVTRAN",
+      "src_line": 1663
+    },
+    {
+      "addr": 64226,
+      "label": "WVDECA",
+      "src_line": 1675
+    },
+    {
+      "addr": 64238,
+      "label": "WVDLP",
+      "src_line": 1681
+    },
+    {
+      "addr": 64259,
+      "label": "WVDLP1",
+      "src_line": 1694
+    },
+    {
+      "addr": 64272,
+      "label": "WVDCX",
+      "src_line": 1701
+    },
+    {
+      "addr": 64273,
+      "label": "IRQ",
+      "src_line": 1705
+    },
+    {
+      "addr": 64304,
+      "label": "IRQ00",
+      "src_line": 1719
+    },
+    {
+      "addr": 64311,
+      "label": "IRQ00A",
+      "src_line": 1723
+    },
+    {
+      "addr": 64317,
+      "label": "IRQ000",
+      "src_line": 1726
+    },
+    {
+      "addr": 64337,
+      "label": "IRQ00C",
+      "src_line": 1737
+    },
+    {
+      "addr": 64341,
+      "label": "IRQ00B",
+      "src_line": 1739
+    },
+    {
+      "addr": 64345,
+      "label": "IRQ001",
+      "src_line": 1741
+    },
+    {
+      "addr": 64349,
+      "label": "IRQ002",
+      "src_line": 1743
+    },
+    {
+      "addr": 64357,
+      "label": "IRQ10",
+      "src_line": 1746
+    },
+    {
+      "addr": 64363,
+      "label": "IRQ2",
+      "src_line": 1749
+    },
+    {
+      "addr": 64375,
+      "label": "IRQ20",
+      "src_line": 1755
+    },
+    {
+      "addr": 64377,
+      "label": "IRQ21",
+      "src_line": 1756
+    },
+    {
+      "addr": 64383,
+      "label": "IRQ3",
+      "src_line": 1758
+    },
+    {
+      "addr": 64399,
+      "label": "IRQXX",
+      "src_line": 1766
+    },
+    {
+      "addr": 64402,
+      "label": "ADDX",
+      "src_line": 1770
+    },
+    {
+      "addr": 64413,
+      "label": "ADDX1",
+      "src_line": 1775
+    },
+    {
+      "addr": 64416,
+      "label": "NMI",
+      "src_line": 1780
+    },
+    {
+      "addr": 64424,
+      "label": "NMI1",
+      "src_line": 1784
+    },
+    {
+      "addr": 64437,
+      "label": "NMI2",
+      "src_line": 1791
+    },
+    {
+      "addr": 64452,
+      "label": "JMPTBL",
+      "src_line": 1800
+    },
+    {
+      "addr": 64482,
+      "label": "JMPTB1",
+      "src_line": 1805
+    },
+    {
+      "addr": 64520,
+      "label": "SAW",
+      "src_line": 1813
+    },
+    {
+      "addr": 64520,
+      "label": "VVECT",
+      "src_line": 1813
+    },
+    {
+      "addr": 64529,
+      "label": "FOSHIT",
+      "src_line": 1814
+    },
+    {
+      "addr": 64538,
+      "label": "QUASAR",
+      "src_line": 1815
+    },
+    {
+      "addr": 64547,
+      "label": "CABSHK",
+      "src_line": 1816
+    },
+    {
+      "addr": 64556,
+      "label": "CSCALE",
+      "src_line": 1817
+    },
+    {
+      "addr": 64565,
+      "label": "MOSQTO",
+      "src_line": 1818
+    },
+    {
+      "addr": 64574,
+      "label": "VARBG1",
+      "src_line": 1819
+    },
+    {
+      "addr": 64583,
+      "label": "RADSND",
+      "src_line": 1823
+    },
+    {
+      "addr": 64599,
+      "label": "ORGTAB",
+      "src_line": 1882
+    },
+    {
+      "addr": 64600,
+      "label": "FIFTH",
+      "src_line": 1884
+    },
+    {
+      "addr": 64629,
+      "label": "NINTH",
+      "src_line": 1893
+    },
+    {
+      "addr": 64805,
+      "label": "TUNEND",
+      "src_line": 1937
+    },
+    {
+      "addr": 64806,
+      "label": "NOTTAB",
+      "src_line": 1941
+    },
+    {
+      "addr": 64818,
+      "label": "GS2",
+      "src_line": 1949
+    },
+    {
+      "addr": 64818,
+      "label": "GWVTAB",
+      "src_line": 1949
+    },
+    {
+      "addr": 64827,
+      "label": "GSSQ2",
+      "src_line": 1950
+    },
+    {
+      "addr": 64836,
+      "label": "GS1",
+      "src_line": 1951
+    },
+    {
+      "addr": 64853,
+      "label": "GS12",
+      "src_line": 1953
+    },
+    {
+      "addr": 64870,
+      "label": "GSQ22",
+      "src_line": 1955
+    },
+    {
+      "addr": 64887,
+      "label": "GS72",
+      "src_line": 1957
+    },
+    {
+      "addr": 64977,
+      "label": "GSQ2",
+      "src_line": 1968
+    },
+    {
+      "addr": 64986,
+      "label": "GS1234",
+      "src_line": 1969
+    },
+    {
+      "addr": 65003,
+      "label": "MW1",
+      "src_line": 1971
+    },
+    {
+      "addr": 65020,
+      "label": "HBPAT2",
+      "src_line": 1973
+    },
+    {
+      "addr": 65093,
+      "label": "HBDV",
+      "src_line": 1993
+    },
+    {
+      "addr": 65093,
+      "label": "SVTAB",
+      "src_line": 1993
+    },
+    {
+      "addr": 65100,
+      "label": "STDV",
+      "src_line": 1994
+    },
+    {
+      "addr": 65107,
+      "label": "DP1V",
+      "src_line": 1995
+    },
+    {
+      "addr": 65114,
+      "label": "XBV",
+      "src_line": 1996
+    },
+    {
+      "addr": 65121,
+      "label": "BBSV",
+      "src_line": 1997
+    },
+    {
+      "addr": 65128,
+      "label": "HBEV",
+      "src_line": 1998
+    },
+    {
+      "addr": 65135,
+      "label": "PROTV",
+      "src_line": 1999
+    },
+    {
+      "addr": 65142,
+      "label": "SPNRV",
+      "src_line": 2000
+    },
+    {
+      "addr": 65149,
+      "label": "CLDWNV",
+      "src_line": 2001
+    },
+    {
+      "addr": 65156,
+      "label": "SV3",
+      "src_line": 2002
+    },
+    {
+      "addr": 65163,
+      "label": "ED10",
+      "src_line": 2003
+    },
+    {
+      "addr": 65170,
+      "label": "ED12",
+      "src_line": 2004
+    },
+    {
+      "addr": 65177,
+      "label": "ED17",
+      "src_line": 2005
+    },
+    {
+      "addr": 65184,
+      "label": "BONV",
+      "src_line": 2006
+    },
+    {
+      "addr": 65191,
+      "label": "TRBV",
+      "src_line": 2007
+    },
+    {
+      "addr": 65198,
+      "label": "HUNV",
+      "src_line": 2009
+    },
+    {
+      "addr": 65205,
+      "label": "SPD",
+      "src_line": 2010
+    },
+    {
+      "addr": 65212,
+      "label": "SPNV",
+      "src_line": 2011
+    },
+    {
+      "addr": 65219,
+      "label": "STRT",
+      "src_line": 2012
+    },
+    {
+      "addr": 65226,
+      "label": "SP1V",
+      "src_line": 2013
+    },
+    {
+      "addr": 65233,
+      "label": "SSPV",
+      "src_line": 2014
+    },
+    {
+      "addr": 65240,
+      "label": "BMPV",
+      "src_line": 2015
+    },
+    {
+      "addr": 65247,
+      "label": "WIRDV",
+      "src_line": 2016
+    },
+    {
+      "addr": 65254,
+      "label": "GDYUKV",
+      "src_line": 2017
+    },
+    {
+      "addr": 65261,
+      "label": "BK8",
+      "src_line": 2018
+    },
+    {
+      "addr": 65268,
+      "label": "SF10",
+      "src_line": 2019
+    },
+    {
+      "addr": 65275,
+      "label": "BIL30",
+      "src_line": 2020
+    },
+    {
+      "addr": 65282,
+      "label": "BONSND",
+      "src_line": 2025
+    },
+    {
+      "addr": 65282,
+      "label": "GFRTAB",
+      "src_line": 2025
+    },
+    {
+      "addr": 65295,
+      "label": "HBTSND",
+      "src_line": 2028
+    },
+    {
+      "addr": 65309,
+      "label": "SPNSND",
+      "src_line": 2030
+    },
+    {
+      "addr": 65322,
+      "label": "TRBPAT",
+      "src_line": 2032
+    },
+    {
+      "addr": 65331,
+      "label": "HBDSND",
+      "src_line": 2034
+    },
+    {
+      "addr": 65353,
+      "label": "BBSND",
+      "src_line": 2039
+    },
+    {
+      "addr": 65353,
+      "label": "SWPAT",
+      "src_line": 2039
+    },
+    {
+      "addr": 65373,
+      "label": "HBESND",
+      "src_line": 2042
+    },
+    {
+      "addr": 65387,
+      "label": "SPNR",
+      "src_line": 2045
+    },
+    {
+      "addr": 65388,
+      "label": "COOLDN",
+      "src_line": 2047
+    },
+    {
+      "addr": 65391,
+      "label": "STDSND",
+      "src_line": 2049
+    },
+    {
+      "addr": 65430,
+      "label": "ED10FP",
+      "src_line": 2053
+    },
+    {
+      "addr": 65436,
+      "label": "ED13FP",
+      "src_line": 2055
+    },
+    {
+      "addr": 65446,
+      "label": "YUKSND",
+      "src_line": 2058
+    },
+    {
+      "addr": 65461,
+      "label": "SP2SND",
+      "src_line": 2060
+    },
+    {
+      "addr": 65480,
+      "label": "SSPSND",
+      "src_line": 2062
+    },
+    {
+      "addr": 65505,
+      "label": "BWSSND",
+      "src_line": 2064
+    },
+    {
+      "addr": 65528,
+      "label": "IRQV",
+      "src_line": 2070
+    },
+    {
+      "addr": 65530,
+      "label": "SWIV",
+      "src_line": 2071
+    },
+    {
+      "addr": 65532,
+      "label": "NMIV",
+      "src_line": 2072
+    },
+    {
+      "addr": 65534,
+      "label": "RESETV",
+      "src_line": 2073
+    }
+  ]
+}

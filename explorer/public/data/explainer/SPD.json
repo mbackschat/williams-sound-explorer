@@ -1,0 +1,18 @@
+{
+  "title": "SPD — Speedy GWAVE variant (Robotron)",
+  "engine": "GWAVE",
+  "games": [
+    "robotron"
+  ],
+  "tldr": "Faster-than-HBDV GWAVE preset — same wavetable engine but configured for snappier per-echo timing. Used for spin/speed-related effects.",
+  "how": "GWAVE preset with smaller `GPER` (shorter wavetable walk period) so the playback rate is faster. Other parameters tuned to feel \"speedier\" — possibly a higher-pitched wavetable or a faster-decaying FOFSET modulation.",
+  "watch": [
+    "GWAVE engine view — faster wavetable-cursor walk than HBDV."
+  ],
+  "code": [
+    "`SPD` preset in Robotron's `SVTAB`."
+  ],
+  "see": [
+    "**HBDV** — canonical GWAVE card."
+  ]
+}
