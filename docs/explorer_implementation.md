@@ -71,6 +71,7 @@ explorer/
 │   │   ├── appContext.ts           # AppContext facade main hands each ui/ controller's init(ctx)
 │   │   ├── els.ts                  # the $ helper + the els DOM-handle cache
 │   │   ├── format.ts               # pure UI helpers: dbToPct / meterTrack / escapeHtml (tested)
+│   │   ├── main.css                # UI styles (extracted from index.html's inline <style>; Vite-bundled)
 │   │   ├── organTunes.ts           # $1B ORGANT per-game tune table + auto-pulse timing (shared)
 │   │   ├── worklet.ts              # AudioWorkletProcessor wrapper
 │   │   ├── worklet-globals.d.ts    # AudioWorkletProcessor / sampleRate decls
