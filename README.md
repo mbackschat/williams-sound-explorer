@@ -23,6 +23,15 @@ an 8-bit DAC. This tool emulates that sound CPU and makes the algorithms **visib
 (oscilloscope, spectrogram, DAC byte-tape, per-engine state, RAM heatmap) and
 **audible** at human-scale time — from 1× down to single-instruction stepping.
 
+<p align="center">
+  <img alt="The Williams Sound Explorer running Defender's SAW: two-column layout with playback controls and the live grid on the left; engine views, spectrogram, and RAM heatmap on the right" src="docs/img/readme/hero.png" width="100%">
+</p>
+
+<p align="center">
+  <img alt="Slow-motion playback: the oscilloscope, 6800 disassembly, DAC byte-tape, and routine swimlane animating together" src="docs/img/readme/demo.gif" width="378"><br>
+  <em>Defender's descending SAW at ¼× — the oscilloscope, live 6800 disassembly, DAC byte-tape, and routine swimlane update in lockstep.</em>
+</p>
+
 > ⚠️ **You must supply your own ROMs.** This project does **not** include the
 > Williams sound ROMs — they are © Williams Electronics. On first run the app
 > asks you to upload them; the files stay in your browser (IndexedDB) and are
