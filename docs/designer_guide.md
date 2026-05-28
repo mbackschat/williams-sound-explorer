@@ -26,12 +26,16 @@ You need at least one **base ROM** loaded. If you've already used Explore, your 
    - **LOMOD** — added to the low period once the sweep finishes (signed).
    - **VAMP** — output amplitude.
    A sound you've changed gets a green ● in the picker.
-4. **Audition** —
-   - **▶ Play** renders your edited sound and plays it.
-   - **▶ Original** plays the unedited version for comparison.
-   - **⇄ Diff** overlays edited (green) over original (grey) on the scope and shades where they differ (red).
-   - **⟲ Reset** discards your edits to this sound.
-   (Audition renders offline through the real emulator — the exact same engine the explorer plays, so what you hear is faithful. Very long edits are capped at 5 seconds.)
+4. **Audition** — the transport controls:
+   - **▶ Play** renders and plays the selected source from the top.
+   - **⏸ Pause** holds playback; press again to **▶ Resume** (sounds can run several seconds).
+   - **🔁 Loop** repeats continuously — and edits update the loop live, so you can tweak-and-listen hands-free.
+   - **Source: ⟨Edited │ Original⟩** picks what Play plays; flip it mid-playback for an instant A/B by ear.
+   - **⇄ Diff** toggles an overlay of the original (grey) + divergence (red) behind the live trace — without interrupting audio.
+   - **↺ Reset** discards your edits to this sound.
+   - A **playhead** sweeps the scope in time with playback and freezes when you Pause.
+   - **Editing any slider auto-replays** the edited sound, so you hear each change immediately.
+   (Audition renders offline through the real emulator — the same engine the explorer plays — so what you hear is faithful. Very long edits are capped at 5 seconds.)
 5. **Save / share** —
    - Give the project a **name** and click **Save** — it persists in your browser (IndexedDB) and reappears in the **Open** dropdown.
    - **⬇ JSON** downloads the project as a recipe file; **⬆ JSON** loads one back. The file contains only your parameter values — **no copyrighted ROM bytes** — so it's safe to share. Re-opening it reconstitutes the sound against your own base ROM.

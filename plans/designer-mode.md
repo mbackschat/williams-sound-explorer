@@ -12,9 +12,10 @@
 | 2 | Audition **transport** redesign (Play/Pause/Loop/Source/Diff, auto-replay, playhead) + param-panel layout | ✅ shipped & verified |
 | — | Custom-ROM **model** discussion ("where are my items?") | ✅ decided (v1 = override-in-place; true Custom ROM = v-next) |
 | — | Dispatcher **spike** (can we add new VARI command slots?) | ✅ done — one-byte unlock proven |
-| 3 | **True Custom ROM** (own item list: copy-from-any-game + new) | 📐 designed, **not built** |
+| 3a | **Custom-ROM image builder** (`engine/customRom.ts`, headless) | ✅ built & tested |
+| 3b | **Custom-ROM Designer UI** (own item list: copy-from-any-game + new) | 📐 designed, **not built** |
 
-Nothing is committed yet; all of the above is in the working tree.
+Phases 1–2 + the convention note are committed on `main`; Phase 3a (the image builder) and these doc updates are uncommitted in the working tree.
 
 ## Foundations (the two facts everything rests on)
 
@@ -83,13 +84,13 @@ Byte-level detail: `research/findings_designer_feasibility.md`.
 
 ---
 
-## Phase 3 (v-next) — the true Custom ROM — 📐 DESIGNED, NOT BUILT
+## Phase 3 (v-next) — the true Custom ROM
 
 Delivers the user's vision: a Custom ROM with its own named item list, sounds copied from any game and/or newly created.
 
-**Build order (when greenlit):**
-1. **Productize the image build** (headless, TDD): given `{ baseGame, slots: [{cmd, record, name}] }`, emit a runnable ROM image = base engine code + a (relocated) custom `VVECT` table + the mask-widening byte + the `VARILD` repoint. Tests assert each slot's command renders its record (extends the spike into product code).
-2. **Designer UI for the own-item-list:** add-sound (copy from any game's VARI catalogue, or new), per-slot name + command assignment, the item list as the project's own contents, save/export. Audition/diff/transport reuse Phase 1–2.
+**Build order:**
+1. ✅ **Done — image build** (`engine/customRom.ts`, headless, TDD): `buildCustomRom(baseRom, game, slots)` emits a runnable image — widen the command mask only when a slot code exceeds `$1F`, then extend `VVECT` **in place** (the 2 KB ROMs are too densely packed to relocate — longest free run is 5 bytes), `row = code − $1D`. Capacity (extend over RADIO/ORGAN, stop before `GWVTAB`): **23** rows Defender, **30** Stargate; Defender/Stargate only (Robotron's dispatch is non-linear). 9 tests assert each slot's command renders its record on the real ROMs. The earlier "relocate + `VARILD` repoint" idea proved unnecessary.
+2. 📐 **Next — Designer UI for the own-item-list:** add-sound (copy from any game's VARI catalogue, or new), per-slot name + command assignment, the item list as the project's own contents, save/export. Audition/diff/transport reuse Phases 1–2. Built on `buildCustomRom`.
 
 **Recipe shape (v-next):** grows from `{ baseGame, edits }` to a slot list (`{ engineBase, slots: [{ code, name, record }] }`); still JSON, still zero ROM bytes.
 
@@ -98,6 +99,8 @@ Delivers the user's vision: a Custom ROM with its own named item list, sounds co
 - Genuinely novel synthesis (new DSP) needs an assembler — out of scope.
 
 **Other fast-follows:** live-worklet audition (pause/step/scrub on the custom ROM); a MANUAL/README screenshot via the `e2e/` capture harness; GWAVE editor (editable waveform/period-curve canvases — revisit msarnoff's `WavetableWithSlider` live then).
+
+**Docs — compare to the existing Sound Designer (when the feature lands):** the designer manual (`docs/designer_guide.md`) should **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
 
 ---
 
