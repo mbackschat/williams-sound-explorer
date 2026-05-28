@@ -121,6 +121,67 @@ describe("exportJson / importJson — GWAVE slots", () => {
   });
 });
 
+describe("exportJson / importJson — LFSR slots (Phase 7)", () => {
+  // LITE = 2 fields, APPEAR = 3, TURBO = 4. LAUNCH ($39) is Robotron-only.
+  const lp: CustomProject = {
+    name: "lightning",
+    engineBase: "defender",
+    slots: [
+      { kind: "lfsr", name: "LITE", record: [1, 3], start: [1, 3], targetCmd: 0x11 },
+      { kind: "lfsr", name: "TURBO", record: [0x20, 1, 1, 0xFF], start: [0x20, 1, 1, 0xFF], targetCmd: 0x14 },
+    ],
+    createdAt: 1, updatedAt: 2,
+  };
+
+  it("round-trips an LFSR project preserving targetCmd + record + name", () => {
+    const back = importJson(exportJson(lp));
+    expect(back.slots).toHaveLength(2);
+    const lite = back.slots[0]!;
+    expect(lite.kind).toBe("lfsr");
+    expect(lite.name).toBe("LITE");
+    expect(lite.record).toEqual([1, 3]);
+    expect((lite as { targetCmd: number }).targetCmd).toBe(0x11);
+    expect(back.slots[1]!.record).toEqual([0x20, 1, 1, 0xFF]);
+  });
+
+  it("accepts LAUNCH ($39) on Robotron but not on Defender", () => {
+    const robo: CustomProject = { ...lp, engineBase: "robotron", slots: [{ kind: "lfsr", name: "LAUNCH", record: [0xFF, 0x60, 0xFF], start: [0xFF, 0x60, 0xFF], targetCmd: 0x39 }] };
+    expect(importJson(exportJson(robo)).slots[0]!.name).toBe("LAUNCH");
+    const bad: CustomProject = { ...lp, slots: [{ kind: "lfsr", name: "LAUNCH", record: [0xFF, 0x60, 0xFF], start: [0xFF, 0x60, 0xFF], targetCmd: 0x39 }] };
+    expect(() => importJson(JSON.stringify(bad))).toThrow(/editable LFSR command/i);
+  });
+
+  it("rejects a wrong-length / out-of-range LFSR record", () => {
+    // TURBO needs 4 values; 2 is wrong.
+    expect(() => importJson(JSON.stringify({ ...lp, slots: [{ kind: "lfsr", name: "x", record: [1, 2], start: [1, 2], targetCmd: 0x14 }] }))).toThrow(/value/i);
+    // NFRQ1 (field 2 of TURBO) is 16-bit; a byte field overflow is caught too.
+    expect(() => importJson(JSON.stringify({ ...lp, slots: [{ kind: "lfsr", name: "x", record: [256, 1, 1, 1], start: [256, 1, 1, 1], targetCmd: 0x14 }] }))).toThrow(/value|range/i);
+  });
+
+  it("rejects duplicate LFSR override targets", () => {
+    const dup: CustomProject = { ...lp, slots: [
+      { kind: "lfsr", name: "a", record: [1, 3], start: [1, 3], targetCmd: 0x11 },
+      { kind: "lfsr", name: "b", record: [1, 3], start: [1, 3], targetCmd: 0x11 },
+    ] };
+    expect(() => importJson(JSON.stringify(dup))).toThrow(/duplicate LFSR override/i);
+  });
+
+  it("mixes VARI + GWAVE + LFSR in one project", () => {
+    const mixed: CustomProject = {
+      name: "kitchen sink", engineBase: "defender",
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x01 },
+        { kind: "lfsr", name: "l", record: [9, 9, 9], start: [9, 9, 9], targetCmd: 0x15 },
+      ],
+      createdAt: 0, updatedAt: 0,
+    };
+    const back = importJson(exportJson(mixed));
+    expect(back.slots.map((s) => s.kind)).toEqual(["vari", "gwave", "lfsr"]);
+    expect(back.slots[2]!.record).toEqual([9, 9, 9]);
+  });
+});
+
 describe("legacy v1 recipe migration (override-in-place)", () => {
   it("converts { baseGame, edits } to named VARI slots", () => {
     const legacy = JSON.stringify({ name: "old", baseGame: "defender", edits: { 29: SAW } }); // $1D = SAW

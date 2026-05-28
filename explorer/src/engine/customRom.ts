@@ -26,6 +26,12 @@
  *   / Robotron) — GWAVE dispatch is already wired for the editable codes
  *   ($01..$0D).  Adding *new* GWAVE codes is a v-future item (would need
  *   dispatcher injection — see `plans/designer-mode.md` § Phase 5 deferrals).
+ *
+ * - **LFSR slot** — `{ kind: "lfsr", cmd, record }`.  Overrides an existing
+ *   LFSR command's parameters **in place** by rewriting the caller routine's
+ *   immediate operands (LITE / TURBO / APPEAR on every game; LAUNCH on
+ *   Robotron).  No table, no dispatcher patch — the record is a per-command
+ *   list of logical field values (see `engine/lfsrEdit.ts`).
  */
 import type { GameKind } from "../board/soundboard.ts";
 import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
@@ -35,6 +41,7 @@ import {
   patchPattern, gfrtabMaxEnd,
   GWVTAB_BASE, LDX_GWVTAB_LOC, buildExtendedGwvtab,
 } from "./gwaveEdit.ts";
+import { lfsrFieldsFor, patchLfsrRecord, LFSR_CALLER_BASE } from "./lfsrEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
 export const VARI_CMD_BASE = 0x1D;
@@ -75,7 +82,15 @@ export interface GwaveSlot {
   record: number[];
 }
 
-export type CustomSlot = VariSlot | GwaveSlot;
+export interface LfsrSlot {
+  kind: "lfsr";
+  /** Override target — an existing LFSR command ($11 LITE / $14 TURBO / $15 APPEAR; $39 LAUNCH on Robotron). */
+  cmd: number;
+  /** Virtual record: one value per field (see `lfsrFieldsFor`), in field order. */
+  record: number[];
+}
+
+export type CustomSlot = VariSlot | GwaveSlot | LfsrSlot;
 
 /** Max number of VARI slots a custom ROM can hold on this base (throws if unsupported). */
 export function maxSlots(game: GameKind): number {
@@ -198,6 +213,25 @@ function validateGwaveSlot(s: GwaveSlot, game: GameKind, seen: Set<number>): voi
   }
 }
 
+/** Validate one LFSR override against the per-game editable list + field layout. */
+function validateLfsrSlot(s: LfsrSlot, game: GameKind, seen: Set<number>): void {
+  if (LFSR_CALLER_BASE[game][s.cmd] === undefined) {
+    throw new Error(`LFSR override $${s.cmd.toString(16).toUpperCase()} is not an editable LFSR command on ${game}`);
+  }
+  if (seen.has(s.cmd)) throw new Error(`duplicate LFSR override $${s.cmd.toString(16).toUpperCase()}`);
+  seen.add(s.cmd);
+  const fields = lfsrFieldsFor(game, s.cmd);
+  if (s.record.length !== fields.length) {
+    throw new Error(`LFSR record for $${s.cmd.toString(16).toUpperCase()} must be exactly ${fields.length} values, got ${s.record.length}`);
+  }
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i]!, v = s.record[i]!;
+    if (!Number.isInteger(v) || v < f.min || v > f.max) {
+      throw new Error(`LFSR ${f.label} value ${v} out of range ${f.min}..${f.max}`);
+    }
+  }
+}
+
 /**
  * Optional build extras alongside the per-sound slot list.  Carries:
  *
@@ -261,11 +295,14 @@ export function buildCustomRom(
   // below — keep the validator a single source of truth.
   const variSlots: VariSlot[] = [];
   const gwaveSlots: GwaveSlot[] = [];
+  const lfsrSlots: LfsrSlot[] = [];
   const seenVari = new Set<number>();
   const seenGwave = new Set<number>();
+  const seenLfsr = new Set<number>();
   for (const s of slots) {
-    if (s.kind === "vari") { validateVariSlot(s, game, seenVari); variSlots.push(s); }
-    else                  { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
+    if (s.kind === "vari")       { validateVariSlot(s, game, seenVari); variSlots.push(s); }
+    else if (s.kind === "gwave") { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
+    else                         { validateLfsrSlot(s, game, seenLfsr); lfsrSlots.push(s); }
   }
   for (const k of waveformKeys) {
     const idx = Number(k);
@@ -335,6 +372,11 @@ export function buildCustomRom(
   // ── GWAVE: override SVTAB rows in place (any game; no dispatcher patch) ──
   for (const s of gwaveSlots) {
     out = patchGWaveRecord(out, game, s.cmd, s.record);
+  }
+
+  // ── LFSR: rewrite caller-routine immediate operands in place ─────────────
+  for (const s of lfsrSlots) {
+    out = patchLfsrRecord(out, game, s.cmd, s.record);
   }
 
   // ── GWAVE waveform bytes: in-place patch OR relocated GWVTAB ─────────────

@@ -18,6 +18,7 @@ import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
 import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH, reclampWaveformIdxAfterRemoval } from "../../engine/gwaveEdit.ts";
+import { lfsrCommandsFor, lfsrFieldsFor, readLfsrRecord, LFSR_CALLER_BASE } from "../../engine/lfsrEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import { importBinAsProject, ROM_SIZE } from "../../engine/projectFromBin.ts";
 import {
@@ -26,6 +27,7 @@ import {
 } from "./designerStore.ts";
 import { buildVariEditor, type VariEditorApi } from "./variEditor.ts";
 import { buildGWaveEditor, type GWaveEditorApi } from "./gwaveEditor.ts";
+import { buildLfsrEditor, type LfsrEditorApi } from "./lfsrEditor.ts";
 import {
   renderSound, playSamples, drawWaveform, drawDiff, drawPlayhead, durationMs,
   onPlaybackState, pauseResume, stopPlayback, setLoop, playbackState, playbackProgress,
@@ -64,7 +66,9 @@ function toRomSlots(slots: CustomSlot[]): RomCustomSlot[] {
   return slots.map((s) =>
     s.kind === "vari"
       ? { kind: "vari", code: VARI_CMD_BASE + (variIdx++), record: s.record }
-      : { kind: "gwave", cmd: s.targetCmd, record: s.record },
+      : s.kind === "gwave"
+        ? { kind: "gwave", cmd: s.targetCmd, record: s.record }
+        : { kind: "lfsr", cmd: s.targetCmd, record: s.record },
   );
 }
 
@@ -93,10 +97,9 @@ function recordsEqualStatic(a: number[] | undefined, b: number[] | undefined): b
 function isStockSlot(slots: CustomSlot[], i: number, game: GameKind): boolean {
   const slot = slots[i]!;
   if (!recordsEqualStatic(slot.record, slot.start)) return false;
-  if (slot.kind === "gwave") {
-    // Cheap: any populated GWAVE slot whose targetCmd is editable on this game.
-    // (Today every game shares the same $01..$0D set, but the per-game lookup
-    // future-proofs us.)
+  if (slot.kind === "gwave" || slot.kind === "lfsr") {
+    // Cheap: any populated GWAVE/LFSR override slot.  Both are pre-populated
+    // override-in-place rows (never user-added), so an unedited one is stock.
     return true; // populate only inserts editable codes; user can't add others
   }
   // VARI: count VARI slots before this position; first 3 are stock SAW/FOSHIT/QUASAR.
@@ -371,15 +374,21 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       status(`Removed user-added waveform idx ${idx}.${tail}`, "ok");
     },
   );
-  // The sliders column contains *both* editors' slider panels (VARI + GWAVE);
-  // only one is visible at a time depending on the selected slot's kind.
-  // Waveform/pitch canvases sit in their own grid columns to the right.
+  // LFSR editor — a per-command slider set (rebuilt when the selected sound
+  // changes). No canvases; its record is a virtual list of field values.
+  const lfsrEditor: LfsrEditorApi = buildLfsrEditor(onEditorChange);
+
+  // The sliders column contains all three editors' slider panels (VARI /
+  // GWAVE / LFSR); only one is visible at a time depending on the selected
+  // slot's kind.  Waveform/pitch canvases sit in their own grid columns to
+  // the right (GWAVE only).
   const slidersCol = el("div", { className: "designer-edit-sliders-col" });
-  slidersCol.append(variEditor.el, gwaveEditor.slidersEl);
+  slidersCol.append(variEditor.el, gwaveEditor.slidersEl, lfsrEditor.el);
   variEditor.el.style.display = "";
   gwaveEditor.slidersEl.style.display = "none";
   gwaveEditor.waveformPanelEl.style.display = "none";
   gwaveEditor.patternPanelEl.style.display = "none";
+  lfsrEditor.el.style.display = "none";
 
   /**
    * Editor label row — switches with the selected slot's kind and carries a
@@ -406,16 +415,20 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const editRow = el("div", { className: "designer-edit-row" });
   editRow.append(slidersCol, gwaveEditor.waveformPanelEl, gwaveEditor.patternPanelEl);
 
-  function showEditorFor(kind: "vari" | "gwave"): void {
+  function showEditorFor(kind: "vari" | "gwave" | "lfsr"): void {
     variEditor.el.style.display = kind === "vari" ? "" : "none";
     gwaveEditor.slidersEl.style.display = kind === "gwave" ? "" : "none";
     gwaveEditor.waveformPanelEl.style.display = kind === "gwave" ? "" : "none";
     gwaveEditor.patternPanelEl.style.display = kind === "gwave" ? "" : "none";
-    editRow.classList.toggle("designer-edit-row-vari", kind === "vari");
+    lfsrEditor.el.style.display = kind === "lfsr" ? "" : "none";
+    // VARI + LFSR are sliders-only (single column); GWAVE adds the two canvases.
+    editRow.classList.toggle("designer-edit-row-vari", kind !== "gwave");
     editRow.classList.toggle("designer-edit-row-gwave", kind === "gwave");
     editorLabelText.textContent = kind === "vari"
       ? "Parameter record (VVECT — VARI)"
-      : "Parameter record (SVTAB — GWAVE override)";
+      : kind === "gwave"
+        ? "Parameter record (SVTAB — GWAVE override)"
+        : "Parameter record (caller immediates — LFSR override)";
   }
 
   /** Same length + every byte equal — used to gate the "↻ Reset record" button. */
@@ -439,7 +452,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     // "edited" and schedule the replay — we want both, since the user
     // expects to hear the just-reverted record.
     slot.record = [...slot.start];
-    const ed = slot.kind === "vari" ? variEditor : gwaveEditor;
+    // LFSR's slider set is per-command — reseed values (fields are already set
+    // from selectSlot, since the same slot is still selected).
+    const ed = slot.kind === "vari" ? variEditor : slot.kind === "gwave" ? gwaveEditor : lfsrEditor;
     ed.setRecord(slot.record);
     if (slot.kind === "gwave") { refreshWaveformCanvas(); refreshPatternCanvas(); }
     onEditorChange(slot.record);
@@ -621,13 +636,14 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       const name = el("input", { className: "designer-item-name", value: slot.name }) as HTMLInputElement;
       name.addEventListener("click", (e) => e.stopPropagation());
       name.addEventListener("input", () => { slot.name = name.value; touch(); });
-      const codeText = slot.kind === "vari"
-        ? `$${slotCmd(project.slots, i).toString(16).toUpperCase().padStart(2, "0")} VARI`
-        : `$${slot.targetCmd.toString(16).toUpperCase().padStart(2, "0")} GWAVE`;
+      const engineName = slot.kind === "vari" ? "VARI" : slot.kind === "gwave" ? "GWAVE" : "LFSR";
+      const codeText = `$${slotCmd(project.slots, i).toString(16).toUpperCase().padStart(2, "0")} ${engineName}`;
       const code = el("span", { className: "designer-item-code", textContent: codeText });
       code.title = slot.kind === "vari"
         ? (stock ? "Stock VARI sound — edit the sliders to make it yours." : "Custom VARI slot — auto-assigned command code (extends VVECT).")
-        : (stock ? "Stock GWAVE sound — edit the sliders to make it yours." : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`);
+        : slot.kind === "gwave"
+          ? (stock ? "Stock GWAVE sound — edit the sliders to make it yours." : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`)
+          : (stock ? "Stock LFSR sound — edit the sliders to make it yours." : `Overrides the base game's LFSR command $${slot.targetCmd.toString(16).toUpperCase()} in place.`);
       // Dot indicator: dim grey for stock, green for edited.  Sits before the
       // name input so the user reads "● $05 GWAVE BBSV" at a glance.
       const dot = el("span", { className: "designer-item-dot", title: stock ? "Stock — unchanged from the base ROM." : "Edited — diverges from the base ROM." });
@@ -702,8 +718,14 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     const slot = project.slots[i];
     if (slot) {
       showEditorFor(slot.kind);
-      (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
-      if (slot.kind === "gwave") { refreshGwaveEditorLimits(); refreshWaveformCanvas(); refreshPatternCanvas(); }
+      if (slot.kind === "lfsr") {
+        // Rebuild the per-command slider set, then seed its values.
+        lfsrEditor.setFields(lfsrFieldsFor(project.engineBase, slot.targetCmd));
+        lfsrEditor.setRecord(slot.record);
+      } else {
+        (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
+        if (slot.kind === "gwave") { refreshGwaveEditorLimits(); refreshWaveformCanvas(); refreshPatternCanvas(); }
+      }
     }
     refreshItemList();
     setControlsEnabled(baseRom != null);
@@ -866,8 +888,13 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "vari", code: VARI_CMD_BASE, record: slot.start }]);
       return renderSound(project.engineBase, rom, VARI_CMD_BASE);
     }
-    // GWAVE: override the same target with the `start` bytes and fire that code.
-    const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "gwave", cmd: slot.targetCmd, record: slot.start }]);
+    if (slot.kind === "gwave") {
+      // GWAVE: override the same target with the `start` bytes and fire that code.
+      const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "gwave", cmd: slot.targetCmd, record: slot.start }]);
+      return renderSound(project.engineBase, rom, slot.targetCmd);
+    }
+    // LFSR: override the same target with the `start` field values and fire it.
+    const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "lfsr", cmd: slot.targetCmd, record: slot.start }]);
     return renderSound(project.engineBase, rom, slot.targetCmd);
   }
 
@@ -962,6 +989,17 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
         return;
       }
     }
+    // Edited LFSR overrides must remain editable on the new base.  LAUNCH ($39)
+    // is Robotron-only — an *edited* LAUNCH would be lost on Defender/Stargate.
+    // Stock (unedited) LFSR slots are dropped + repopulated below, so only an
+    // edited slot referencing a now-invalid code blocks the switch.
+    for (let i = 0; i < project.slots.length; i++) {
+      const s = project.slots[i]!;
+      if (s.kind === "lfsr" && LFSR_CALLER_BASE[game][s.targetCmd] === undefined && !isStockSlot(project.slots, i, prevGame)) {
+        status(`LFSR override $${s.targetCmd.toString(16).toUpperCase()} isn't valid on ${LABEL[game]} — reset or remove it first.`, "err");
+        return;
+      }
+    }
     project.engineBase = game;
     // Drop stock slots (they reference the OLD base ROM's bytes); populate
     // below repopulates them fresh from the NEW base ROM.  Edited / user-added
@@ -990,9 +1028,11 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   function populateProject(p: CustomProject, rom: Uint8Array): void {
     const game = p.engineBase;
     const gwaveExisting = new Map<number, CustomSlot>();
+    const lfsrExisting = new Map<number, CustomSlot>();
     const variExisting: CustomSlot[] = [];
     for (const s of p.slots) {
       if (s.kind === "gwave") gwaveExisting.set(s.targetCmd, s);
+      else if (s.kind === "lfsr") lfsrExisting.set(s.targetCmd, s);
       else variExisting.push(s);
     }
     const out: CustomSlot[] = [];
@@ -1002,6 +1042,15 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       if (ex) { out.push(ex); continue; }
       const record = readGWaveRecord(rom, game, c.cmd);
       out.push({ kind: "gwave", name: c.name, record, start: [...record], targetCmd: c.cmd });
+    }
+    // LFSR stock entries (LITE / TURBO / APPEAR; + LAUNCH on Robotron) —
+    // override-in-place, every game.  The record is the virtual field-value
+    // list read from the caller-code immediates.
+    for (const c of lfsrCommandsFor(game)) {
+      const ex = lfsrExisting.get(c.cmd);
+      if (ex) { out.push(ex); continue; }
+      const record = readLfsrRecord(rom, game, c.cmd);
+      out.push({ kind: "lfsr", name: c.name, record, start: [...record], targetCmd: c.cmd });
     }
     if (supportsVari(game)) {
       const stockVari = variCommandsFor(game).filter((c) => c.row <= 2);

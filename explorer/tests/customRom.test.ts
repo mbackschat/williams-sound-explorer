@@ -26,6 +26,7 @@ import {
   GWVTAB_BASE, LDX_GWVTAB_LOC,
 } from "../src/engine/gwaveEdit.ts";
 import { VVECT_BASE } from "../src/engine/variEdit.ts";
+import { readLfsrRecord, patchLfsrRecord } from "../src/engine/lfsrEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -468,5 +469,71 @@ describe("computeBudget — Designer ROM-space indicator", () => {
     const b = computeBudget("defender", slots, opts);
     expect(b.overrun).toBeGreaterThan(0);
     expect(() => buildCustomRom(base, "defender", slots, opts)).toThrow(/over by/i);
+  });
+});
+
+describe("LFSR slots (Phase 7)", () => {
+  it("rejects an LFSR override at a code that isn't editable", () => {
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "lfsr", cmd: 0x39, record: [1, 2, 3] }])).toThrow(/editable/i);
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "lfsr", cmd: 0x12, record: [1, 2] }])).toThrow(/editable/i);
+  });
+  it("rejects duplicate LFSR overrides and malformed records", () => {
+    expect(() => buildCustomRom(synth("defender"), "defender", [
+      { kind: "lfsr", cmd: 0x11, record: [1, 3] }, { kind: "lfsr", cmd: 0x11, record: [1, 3] },
+    ])).toThrow(/duplicate/i);
+    // LITE has 2 fields; 3 is wrong.
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "lfsr", cmd: 0x11, record: [1, 2, 3] }])).toThrow(/2 values/i);
+    // TURBO's NFRQ1 is 16-bit; 0x10000 is out of range.
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "lfsr", cmd: 0x14, record: [32, 1, 0x10000, 255] }])).toThrow(/range/i);
+  });
+  it("LFSR-only builds don't touch the command mask or VVECT", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const out = buildCustomRom(base, "defender", [{ kind: "lfsr", cmd: 0x11, record: [0x05, 0x08] }]);
+    // The mask operand ($1F) and the VVECT table stay exactly as the base ROM.
+    const maskOff = (() => { for (let i = 0; i <= base.length - 3; i++) if (base[i] === 0x43 && base[i + 1] === 0x84 && base[i + 2] === 0x1F) return i + 2; return -1; })();
+    expect(out[maskOff]).toBe(0x1F);
+    const vvOff = VVECT_BASE.defender - (0x10000 - base.length);
+    expect(Array.from(out.subarray(vvOff, vvOff + 27))).toEqual(Array.from(base.subarray(vvOff, vvOff + 27)));
+  });
+
+  for (const game of ["defender", "robotron"] as GameKind[]) {
+    it(`an LFSR slot's command plays its edited record on the real ${game} ROM`, () => {
+      if (!haveRom(game)) return;
+      const base = loadRom(game);
+      // Ground truth: patch the caller operands directly and render.
+      const edited = game === "defender" ? [0x05, 0x08] : [0x40, 0x60, 0x80];
+      const cmd = game === "defender" ? 0x11 : 0x15;
+      const truth = dacValues(patchLfsrRecord(base, game, cmd, edited), game, cmd);
+      const built = buildCustomRom(base, game, [{ kind: "lfsr", cmd, record: edited }]);
+      expect(eqSeq(dacValues(built, game, cmd), truth)).toBe(true);
+      // And it actually differs from the stock sound.
+      expect(eqSeq(dacValues(built, game, cmd), dacValues(base, game, cmd))).toBe(false);
+    });
+  }
+
+  it("LAUNCH ($39) is editable only on Robotron", () => {
+    if (haveRom("robotron")) {
+      const base = loadRom("robotron");
+      const built = buildCustomRom(base, "robotron", [{ kind: "lfsr", cmd: 0x39, record: [0x10, 0x20, 0x30] }]);
+      expect(readLfsrRecord(built, "robotron", 0x39)).toEqual([0x10, 0x20, 0x30]);
+    }
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "lfsr", cmd: 0x39, record: [1, 2, 3] }])).toThrow(/editable/i);
+  });
+
+  it("mixes with VARI + GWAVE slots in one build", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const saw = readVariRecord(base, "defender", 0x1D);
+    const gw = readGWaveRecord(base, "defender", 0x01);
+    const built = buildCustomRom(base, "defender", [
+      { kind: "vari", code: 0x20, record: saw },
+      { kind: "gwave", cmd: 0x01, record: gw },
+      { kind: "lfsr", cmd: 0x14, record: [0x10, 0x02, 0x0040, 0x80] },
+    ]);
+    expect(readLfsrRecord(built, "defender", 0x14)).toEqual([0x10, 0x02, 0x0040, 0x80]);
+    // VARI mask was widened for code $20.
+    const maskOff = (() => { for (let i = 0; i <= base.length - 3; i++) if (base[i] === 0x43 && base[i + 1] === 0x84 && base[i + 2] === 0x1F) return i + 2; return -1; })();
+    expect(built[maskOff]).toBe(0x3F);
   });
 });

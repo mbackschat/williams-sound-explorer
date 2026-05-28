@@ -9,6 +9,7 @@
  * and reconstructable:
  *
  *  - **GWAVE row edits** ($01..$0D) — per-cmd SVTAB byte diff.
+ *  - **LFSR overrides** ($11 / $14 / $15; $39 on Robotron) — per-cmd virtual-record diff over the caller-immediate operands.
  *  - **Stock VARI row edits** ($1D..$1F) — VVECT row 0..2 diff.
  *  - **User-added VARI** ($20+) — mask-widen byte at `$FCBD+2`; walk rows 3+ for bytes that diverge from the base ROM's RADIO/ORGAN data.
  *  - **Stock waveform overrides** (idx 0..6) — resolve `LDX #GWVTAB` operand → read effective GWVTAB → per-idx byte diff.
@@ -33,6 +34,7 @@ import {
   STOCK_WAVE_LENGTHS, STOCK_WAVE_SAMPLE_OFFSETS,
   gwaveCommandsFor, readGWaveRecord, readWaveform, readPattern,
 } from "./gwaveEdit.ts";
+import { lfsrCommandsFor, readLfsrRecord } from "./lfsrEdit.ts";
 import { VARI_CMD_BASE, maxSlots } from "./customRom.ts";
 
 /** The reconstructed shape — identical to `web/designer/designerStore.ts`'s `CustomProject`. */
@@ -46,7 +48,8 @@ export interface ReconstructedProject {
 
 export type ReconstructedSlot =
   | { kind: "vari"; name: string; record: number[]; start: number[] }
-  | { kind: "gwave"; name: string; record: number[]; start: number[]; targetCmd: number };
+  | { kind: "gwave"; name: string; record: number[]; start: number[]; targetCmd: number }
+  | { kind: "lfsr"; name: string; record: number[]; start: number[]; targetCmd: number };
 
 /** Expected ROM byte count for each game — used for upload size validation. */
 export const ROM_SIZE: Record<GameKind, number> = {
@@ -146,6 +149,19 @@ export function importBinAsProject(
         start: baseRec,
         targetCmd: c.cmd,
       });
+    }
+  }
+
+  // ── 1b) LFSR overrides (caller-immediate edits) ──────────────────────────
+  // Each editable LFSR command's parameters live as immediate operands in its
+  // caller routine.  Diff the virtual record (field values) — bin vs base —
+  // and record a slot for any command whose parameters changed.  No table, no
+  // relocation: the caller addresses are fixed per game.
+  for (const c of lfsrCommandsFor(game)) {
+    const baseRec = readLfsrRecord(baseRom, game, c.cmd);
+    const binRec = readLfsrRecord(bin, game, c.cmd);
+    if (!arraysEqual(baseRec, binRec)) {
+      slots.push({ kind: "lfsr", name: c.name, record: binRec, start: baseRec, targetCmd: c.cmd });
     }
   }
 

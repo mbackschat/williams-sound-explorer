@@ -84,6 +84,24 @@ export const entries: Entry[] = [
     shot: { clip: "#designer-root", file: img("designer-gwave-overview") },
   },
 
+  // LFSR editor (Phase 7) — the populated list now carries the LFSR family
+  // (LITE / TURBO / APPEAR; + LAUNCH on Robotron) as override-in-place rows.
+  // Selecting TURBO ($14) shows its 4-field slider set (CYCNT/NFFLG, DECAY,
+  // NFRQ1, NAMP) and an offline-rendered audition trace.  Verifies the
+  // per-command slider rebuild + the lfsr build path render correctly.
+  {
+    id: "designer-lfsr-overview",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { click: ".designer-item[data-cmd='14'][data-kind='lfsr']" }, // pre-populated $14 TURBO row
+      { waitMs: 800 }, // editor switch + offline render
+    ],
+    assert: [{ canvasNonBlank: ".designer-scope" }],
+    shot: { clip: "#designer-root", file: img("designer-lfsr-overview") },
+  },
+
   // GWAVE Open-in-Explore handoff: same starting state, then Open in Explore.
   // The custom ROM patches SVTAB[$05] with the user's edited bytes; firing
   // $05 in Explore plays the override (not stock BBSV).  Verifies the F3

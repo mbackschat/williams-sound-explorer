@@ -205,6 +205,10 @@
 .designer-item-gwave.active { border-color: #b78ff5; background: #251f33; }
 .designer-item-gwave .designer-item-code { color: #b78ff5; }
 .designer-item-vari .designer-item-code { color: #ffd866; }
+/* LFSR override slots get a teal accent — distinct from VARI (yellow) and
+   GWAVE (purple). */
+.designer-item-lfsr.active { border-color: #5fd0c4; background: #1c2a29; }
+.designer-item-lfsr .designer-item-code { color: #5fd0c4; }
 /* "$XX GWAVE" / "$XX VARI" is exactly 9 mono chars at 0.72rem.  4.5rem (72 px)
    fits without padding waste — was 5.5rem (88 px), which gave a ~16 px gutter
    that bloated each cell. */

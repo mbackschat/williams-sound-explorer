@@ -20,7 +20,7 @@
 | 5b.polish | **× Remove** waveform + **ROM-space indicator** + **↻ Reset record** (closes the add/edit/remove triad; surfaces the layout budget *before* a build throws) | ✅ shipped 2026-05-28 |
 | 6.1 | **"Fork-the-game" pre-populated item list** — *New Project* opens with every editable command pre-loaded; stock-vs-edited dot indicator; sparse on disk | ✅ shipped 2026-05-28 |
 | 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | ✅ shipped 2026-05-28 (v1 full fidelity) |
-| 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH …) — third engine, parameter patches in caller immediates | 📋 planned (research done — see § Phase 7) |
+| 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH) — third engine, parameter patches in caller immediates | ✅ shipped 2026-05-28 (headless + buildCustomRom + Designer UI + .bin roundtrip) |
 | 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | 📋 planned (research done — see § Phase 8) |
 | 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | 📋 planned (needs spike — see § Phase 9) |
 
@@ -189,9 +189,11 @@ This is the architectural inversion of how Phase 6 would have been done with the
 
 ---
 
-## Phase 7 — LFSR editor (planned)
+## Phase 7 — LFSR editor (✅ shipped 2026-05-28)
 
 The third engine: the LFSR noise family that produces **LITE** (lightning), **APPEAR** (enemy-appear descent), **TURBO** (turbo burst), and Robotron's **LAUNCH**. Same architectural pattern as VARI + GWAVE — override-in-place editor — but with one structural twist: **parameters are immediate operands in caller code, not in a parameter table**.
+
+**Shipped as planned below.** Operand offsets were verified against the real ROMs (uniform across games; only caller base addresses differ): LITE 2 fields (DFREQ@+1, CYCNT@+5), APPEAR/LAUNCH 3 (DFREQ@+1, LFREQ@+5, CYCNT@+7), TURBO 4 (CYCNT/NFFLG@+1, DECAY@+7, NFRQ1@+9 16-bit BE, NAMP@+12). Built across `engine/lfsrEdit.ts` (headless) → `engine/customRom.ts` `kind:"lfsr"` + `engine/projectFromBin.ts` LFSR detection → `web/designer/lfsrEditor.ts` + `designerMode.ts`/`designerStore.ts` wiring. **+34 tests (579 total)**; capture `designer-lfsr-overview`. Per-engine impl details in `docs/designer_implementation.md` § *LFSR editor — Phase 7 (shipped)*.
 
 ### Foundations (verified — see `research/findings_designer_feasibility.md` § LFSR)
 
@@ -310,18 +312,18 @@ Both paths land at the same kernel (`FNOISE` `$F930` Defender/Stargate, `$F7B3` 
 
 The Defender Sound Studio's 9 UI tabs include **6 editable tabs** that cover **5 engines** in WSED's taxonomy — the Studio splits LFSR across three tabs (Square noise / Player shoot / Sweeps' wavetable variant) where WSED groups them under one LFSR editor.
 
-| Engine | Studio tab(s) | WSED today | After Phases 7+8 | After Phase 9 |
+| Engine | Studio tab(s) | WSED today | After Phase 8 | After Phase 9 |
 |---|---|---|---|---|
 | GWAVE | G-wave | ✅ | ✅ | ✅ |
 | VARI | Pulses | ✅ | ✅ | ✅ |
-| FNOISE | Smooth noise | ❌ | 📋 Phase 8 | 📋 Phase 8 |
-| LFSR | Square noise + Player shoot (same kernel) | ❌ | 📋 Phase 7 | 📋 Phase 7 |
+| LFSR | Square noise + Player shoot (same kernel) | ✅ (Phase 7) | ✅ | ✅ |
+| FNOISE | Smooth noise | ❌ | 📋 Phase 8 | ✅ |
 | **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ | ❌ — still a gap | 📋 **Phase 9** |
 | SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
 | HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
 | ORGAN pitch | n/a | ❌ — self-modifying code | ❌ | ❌ |
 
-**Per-engine score:** Studio 5, WSED today 2 → after Phases 7+8 = 4 → after Phase 9 = **5 (parity on Defender)**.
+**Per-engine score:** Studio 5, WSED today **3** → after Phase 8 = 4 → after Phase 9 = **5 (parity on Defender)**.
 
 WSED's edge throughout: spans **3 games**, runs the **actual ROMs** on a cycle-accurate emulator (Studio is Defender-only and a hand-port), and pairs Design with a separate Explore mode + a `.bin` roundtrip the Studio doesn't have.
 

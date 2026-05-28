@@ -14,6 +14,7 @@ import type { GameKind } from "../src/board/soundboard.ts";
 import { buildCustomRom, VARI_CMD_BASE, type CustomSlot } from "../src/engine/customRom.ts";
 import { readVariRecord } from "../src/engine/variEdit.ts";
 import { readGWaveRecord, readWaveform } from "../src/engine/gwaveEdit.ts";
+import { readLfsrRecord } from "../src/engine/lfsrEdit.ts";
 import { importBinAsProject, ROM_SIZE } from "../src/engine/projectFromBin.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -240,5 +241,47 @@ describe("importBinAsProject — Stargate + Robotron sanity", () => {
     expect(project.slots).toHaveLength(1);
     if (project.slots[0]!.kind !== "gwave") throw new Error("expected gwave");
     expect(project.slots[0]!.record).toEqual(edited);
+  });
+});
+
+describe("importBinAsProject — LFSR overrides (Phase 7)", () => {
+  it("an edited LFSR command round-trips: TURBO ($14) on Defender", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const stock = readLfsrRecord(base, "defender", 0x14); // [32,1,1,255]
+    const edited = [0x10, 0x08, 0x0123, 0x40]; // CYCNT/NFFLG, DECAY, NFRQ1(16-bit), NAMP
+    const bin = buildCustomRom(base, "defender", [{ kind: "lfsr", cmd: 0x14, record: edited }]);
+
+    const project = importBinAsProject(bin, base, "defender");
+    const lfsr = project.slots.filter((s) => s.kind === "lfsr");
+    expect(lfsr).toHaveLength(1);
+    const got = lfsr[0]!;
+    if (got.kind !== "lfsr") throw new Error("expected lfsr");
+    expect(got.targetCmd).toBe(0x14);
+    expect(got.record).toEqual(edited);
+    expect(got.start).toEqual(stock); // start = base ROM's stock
+  });
+
+  it("LAUNCH ($39) round-trips on Robotron", () => {
+    if (!haveRom("robotron")) return;
+    const base = loadRom("robotron");
+    const edited = [0x10, 0x20, 0x30];
+    const bin = buildCustomRom(base, "robotron", [{ kind: "lfsr", cmd: 0x39, record: edited }]);
+
+    const project = importBinAsProject(bin, base, "robotron");
+    const got = project.slots.find((s) => s.kind === "lfsr" && s.targetCmd === 0x39);
+    expect(got).toBeDefined();
+    expect(got!.record).toEqual(edited);
+  });
+
+  it("an unedited LFSR command does not produce a slot", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // Only edit LITE; APPEAR/TURBO must stay absent from the reconstruction.
+    const bin = buildCustomRom(base, "defender", [{ kind: "lfsr", cmd: 0x11, record: [0x09, 0x09] }]);
+    const project = importBinAsProject(bin, base, "defender");
+    const lfsr = project.slots.filter((s) => s.kind === "lfsr");
+    expect(lfsr).toHaveLength(1);
+    expect((lfsr[0] as { targetCmd: number }).targetCmd).toBe(0x11);
   });
 });

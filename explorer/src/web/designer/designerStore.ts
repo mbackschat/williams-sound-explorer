@@ -12,6 +12,10 @@
  *    command (`targetCmd` ∈ $01..$0D), defined by a 7-byte SVTAB record. Any
  *    game — Robotron unlocks here because GWAVE patching is in place (no
  *    dispatcher widen needed).
+ *  - **LFSR slot** (Phase 7): an *override* of an existing LFSR command
+ *    (`targetCmd` ∈ $11 LITE / $14 TURBO / $15 APPEAR; $39 LAUNCH on
+ *    Robotron), defined by a *virtual* record — a per-command list of field
+ *    values written to caller-code immediates. Any game (in-place patch).
  *
  * The project carries **no copyrighted ROM bytes** — only parameter values —
  * and the runnable image is reconstituted from the user's base ROM via
@@ -19,7 +23,7 @@
  * name overwrites it.
  *
  * Three on-disk shapes are accepted on load (newest → oldest):
- *  - **v3** (current): `slots: (VariSlot | GwaveSlot)[]` with explicit `kind`.
+ *  - **v3** (current): `slots: (VariSlot | GwaveSlot | LfsrSlot)[]` with explicit `kind`.
  *  - **v2** (own-item-list, pre-GWAVE): `slots: [{ name, record, start }]`
  *    without `kind` — treated as all-VARI.
  *  - **v1** (override-in-place): `{ baseGame, edits: { [cmd]: record } }` —
@@ -28,6 +32,7 @@
 import type { GameKind } from "../../board/soundboard.ts";
 import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
 import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS, gfrtabMaxEnd } from "../../engine/gwaveEdit.ts";
+import { LFSR_CALLER_BASE, lfsrFieldsFor } from "../../engine/lfsrEdit.ts";
 import { maxSlots } from "../../engine/customRom.ts";
 
 /**
@@ -62,7 +67,23 @@ export interface GwaveCustomSlot {
   targetCmd: number;
 }
 
-export type CustomSlot = VariCustomSlot | GwaveCustomSlot;
+export interface LfsrCustomSlot {
+  kind: "lfsr";
+  /** User-facing name. */
+  name: string;
+  /** Current virtual record — one value per field (see `lfsrFieldsFor`), in field order. */
+  record: number[];
+  /** The record at creation/copy time — the "Start" reference for A/B. */
+  start: number[];
+  /**
+   * The base game's LFSR command code this slot *overrides* ($11 LITE / $14
+   * TURBO / $15 APPEAR; $39 LAUNCH on Robotron).  In Explore, firing this code
+   * plays the user's edited parameters.
+   */
+  targetCmd: number;
+}
+
+export type CustomSlot = VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot;
 
 export interface CustomProject {
   name: string;
@@ -187,6 +208,15 @@ function tagV2Slot(raw: unknown): CustomSlot {
       targetCmd: Number(s.targetCmd ?? 0),
     };
   }
+  if (s.kind === "lfsr") {
+    return {
+      kind: "lfsr",
+      name: String(s.name ?? ""),
+      record: (s.record as number[]) ?? [],
+      start: ((s.start as number[]) ?? (s.record as number[])) ?? [],
+      targetCmd: Number(s.targetCmd ?? 0),
+    };
+  }
   return {
     kind: "vari",
     name: String(s.name ?? ""),
@@ -258,7 +288,7 @@ export function importJson(text: string): CustomProject {
   const slots: CustomSlot[] = o.slots.map((s, i) => {
     const so = s as Record<string, unknown>;
     if (typeof so.name !== "string") throw new Error(`Sound ${i + 1}: missing name.`);
-    const kind = so.kind === "gwave" ? "gwave" : "vari"; // v2 slots without kind default to VARI
+    const kind = so.kind === "gwave" ? "gwave" : so.kind === "lfsr" ? "lfsr" : "vari"; // v2 slots without kind default to VARI
 
     if (kind === "vari") {
       if (!VARI_BASES.has(engineBase)) {
@@ -268,6 +298,20 @@ export function importJson(text: string): CustomProject {
       const start = isVariRecord(so.start) ? so.start : so.record;
       variCount++;
       return { kind: "vari", name: so.name, record: so.record, start };
+    }
+
+    if (kind === "lfsr") {
+      const targetCmd = Number(so.targetCmd);
+      if (!Number.isInteger(targetCmd) || LFSR_CALLER_BASE[engineBase][targetCmd] === undefined) {
+        throw new Error(`Sound "${so.name}": LFSR override target $${(targetCmd >>> 0).toString(16).toUpperCase()} is not an editable LFSR command on ${engineBase}.`);
+      }
+      const fields = lfsrFieldsFor(engineBase, targetCmd);
+      const isLfsrRecord = (v: unknown): v is number[] =>
+        Array.isArray(v) && v.length === fields.length
+        && v.every((x, k) => Number.isInteger(x) && x >= fields[k]!.min && x <= fields[k]!.max);
+      if (!isLfsrRecord(so.record)) throw new Error(`Sound "${so.name}": LFSR record must be ${fields.length} value(s) in range.`);
+      const start = isLfsrRecord(so.start) ? so.start : so.record;
+      return { kind: "lfsr", name: so.name, record: so.record, start, targetCmd };
     }
 
     // GWAVE slot
@@ -282,13 +326,18 @@ export function importJson(text: string): CustomProject {
 
   if (variCount > variCap) throw new Error(`Too many VARI sounds (${variCount} > ${variCap} for ${engineBase}).`);
 
-  // GWAVE overrides must each target a distinct command (you can only override
-  // one record per code).
+  // GWAVE + LFSR overrides must each target a distinct command (you can only
+  // override one record per code).
   const gwaveTargets = new Set<number>();
+  const lfsrTargets = new Set<number>();
   for (const s of slots) {
-    if (s.kind !== "gwave") continue;
-    if (gwaveTargets.has(s.targetCmd)) throw new Error(`Duplicate GWAVE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
-    gwaveTargets.add(s.targetCmd);
+    if (s.kind === "gwave") {
+      if (gwaveTargets.has(s.targetCmd)) throw new Error(`Duplicate GWAVE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
+      gwaveTargets.add(s.targetCmd);
+    } else if (s.kind === "lfsr") {
+      if (lfsrTargets.has(s.targetCmd)) throw new Error(`Duplicate LFSR override for $${s.targetCmd.toString(16).toUpperCase()}.`);
+      lfsrTargets.add(s.targetCmd);
+    }
   }
 
   // Waveform overrides (optional, Phase 5 step 2).  Each key is a stock-wave
