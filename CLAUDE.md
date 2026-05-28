@@ -87,6 +87,7 @@ cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README he
 
 ## Conventions
 
+- **Git: commit directly to `main` and stay on `main`. Never auto-create branches.** When asked to commit, stage + commit on the current branch (main) — this **overrides** the default "if on the default branch, branch first" behaviour. Applies to the `research/` submodule too. (User preference.)
 - **Docs vs research**: curated docs in `docs/` (public), raw dense notes in the private `research/` submodule. Cross-link both ways; don't duplicate.
 - **Persistence**: always write findings to disk, never leave deep research only in chat.
 - **CLAUDE.md is durable orientation, not a changelog.** Keep it to: where-things-live, project layout, commands, locked decisions, conventions/gotchas, and a short current-status blurb. Implementation state + per-feature history live in `docs/explorer_implementation.md` and git history — never append a per-step `✅ …` log here. (It bloats every session's context and triplicates the implementation doc + plan, forcing the same edit in three places.) Touch CLAUDE.md only when *durable orientation* changes: a new top-level dir, a new command, a locked decision, or a convention.
