@@ -36,7 +36,16 @@
     </div>
 
     <div class="page">
-      <h1>Williams Sound Explorer</h1>
+      <div class="mode-bar">
+        <h1>Williams Sound Explorer</h1>
+        <!-- Top-level mode switch.  Explore = the read-only visualiser (default);
+             Design = the sound-designer mode (web/designer/*), mounted lazily
+             into #designer-root.  Switching hides the other mode's surface. -->
+        <div class="mode-switcher mode-top" role="radiogroup" aria-label="Mode">
+          <button id="modeExplore" class="active" aria-checked="true" title="Explore the original sound ROMs (visualise + play).">Explore</button>
+          <button id="modeDesign" aria-checked="false" title="Design mode — author your own VARI sounds from a base ROM, audition, and save.">Design ✎</button>
+        </div>
+      </div>
 
       <!-- Two-column desktop layout (Phase 5+ UI restructure).
            ≥1100 px: left column holds the controls + tape scrubber + the live
@@ -500,6 +509,11 @@
 
         </main>
       </div>
+
+      <!-- Sound Designer mode surface — populated by web/designer/designerMode.ts
+           on first switch to Design.  Hidden (and the Explore layout shown)
+           while in Explore mode. -->
+      <section id="designer-root" class="designer-root" hidden></section>
     </div>
 
     <script type="module" src="/src/web/main.ts"></script>

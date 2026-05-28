@@ -37,6 +37,8 @@ If you need only one document: read `explorer_implementation.md` (it links to ev
 | **`sound_studio_reference.md`** | What msarnoff's Defender Sound Studio does, what to copy, what to do differently. | ~150 lines |
 | **`explorer_architecture.md`** | Architecture sketch — CPU emulator vs hand-port, layers, visualization spec, 6-phase plan. | ~200 lines |
 | **`explorer_implementation.md`** | **What's actually built** in `explorer/`: module dependency graph, design decisions, runner API, real-time AudioWorklet pipeline, six engine slots + viz panels, live grid (Ear·Swimlane/Eye·Code), scrubber + RAM time-travel, A/B diff + Genealogy, label-map, parameter overrides, known caveats. Phases 1–6 covered (all 12 UX patterns). | ~900 lines |
+| **`designer_implementation.md`** | **Sound Designer mode** implementation state: module map, locked decisions, the VARI/VVECT reference + recipe schema, tests. (The designer analog of `explorer_implementation.md`.) | ~150 lines |
+| **`designer_guide.md`** | User-facing how-to for Design mode: enter, copy/edit a VARI sound, audition, diff, save, export/import. | ~70 lines |
 | **`web-capture.md`** | Playwright capture harness (`explorer/e2e/`) that verifies every MANUAL tutorial's click-path and emits the MANUAL/README screenshots + demo GIF. Local maintainer tool (no ROM bytes). | ~210 lines |
 | **`explainer_cards.md`** | **Source of truth** for Pattern 9 annotated explainer cards.  One `## ROUTINE — Title` section per card; `tools/build_explainer_cards.py` emits per-routine JSON to `explorer/public/data/explainer/`.  All 63 catalogued routines covered. | ~1400 lines |
 | **`reference_audio_plan.md`** | How to acquire WAV recordings of every effect (MAME, assemble-and-drive, prerecorded). | ~150 lines |
@@ -126,7 +128,7 @@ Detailed source-line indices into the sound routines are maintained with the pri
 
 ---
 
-## Project state (as of 2026-05-27)
+## Project state (as of 2026-05-28)
 
 - ✅ Source-level analysis complete for all four games (raw notes kept in the private `research/` submodule)
 - ✅ Hardware model documented
@@ -161,11 +163,15 @@ Detailed source-line indices into the sound routines are maintained with the pri
 - ✅ **2026-05 `main.ts` decomposition + keyboard support**: the 1945-line `web/main.ts` god-module split −44% into focused `web/` modules + `web/ui/` per-feature controllers behind an `AppContext` facade (`els`, `format` (+tests), `appContext`, `organTunes`, and `ui/{layout,wavExport,abdiff,paramSliders,engineToggles,glossaryUi}`); the cohesive live-session core (boot/render/transport/scrubber) intentionally left in `main.ts`.  `index.html` slimmed −60% by extracting its inline `<style>` to `web/main.css`.  Added **keyboard shortcuts** (`web/ui/keyboard.ts` + a unit-tested pure `keymap.ts`; Space=fire, P=pause, 1–4=speed, arrows=nudge time/volume, G=game, `?`=overlay) and an **Enter-to-fire** on the cmd box.  385 tests.
 - ✅ **2026-05 illustrated docs + web-capture harness**: a Playwright harness in `explorer/e2e/` drives the dev server and emits screenshots — `e2e/capture.ts` runs a 20-entry manifest (all 12 MANUAL tutorials + 5 per-engine showcase panels + 3 interface-tour shots), verifying each click-path and clipping its panel, while `e2e/readme.ts` produces the README hero + demo GIF.  Images live under `docs/img/` and are wired into MANUAL.md (§2 interface tour + §3 engine gallery + §4 tutorials) and README.md.  It's a local maintainer tool (consumes the dev-only user-supplied ROMs, emits no ROM bytes); design + how-to in [`web-capture.md`](web-capture.md).
 
+- ✅ **2026-05 Sound Designer mode (v1)**: a separate **Explore ↔ Design** mode (lazily-mounted into `#designer-root`; Explore UI untouched) for authoring a **VARI** sound the way a Williams designer would — copy an existing VARI command ($1D SAW / $1E FOSHIT / $1F QUASAR; +$3F MOSQTO on Robotron), edit its 9-byte `VVECT` record with labelled sliders, audition (offline render + play), diff vs original, save/export.  Built on the finding that **a Williams sound is *data*, not bespoke code** (`research/findings_designer_feasibility.md`): no 4th `GameKind`, no live-worklet change — audition feeds an edited ROM image to `runSoundWithRom`.  Saved as a JSON **recipe** (parameter edits over a base game) — zero copyrighted bytes persisted.  New headless `engine/variEdit.ts` + `web/designer/*` + `web/ui/modeToggle.ts`.  +28 tests (413 total).  See **`designer_implementation.md`** / **`designer_guide.md`**.
+
 ## Suggested next concrete steps
 
-**All 12 UX patterns from `docs/pedagogical_design.md` are now delivered.**  The original definition-of-done from the plan is met.
+**All 12 UX patterns from `docs/pedagogical_design.md` are now delivered**, and **Sound Designer v1 (VARI)** ships.
 
-Optional polish items, in case you want more:
+Designer fast-follows (in `designer_implementation.md`): more engines (GWAVE incl. editable waveform/curve canvases; LFSR/FNOISE), brand-new command codes (needs a verified dispatcher band-bound patch), and live-worklet audition (pause/step/scrub the custom ROM).
+
+Other optional polish items:
 
 - Quiz tier expansion — Tier 2 ("which freeze toggle silences this?") + Tier 3 ("A/B diff: what differs?").  Reuses Pattern 3 toggle metadata + Pattern 6 A/B engine.
 - Source-line tightening in some explainer cards (a few cite approximate addresses; labelmap lookups can re-pin them).

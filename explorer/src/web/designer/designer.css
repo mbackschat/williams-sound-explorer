@@ -1,0 +1,98 @@
+/* Sound Designer mode styling.  Imported by designerMode.ts so it loads only
+   when Design mode is first opened — the Explore stylesheet stays untouched.
+   Reuses the explore palette + the shared .param-row / .game-switcher styles. */
+
+.designer-root { margin-top: 1rem; }
+
+.designer-header h2 { margin: 0 0 0.2rem; font-size: 1.1rem; color: #d1d4dc; }
+.designer-sub { display: block; font-size: 0.8rem; color: #9098a6; margin-bottom: 0.8rem; }
+
+.designer-bar,
+.designer-section,
+.designer-audition-row {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+}
+.designer-bar { margin-bottom: 0.8rem; }
+.designer-bar-label { font-size: 0.8rem; color: #abafb6; }
+
+.designer-name {
+  background: #11141a; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; padding: 0.3rem 0.5rem; width: 11rem;
+}
+.designer-open {
+  background: #11141a; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; padding: 0.3rem 0.4rem;
+}
+.designer-import { display: none; }
+
+/* Command picker — one button per editable VARI sound. */
+.designer-cmds { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.designer-cmd {
+  background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
+  color: #abafb6; font: inherit; padding: 0.35rem 0.7rem; cursor: pointer;
+}
+.designer-cmd:hover { background: #2a2f37; color: #d1d4dc; }
+.designer-cmd.active { background: #ffd866; color: #1a1a1d; font-weight: 600; }
+.designer-cmd.edited:not(.active) { border-color: #a9dc76; color: #a9dc76; }
+.designer-cmd.edited::after { content: " ●"; color: #a9dc76; }
+.designer-cmd.active.edited::after { color: #1a1a1d; }
+
+.designer-section { margin: 0.8rem 0; }
+
+/* Edit panel: editor on the left, audition scope on the right; stacks narrow. */
+.designer-edit-cols { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.2fr); gap: 1rem; }
+@media (max-width: 820px) { .designer-edit-cols { grid-template-columns: 1fr; } }
+.designer-edit-label {
+  font-size: 0.72rem; color: #a9dc76; text-transform: uppercase;
+  letter-spacing: 0.05em; margin-bottom: 0.4rem;
+}
+.designer-editor-host { background: #11141a; border: 1px solid #2a2f37; border-radius: 4px; padding: 0.5rem 0.7rem; }
+/* The designer rows have no force-checkbox (unlike the explore VARI pane), so
+   override the shared 4-column grid with a 3-column one packed to the left —
+   otherwise the label lands in the 18px checkbox column and the value is flung
+   to the far right. */
+.designer-fields .param-row {
+  grid-template-columns: 4rem minmax(140px, 16rem) 5rem;
+  justify-content: start;
+  column-gap: 0.7rem;
+  margin: 0.25rem 0;
+}
+.designer-fields .param-value { text-align: left; }
+.designer-audition-row { margin-top: 0.6rem; }
+.designer-vol { width: 6rem; }
+
+/* Transport buttons */
+.designer-audition-row > button {
+  background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; padding: 0.35rem 0.7rem; cursor: pointer;
+}
+.designer-audition-row > button:hover:not(:disabled) { background: #2a2f37; }
+.designer-audition-row > button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Loop / Diff toggles when active */
+.designer-audition-row > button.toggle-on {
+  background: #2d4a2e; border-color: #a9dc76; color: #d6f5b8; font-weight: 600;
+}
+/* Source segmented control (Edited | Original) */
+.designer-source > button {
+  background: transparent; border: none; border-right: 1px solid #353a44;
+  border-radius: 0; padding: 0.3rem 0.75rem; color: #abafb6; font: inherit; cursor: pointer;
+}
+.designer-source > button:last-child { border-right: none; }
+.designer-source > button:hover:not(.active) { background: #2a2f37; color: #d1d4dc; }
+.designer-source > button.active { background: #ffd866; color: #1a1a1d; font-weight: 600; }
+
+.designer-scope {
+  width: 100%; height: 200px; display: block;
+  background: #0c0e12; border: 1px solid #2a2f37; border-radius: 4px;
+}
+.designer-status {
+  margin-top: 0.4rem; font-size: 0.8rem; color: #abafb6; min-height: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.designer-status[data-kind="ok"] { color: #a9dc76; }
+.designer-status[data-kind="err"] { color: #ff6b6b; }
+
+.designer-locked {
+  margin-top: 1rem; padding: 1rem; background: #11141a;
+  border: 1px dashed #353a44; border-radius: 4px; color: #abafb6; font-size: 0.85rem;
+}

@@ -45,6 +45,7 @@ import { initParamSliders } from "./ui/paramSliders.ts";
 import { initEngineToggles } from "./ui/engineToggles.ts";
 import { initGlossaryUi } from "./ui/glossaryUi.ts";
 import { initKeyboard } from "./ui/keyboard.ts";
+import { initModeToggle } from "./ui/modeToggle.ts";
 import { ORGAN_TUNES, DEFAULT_ORGAN_TUNE, AUTO_PULSE_GAP_MS } from "./organTunes.ts";
 import type { AppContext } from "./appContext.ts";
 
@@ -1090,5 +1091,6 @@ initLayout(log);
 initWavExport(ctx);
 initABDiff(ctx);
 initKeyboard(ctx);
+initModeToggle(ctx);
 
 log("Loaded.");

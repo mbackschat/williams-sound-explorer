@@ -609,6 +609,10 @@ details.explainer-sub[open] > summary { color: #d8f0a8; margin-bottom: 0.2rem; }
   background: #ffd866; color: #1a1a1d; font-weight: 600;
   opacity: 1; cursor: default;
 }
+/* Top-level Explore/Design mode bar (chrome above both surfaces). */
+.mode-bar { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+.mode-bar > h1 { margin: 0; }
+.mode-top { font-size: 0.85rem; }
 .scrub-track {
   position: relative; padding-top: 28px; margin: 0.2rem 0;
 }

@@ -8,12 +8,15 @@ Browser-based explorer for the Williams arcade sound effects of **Defender** (19
 - **Live execution plan**: [`~/.claude/plans/goal-is-to-built-purrfect-river.md`](~/.claude/plans/goal-is-to-built-purrfect-river.md) — 6 phases, 18 numbered steps, decisions, risk register
 - **Docs index**: [`docs/00_INDEX.md`](docs/00_INDEX.md) — fast-lookup tables, "where do I find X?", project state
 - **Currently-built code reference**: [`docs/explorer_implementation.md`](docs/explorer_implementation.md) — read this first when resuming a session
+- **Sound Designer mode**: [`docs/designer_implementation.md`](docs/designer_implementation.md) (impl state) + [`docs/designer_guide.md`](docs/designer_guide.md) (user how-to); roadmap + decision log in [`plans/designer-mode.md`](plans/designer-mode.md) — the separate Design mode for authoring VARI sounds
 
 ## On-demand references (load when you need them)
 
 | If you need… | Read |
 |---|---|
 | What's actually built in `explorer/` (module map, design decisions, APIs) | `docs/explorer_implementation.md` |
+| Sound Designer mode (VARI editor): module map, decisions, VVECT reference, recipe schema | `docs/designer_implementation.md` |
+| Why authoring works without an assembler ("a sound is *data*, not code") | private submodule — `research/findings_designer_feasibility.md` |
 | Real-time AudioWorklet pipeline + message protocol (Phase 2.1) | `docs/explorer_implementation.md` §Real-time pipeline |
 | Disassembler + semantic Step→DAC/IRQ + glossary (Step 2.2 extras) | `docs/explorer_implementation.md` §Debugger primitives |
 | Tape-loop scrubber + DAC history ring (Step 2.3 / Pattern 11) | `docs/explorer_implementation.md` §Tape-loop scrubber |
@@ -51,6 +54,8 @@ williams-sound-explorer/
 ## Current state
 
 **Phases 1–6 done; all 12 UX patterns shipped.** The explorer emulates the 6802 sound CPU, plays every command, and visualises all six engines (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with slow-motion, scrub, and per-engine views. (Build + verification internals are kept in the private `research/CLAUDE_research.md`.)
+
+There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): author your own **VARI** sounds by editing a command's parameter record, audition, diff, and save as a JSON recipe. Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
 
 **`docs/explorer_implementation.md` is the source of truth for implementation state** — module map, per-engine viz, phase + test status, known caveats. Read it first when resuming a session. The roadmap (6 phases, 18 steps, risk register) lives in the plan file linked above. This file is durable orientation only and does **not** track a per-feature changelog — that's git history + the implementation doc (see the CLAUDE.md convention below).
 

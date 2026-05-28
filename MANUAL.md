@@ -110,6 +110,10 @@ Context-specific (when an element has focus):
 - **Cmd hex input**: type a 2-character hex code (e.g. `1D`), then <kbd>Enter</kbd> (or click Fire) to fire it.
 - **Splitter handle**: ←/→ nudge 2%, Shift+←/→ nudge 5%, Home/End jump to extremes, Space/Enter = 50/50.
 
+### Designer mode (a separate mode)
+
+The **Explore | Design ✎** switch at the top of the page flips between this read-only explorer and a separate **Sound Designer** mode. Design mode lets you author your own sound the way a Williams designer would: copy an existing **VARI** command (SAW / FOSHIT / QUASAR, +MOSQTO on Robotron), edit its parameter record with sliders, audition it, diff it against the original, and save it as a shareable JSON recipe. Switching to Design doesn't change anything in Explore. Full walkthrough: [`docs/designer_guide.md`](docs/designer_guide.md).
+
 ---
 
 ## 3. The six synthesis engines
