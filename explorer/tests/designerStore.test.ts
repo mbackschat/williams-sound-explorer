@@ -149,3 +149,58 @@ describe("v2 on-disk migration (slots without `kind` are tagged VARI)", () => {
     expect(back.slots[0]!.record).toEqual(SAW);
   });
 });
+
+describe("exportJson / importJson — waveformOverrides (Phase 5 step 2)", () => {
+  const FLAT8 = Array.from({ length: 8 }, () => 0x80);  // valid GS2 length
+  const FLAT16 = Array.from({ length: 16 }, () => 0x40); // valid GS1 length
+
+  it("round-trips a project that overrides one stock waveform", () => {
+    const p: CustomProject = {
+      name: "wf",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      waveformOverrides: { 0: FLAT8, 2: FLAT16 },
+      createdAt: 100,
+      updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.waveformOverrides).toEqual({ 0: FLAT8, 2: FLAT16 });
+  });
+
+  it("a project with no waveformOverrides has the field absent (not an empty object)", () => {
+    const p: CustomProject = {
+      name: "no-wf",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100,
+      updatedAt: 200,
+    };
+    expect(importJson(exportJson(p)).waveformOverrides).toBeUndefined();
+  });
+
+  it("rejects malformed waveformOverrides (non-object, bad idx, wrong length, byte out of range)", () => {
+    const base: CustomProject = {
+      name: "wf-bad",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100, updatedAt: 200,
+    };
+    expect(() => importJson(JSON.stringify({ ...base, waveformOverrides: [1, 2, 3] }))).toThrow(/object/i);
+    expect(() => importJson(JSON.stringify({ ...base, waveformOverrides: { 9: FLAT8 } }))).toThrow(/range/i);
+    expect(() => importJson(JSON.stringify({ ...base, waveformOverrides: { 0: [1, 2, 3] } }))).toThrow(/bytes/i);
+    expect(() => importJson(JSON.stringify({ ...base, waveformOverrides: { 0: [...FLAT8.slice(0, 7), 256] } }))).toThrow(/range/i);
+  });
+
+  it("permits a project with only waveformOverrides and no slots", () => {
+    const p: CustomProject = {
+      name: "wf-only",
+      engineBase: "defender",
+      slots: [],
+      waveformOverrides: { 4: FLAT16 }, // override stock GSQ22
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.slots).toHaveLength(0);
+    expect(back.waveformOverrides).toEqual({ 4: FLAT16 });
+  });
+});

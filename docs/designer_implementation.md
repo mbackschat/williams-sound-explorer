@@ -94,10 +94,11 @@ ROM array offset = `(VVECT_BASE + row*9) − (0x10000 − rom.length)` (ROM occu
 ## Tests
 
 - `explorer/tests/variEdit.test.ts` (21) — VVECT addresses vs the label-map JSON; read/patch round-trips; `getField`/`setField` big-endian SWPDT; `applyRecipe` idempotent + order-independent; a golden assertion reading SAW's real bytes from the dev Defender ROM.
-- `explorer/tests/customRom.test.ts` (9) — validation guards (hermetic) + behavioural proof on the real ROMs that each slot's command (incl. high codes needing the mask patch) renders its record; compares **DAC value sequences** (record-determined, command-code-independent).
-- `explorer/tests/designerStore.test.ts` (7) — `CustomProject` JSON round-trip + validation + the v1→slots migration.
-- Full suite: **422 tests**; `npm run typecheck` passes both the full project and the DOM-free core gate (`variEdit.ts` + `customRom.ts` stay headless).
-- Throwaway Playwright smokes (removed after running, not CI) verified each milestone end-to-end — latest: engine picker, +New / +Copy-from-any-game, rename, audition, auto codes `$1D/$1E`, save → reload → reopen persistence, zero console errors.
+- `explorer/tests/gwaveEdit.test.ts` (35) — SVTAB + GWVTAB addresses vs the label-map JSON; nybble-packed `getField`/`setField`; read/patch round-trips for SVTAB *and* waveform bytes; `waveformUsers` against the real Defender ROM (every reported user has the right WAVE# nybble; no command listed under more than one idx); golden assertion reading HBDV's real bytes.
+- `explorer/tests/customRom.test.ts` (~19) — validation guards (hermetic) + behavioural proof on the real ROMs that each slot's command renders its record (VARI mask-widen path, GWAVE SVTAB-in-place path, mixed builds), plus Phase 5 step 2 waveform overrides (override-only builds, mixed-with-slot builds, byte-level read-back). Compares **DAC value sequences** (record-determined, command-code-independent).
+- `explorer/tests/designerStore.test.ts` (~17) — `CustomProject` JSON round-trip + validation: VARI slots, GWAVE slots (round-trip + Robotron-base + duplicate-target rejection + non-editable target rejection), v1 + v2 on-disk migrations, and `waveformOverrides` (round-trip, absent field, malformed/range rejection, standalone-no-slots projects).
+- Full suite: **479 tests**; `npm run typecheck` passes both the full project and the DOM-free core gate (`variEdit.ts`/`gwaveEdit.ts`/`customRom.ts` stay headless).
+- Browser-flow regression coverage lives in the Playwright capture manifests (`explorer/e2e/capturesDesigner.ts`); see `docs/web-capture.md`. Transient flow smokes go to `explorer/e2e/smokes.ts` per the CLAUDE.md convention.
 
 ## Open in Explore — live-worklet audition via Explore
 
@@ -133,15 +134,34 @@ GWAVE slots **override an existing GWAVE command's 7-byte SVTAB record in place*
 
 **Schema (Step 1):** GWAVE slots carry `{ kind: "gwave", name, record, start, targetCmd }`. The `targetCmd` is the base game's command code being overridden ($01..$0D). VARI slots stay `{ kind: "vari", name, record, start }`.
 
-**What's not yet editable in this step:** the waveform *bytes* (GWVTAB) and the pitch-pattern *bytes* (GFRTAB) — those land in Step 2 and Step 3 (canvas-based byte editors). Step 1 makes the WAVE# selector and pattern length/offset editable, which already gives wide audible range without canvases.
+**Editing reach:** Step 1 makes every byte of SVTAB editable (the 9 logical fields). Step 2 adds editable **waveform bytes** (GWVTAB) via a click-to-draw canvas. Step 3 (still pending) adds editable **pitch-pattern bytes** (GFRTAB).
 
-**Tests:** `gwaveEdit.test.ts` (23, incl. a golden assertion reading real HBDV bytes from the dev Defender ROM), `customRom.test.ts` (+6: GWAVE override, mixed VARI+GWAVE, Robotron GWAVE, no-mask-touch when only GWAVE present, malformed/non-editable rejection), `designerStore.test.ts` (+ GWAVE round-trip, Robotron base, duplicate-target rejection, v2 migration). Full suite **459**.
+**Tests:** `gwaveEdit.test.ts` (35, incl. golden assertions reading real HBDV bytes + verifying the 7 stock waveforms' length/offset layout against the dev Defender ROM), `customRom.test.ts` (10 GWAVE-related: SVTAB override, mixed VARI+GWAVE, Robotron GWAVE, no-mask-touch when only GWAVE present, malformed/non-editable rejection, waveform overrides, mixed VARI+GWAVE+waveform), `designerStore.test.ts` (GWAVE round-trip, Robotron base, duplicate-target rejection, v2 migration, waveformOverrides round-trip / validation / standalone). Full suite **479**.
 
-**Capture entries (`e2e/capturesDesigner.ts`):** `designer-gwave-overview` (item list with a `$05 GWAVE` slot + the SVTAB editor panel + offline-rendered scope) and `designer-gwave-audition-explore` (Open-in-Explore handoff; the custom-ROM SVTAB override at $05 plays in Explore with the chip-row overlay).
+**Capture entries (`e2e/capturesDesigner.ts`):** `designer-gwave-overview` (item list with a `$05 GWAVE` slot + the SVTAB editor panel + the Step 2 waveform canvas + "Shared by" line + offline-rendered scope) and `designer-gwave-audition-explore` (Open-in-Explore handoff; the custom-ROM SVTAB override at $05 plays in Explore with the chip-row overlay).
+
+## GWAVE editor — Phase 5 step 2 (shipped)
+
+Adds a **click-to-draw waveform canvas** below the SVTAB sliders. The canvas shows the resolved bytes for the slot's current `WAVE#`: the project's override if any, else the base ROM's stock GWVTAB entry. Drawing emits an `onWaveformDraw(idx, bytes)` callback that the host writes into `project.waveformOverrides[idx]`; the audition auto-replay picks it up.
+
+**Sharing semantics surfaced in the UI:** the 7 stock waveforms are referenced by index, not per-command — so editing GS1 (idx 2) affects every command whose SVTAB byte-1 low-nybble = 2. The canvas label includes a *"Shared by: $XX NAME, $YY NAME — your edits affect every one."* line driven by `waveformUsers(baseRom, game, idx)`; a *"Reset to stock"* button reverts the override for that index. No copy-on-edit in this step — that would require GWVTAB extension and is part of the v-future *new waveforms* item.
+
+**Module additions:**
+
+- `engine/gwaveEdit.ts` gains `GWVTAB_BASE` per game, `STOCK_WAVE_LENGTHS` (`[8, 8, 16, 16, 16, 72, 16]`), `STOCK_WAVE_SAMPLE_OFFSETS` (derived from the lengths, verified against the real Defender ROM: `[1, 10, 19, 36, 53, 70, 143]`), `STOCK_WAVE_NAMES` (GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7), `readWaveform`, `patchWaveform` (length must match stock), and `waveformUsers` (drives the "Shared by" UI).
+- `engine/customRom.ts` `buildCustomRom` gains an `options?: { waveformOverrides?: Record<number, number[]> }` parameter; overrides apply after VARI/GWAVE slot work, in place at each waveform's existing offset. A build with only waveform overrides (no slots) is permitted — it's a valid project that retunes the base game's existing GWAVE timbre.
+- `web/designer/gwaveEditor.ts` gains a canvas with mouse-down/move/up drawing, a label showing the current `idx NAME (N bytes) [· edited]`, the "Shared by" line, and a Reset-to-stock button. The host wires three callbacks: slot-record edit (existing), `onWaveformDraw(idx, bytes)`, `onWaveformReset(idx)`.
+- `web/designer/designerMode.ts` adds `refreshWaveformCanvas()` that resolves bytes (override or stock) + `sharedBy` users + an `isOverridden` flag, and threads `project.waveformOverrides` through `buildEdited()`'s `buildCustomRom` options.
+- `web/designer/designerStore.ts` `CustomProject.waveformOverrides?: Record<number, number[]>` (optional); legacy v1/v2 shapes import without it (no migration needed — the field is absent for older projects). JSON round-trip + validation (idx range, byte-length, byte-range).
+
+**Tests added by Step 2:** 12 new in `gwaveEdit.test.ts` (constants + readWaveform/patchWaveform/waveformUsers), 4 in `customRom.test.ts` (waveform-only build, mixed-with-slot build, error paths), 4 in `designerStore.test.ts` (round-trip, absent field, malformed, standalone). **+20 tests**, 479 total.
+
+**Why these byte edits don't break pointers:**
+- GWLD2/3 walks GWVTAB by `length+1` bytes per record. Since `length` is unchanged, the walk lands at the same position for every idx.
+- SVTAB byte-6 (pattern offset into GFRTAB) doesn't touch GWVTAB — so it's irrelevant here. Step 3 will edit GFRTAB bytes; that step also keeps `PATLEN` unchanged so byte-6 stays valid.
 
 ## Fast-follows (not yet built)
 
-- **GWAVE editor Step 2** — editable waveform canvas (GWVTAB bytes; lengths unchanged → no pointer rebase).
 - **GWAVE editor Step 3** — editable pitch-pattern canvas (GFRTAB bytes; lengths unchanged → SVTAB byte-6 offsets stay valid).
 - **Adding new waveforms / new GWAVE codes** — both feasible, deferred to v-future (see `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis).
 - **Robotron as engine base for VARI** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band. (GWAVE on Robotron *is* supported now since it's in-place SVTAB patching.)

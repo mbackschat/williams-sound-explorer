@@ -29,7 +29,10 @@
  */
 import type { GameKind } from "../board/soundboard.ts";
 import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
-import { patchGWaveRecord, gwaveCommandsFor, SVTAB_STRIDE } from "./gwaveEdit.ts";
+import {
+  patchGWaveRecord, gwaveCommandsFor, SVTAB_STRIDE,
+  patchWaveform, STOCK_WAVE_LENGTHS,
+} from "./gwaveEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
 export const VARI_CMD_BASE = 0x1D;
@@ -126,12 +129,34 @@ function validateGwaveSlot(s: GwaveSlot, game: GameKind, seen: Set<number>): voi
 }
 
 /**
- * Build a runnable custom ROM image from a base game + slots (mixed VARI +
- * GWAVE). Returns a copy of `baseRom`; the original is untouched.
+ * Optional build extras alongside the per-sound slot list.  Currently carries
+ * waveform-byte overrides (Phase 5 step 2): a map from stock waveform index
+ * (0..6) to its replacement sample bytes.  Each replacement MUST be exactly
+ * the stock waveform's length — Step 2 never changes table lengths, so GWLD
+ * walking and SVTAB byte-6 pattern offsets stay valid.  Future Steps may add
+ * pitch-pattern overrides through the same options shape.
  */
-export function buildCustomRom(baseRom: Uint8Array, game: GameKind, slots: CustomSlot[]): Uint8Array {
+export interface BuildOptions {
+  waveformOverrides?: Record<number, number[]>;
+}
+
+/**
+ * Build a runnable custom ROM image from a base game + slots (mixed VARI +
+ * GWAVE) + optional waveform-byte overrides. Returns a copy of `baseRom`;
+ * the original is untouched.
+ */
+export function buildCustomRom(
+  baseRom: Uint8Array,
+  game: GameKind,
+  slots: CustomSlot[],
+  options: BuildOptions = {},
+): Uint8Array {
   // ── Partition + validate up front (before touching the ROM) ──────────────
-  if (slots.length === 0) throw new Error("a custom ROM needs at least one slot");
+  const waveformOverrides = options.waveformOverrides ?? {};
+  const waveformKeys = Object.keys(waveformOverrides);
+  if (slots.length === 0 && waveformKeys.length === 0) {
+    throw new Error("a custom ROM needs at least one slot or waveform override");
+  }
   const variSlots: VariSlot[] = [];
   const gwaveSlots: GwaveSlot[] = [];
   const seenVari = new Set<number>();
@@ -139,6 +164,21 @@ export function buildCustomRom(baseRom: Uint8Array, game: GameKind, slots: Custo
   for (const s of slots) {
     if (s.kind === "vari") { validateVariSlot(s, game, seenVari); variSlots.push(s); }
     else                  { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
+  }
+  for (const k of waveformKeys) {
+    const idx = Number(k);
+    if (!Number.isInteger(idx) || idx < 0 || idx > 6) {
+      throw new Error(`waveformOverrides key out of range 0..6: ${k}`);
+    }
+    const bytes = (waveformOverrides as Record<number, number[]>)[idx];
+    if (!Array.isArray(bytes) || bytes.length !== STOCK_WAVE_LENGTHS[idx]) {
+      throw new Error(`waveformOverrides[${idx}] must be exactly ${STOCK_WAVE_LENGTHS[idx]} bytes, got ${bytes?.length}`);
+    }
+    for (const b of bytes) {
+      if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+        throw new Error(`waveformOverrides[${idx}] byte out of range (0..255): ${b}`);
+      }
+    }
   }
 
   let out: Uint8Array = baseRom.slice();
@@ -165,6 +205,15 @@ export function buildCustomRom(baseRom: Uint8Array, game: GameKind, slots: Custo
   // ── GWAVE: override SVTAB rows in place (any game; no dispatcher patch) ──
   for (const s of gwaveSlots) {
     out = patchGWaveRecord(out, game, s.cmd, s.record);
+  }
+
+  // ── GWAVE waveform bytes: patch GWVTAB in place (Phase 5 step 2) ─────────
+  // Lengths don't change (validated above), so GWLD2/3 walking + every
+  // SVTAB record stays valid.  This affects *every* command pointing at
+  // the overridden index — the Designer UI surfaces this as "Shared by".
+  for (const k of waveformKeys) {
+    const idx = Number(k);
+    out = patchWaveform(out, game, idx, (waveformOverrides as Record<number, number[]>)[idx]!);
   }
 
   return out;

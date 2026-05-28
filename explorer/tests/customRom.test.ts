@@ -20,7 +20,7 @@ import { resolve as pathResolve } from "node:path";
 import type { GameKind } from "../src/board/soundboard.ts";
 import { runSoundWithRom } from "../src/engine/runner.ts";
 import { readVariRecord, patchVariRecord } from "../src/engine/variEdit.ts";
-import { readGWaveRecord, patchGWaveRecord } from "../src/engine/gwaveEdit.ts";
+import { readGWaveRecord, patchGWaveRecord, readWaveform, patchWaveform, STOCK_WAVE_LENGTHS } from "../src/engine/gwaveEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -169,5 +169,71 @@ describe("GWAVE override behaviour (Phase 5 step 1)", () => {
     const custom = buildCustomRom(base, "defender", [{ kind: "gwave", cmd: 0x05, record: hbdv }]);
     const maskOperand = (0xFCBD + 2) - 0xF800;
     expect(custom[maskOperand]).toBe(0x1F);
+  });
+});
+
+describe("Waveform overrides (Phase 5 step 2)", () => {
+  // The ground-truth for a waveform override at idx X with bytes B is: take
+  // the base ROM, manually patchWaveform(idx=X, bytes=B), and render any
+  // command whose SVTAB row points at X. buildCustomRom with that override
+  // should produce a ROM whose command renders the same DAC value sequence.
+  const truthWaveform = (base: Uint8Array, game: GameKind, cmd: number, idx: number, bytes: number[]): number[] =>
+    dacValues(patchWaveform(base, game, idx, bytes), game, cmd);
+
+  // A flat-line waveform byte buffer for a given idx.
+  const flat = (idx: number, value: number) => Array.from({ length: STOCK_WAVE_LENGTHS[idx]! }, () => value);
+
+  it("overriding a waveform changes every command that points at that idx", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // HBDV ($01) byte-1 lo nybble = $4 → it points at WAVE# = 4 (GSQ22).
+    // A flat 0x80 wave is audibly very different from GSQ22's stock pulse.
+    const replacement = flat(4, 0x80);
+    const custom = buildCustomRom(base, "defender", [], { waveformOverrides: { 4: replacement } });
+    const heard = dacValues(custom, "defender", 0x01);
+    const truth = truthWaveform(base, "defender", 0x01, 4, replacement);
+    expect(eqSeq(heard, truth)).toBe(true);
+    // And it must differ from the stock command (otherwise the override didn't take).
+    expect(eqSeq(heard, dacValues(base, "defender", 0x01))).toBe(false);
+  });
+
+  it("a build with only a waveform override (no slots) is allowed", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const custom = buildCustomRom(base, "defender", [], { waveformOverrides: { 2: flat(2, 0xC0) } });
+    // Reading the waveform back from the built ROM matches our override.
+    expect(readWaveform(custom, "defender", 2)).toEqual(flat(2, 0xC0));
+  });
+
+  it("mixed VARI + GWAVE + waveform-override in one build: each lands at its target", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const saw = readVariRecord(base, "defender", 0x1D);
+    const hbdv = readGWaveRecord(base, "defender", 0x01);
+    const wfBytes = flat(4, 0x40);
+    const custom = buildCustomRom(
+      base, "defender",
+      [
+        { kind: "vari", code: 0x21, record: saw },   // VARI new slot
+        { kind: "gwave", cmd: 0x05, record: hbdv },  // GWAVE SVTAB override at BBSV
+      ],
+      { waveformOverrides: { 4: wfBytes } },         // and stock GSQ22 redrawn
+    );
+    // VARI still works at $21.
+    const variTruth = dacValues(patchVariRecord(base, "defender", 0x1D, saw), "defender", 0x1D);
+    expect(eqSeq(dacValues(custom, "defender", 0x21), variTruth)).toBe(true);
+    // The waveform override is visible in the built ROM's GWVTAB.
+    expect(readWaveform(custom, "defender", 4)).toEqual(wfBytes);
+  });
+
+  it("rejects an out-of-range idx, wrong-length replacement, or out-of-range byte", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // idx out of 0..6
+    expect(() => buildCustomRom(base, "defender", [], { waveformOverrides: { 7: flat(0, 0) } })).toThrow(/range/i);
+    // wrong length (idx 0 = 8 bytes; passing 3)
+    expect(() => buildCustomRom(base, "defender", [], { waveformOverrides: { 0: [1, 2, 3] } })).toThrow(/bytes/i);
+    // out-of-range byte
+    expect(() => buildCustomRom(base, "defender", [], { waveformOverrides: { 0: [0, 0, 0, 0, 0, 0, 0, 256] } })).toThrow(/range/i);
   });
 });

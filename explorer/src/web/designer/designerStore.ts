@@ -27,7 +27,7 @@
  */
 import type { GameKind } from "../../board/soundboard.ts";
 import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
-import { SVTAB_STRIDE, gwaveCommandsFor } from "../../engine/gwaveEdit.ts";
+import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS } from "../../engine/gwaveEdit.ts";
 import { maxSlots } from "../../engine/customRom.ts";
 
 /**
@@ -68,6 +68,15 @@ export interface CustomProject {
   name: string;
   engineBase: GameKind;
   slots: CustomSlot[];
+  /**
+   * Per-stock-waveform-index byte overrides (Phase 5 step 2).  When present,
+   * each entry's bytes replace the GWVTAB sample bytes at that index — same
+   * length as the stock waveform (lengths don't change in this step, so
+   * GWLD walking and SVTAB pattern-offset references stay valid).
+   * Affects every GWAVE command whose SVTAB row points at the overridden
+   * index — surfaced in the Designer canvas as "Shared by …".
+   */
+  waveformOverrides?: Record<number, number[]>;
   createdAt: number;
   updatedAt: number;
 }
@@ -173,10 +182,17 @@ function coerceProject(raw: unknown): CustomProject {
   const o = raw as Record<string, unknown>;
   if ("edits" in o && !("slots" in o)) return fromLegacyV1(o); // v1 → v3
   const slots = Array.isArray(o.slots) ? o.slots.map(tagV2Slot) : [];
+  const wfRaw = o.waveformOverrides as Record<string, unknown> | undefined;
+  const waveformOverrides = wfRaw && typeof wfRaw === "object"
+    ? (Object.fromEntries(
+        Object.entries(wfRaw).filter(([_, v]) => Array.isArray(v)),
+      ) as Record<number, number[]>)
+    : undefined;
   return {
     name: String(o.name ?? "untitled"),
     engineBase: (ENGINE_BASES.includes(o.engineBase as GameKind) ? o.engineBase : "defender") as GameKind,
     slots,
+    ...(waveformOverrides && Object.keys(waveformOverrides).length > 0 ? { waveformOverrides } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : 0,
     updatedAt: typeof o.updatedAt === "number" ? o.updatedAt : 0,
   };
@@ -246,11 +262,39 @@ export function importJson(text: string): CustomProject {
     gwaveTargets.add(s.targetCmd);
   }
 
+  // Waveform overrides (optional, Phase 5 step 2).  Each key is a stock-wave
+  // idx 0..6, and each value must be exactly STOCK_WAVE_LENGTHS[idx] bytes.
+  let waveformOverrides: Record<number, number[]> | undefined;
+  if (o.waveformOverrides != null) {
+    if (typeof o.waveformOverrides !== "object" || Array.isArray(o.waveformOverrides)) {
+      throw new Error("waveformOverrides must be an object mapping idx → bytes.");
+    }
+    const acc: Record<number, number[]> = {};
+    for (const [k, v] of Object.entries(o.waveformOverrides as Record<string, unknown>)) {
+      const idx = Number(k);
+      if (!Number.isInteger(idx) || idx < 0 || idx > 6) {
+        throw new Error(`waveformOverrides key out of range 0..6: ${k}`);
+      }
+      const expected = STOCK_WAVE_LENGTHS[idx]!;
+      if (!Array.isArray(v) || v.length !== expected) {
+        throw new Error(`waveformOverrides[${idx}] must be exactly ${expected} bytes.`);
+      }
+      for (const b of v) {
+        if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+          throw new Error(`waveformOverrides[${idx}] byte out of range (0..255): ${b}`);
+        }
+      }
+      acc[idx] = v as number[];
+    }
+    if (Object.keys(acc).length > 0) waveformOverrides = acc;
+  }
+
   const now = Date.now();
   return {
     name: o.name,
     engineBase,
     slots,
+    ...(waveformOverrides ? { waveformOverrides } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : now,
     updatedAt: now,
   };

@@ -136,3 +136,34 @@
   margin-top: 1rem; padding: 1rem; background: #11141a;
   border: 1px dashed #353a44; border-radius: 4px; color: #abafb6; font-size: 0.85rem;
 }
+
+/* Waveform editor canvas (Phase 5 step 2) — only shown when a GWAVE slot is
+   selected. Lives below the SVTAB sliders; bytes draw as purple bars from
+   the centre line so the visual idiom matches the ✎ Custom switcher entry. */
+.designer-wfcanvas-host {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #2a2f37;
+  display: flex; flex-direction: column; gap: 0.35rem;
+  max-width: 24rem;
+}
+.designer-wfcanvas-label {
+  font-size: 0.78rem; color: #abafb6; font-variant-numeric: tabular-nums;
+}
+.designer-wfcanvas-label[data-overridden="1"] { color: #b78ff5; }
+.designer-wfcanvas {
+  background: #0c0e12; border: 1px solid #2a2f37; border-radius: 4px;
+  cursor: crosshair; touch-action: none;
+}
+.designer-wfcanvas-shared {
+  font-size: 0.72rem; color: #9098a6;
+}
+.designer-wfcanvas-shared .designer-bar-label { margin-right: 0.25rem; }
+.designer-wfcanvas-reset {
+  align-self: flex-start;
+  background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; font-size: 0.78rem;
+  padding: 0.25rem 0.6rem; cursor: pointer;
+}
+.designer-wfcanvas-reset:hover:not(:disabled) { background: #2a2f37; }
+.designer-wfcanvas-reset:disabled { opacity: 0.4; cursor: not-allowed; }

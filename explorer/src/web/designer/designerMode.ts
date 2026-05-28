@@ -17,7 +17,7 @@ import type { GameKind } from "../../board/soundboard.ts";
 import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
-import { gwaveCommandsFor, readGWaveRecord } from "../../engine/gwaveEdit.ts";
+import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers } from "../../engine/gwaveEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
@@ -157,7 +157,28 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
 
   // ── Editor + audition ──────────────────────────────────────────────────
   const variEditor: VariEditorApi = buildVariEditor(onEditorChange);
-  const gwaveEditor: GWaveEditorApi = buildGWaveEditor(onEditorChange);
+  // GWAVE editor takes three callbacks: slot-record edit (existing onEditorChange),
+  // waveform-byte canvas edit (writes to project.waveformOverrides), and reset
+  // (clears the override for that idx).  Both waveform paths drive auto-replay.
+  const gwaveEditor: GWaveEditorApi = buildGWaveEditor(
+    (rec) => { onEditorChange(rec); refreshWaveformCanvas(); },
+    (idx, bytes) => {
+      project.waveformOverrides ??= {};
+      project.waveformOverrides[idx] = bytes;
+      touch();
+      scheduleAutoReplay();
+      refreshWaveformCanvas();
+    },
+    (idx) => {
+      if (project.waveformOverrides) {
+        delete project.waveformOverrides[idx];
+        if (Object.keys(project.waveformOverrides).length === 0) delete project.waveformOverrides;
+      }
+      touch();
+      scheduleAutoReplay();
+      refreshWaveformCanvas();
+    },
+  );
   const editorHost = el("div", { className: "designer-editor-host" });
   // Both editors live in the DOM concurrently; only the matching one is shown
   // for the selected slot.  This keeps slider state stable across selections
@@ -375,10 +396,30 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (slot) {
       showEditorFor(slot.kind);
       (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
+      if (slot.kind === "gwave") refreshWaveformCanvas();
     }
     refreshItemList();
     setControlsEnabled(baseRom != null);
     if (slot && baseRom) redrawScope();
+  }
+
+  /**
+   * Push the resolved bytes for the GWAVE slot's current WAVE# into the
+   * editor's canvas: the project's override if any, else the base ROM's
+   * stock waveform.  Also feeds the "Shared by" list (which editable
+   * commands point at this idx in the base ROM).  Called whenever the
+   * selected slot changes, WAVE# changes, or a waveform-byte / reset edit
+   * fires.
+   */
+  function refreshWaveformCanvas(): void {
+    if (!baseRom) return;
+    const slot = project.slots[selected];
+    if (!slot || slot.kind !== "gwave") return;
+    const idx = gwaveEditor.currentWaveIdx();
+    const overridden = project.waveformOverrides?.[idx];
+    const bytes = overridden ?? readWaveform(baseRom, project.engineBase, idx);
+    const sharedBy = waveformUsers(baseRom, project.engineBase, idx).map((c) => ({ cmd: c.cmd, name: c.name }));
+    gwaveEditor.setWaveform([...bytes], sharedBy, !!overridden);
   }
 
   function addNew(): void {
@@ -434,7 +475,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Audition (build the custom image, play the selected slot) ─────────────
 
   function buildEdited(): Uint8Array {
-    return buildCustomRom(baseRom!, project.engineBase, toRomSlots(project.slots));
+    return buildCustomRom(baseRom!, project.engineBase, toRomSlots(project.slots), {
+      waveformOverrides: project.waveformOverrides,
+    });
   }
   function renderEdited(): RenderedSound {
     return renderSound(project.engineBase, buildEdited(), slotCmd(project.slots, selected));

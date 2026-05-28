@@ -19,10 +19,17 @@ import type { GameKind } from "../src/board/soundboard.ts";
 import {
   SVTAB_BASE,
   SVTAB_STRIDE,
+  GWVTAB_BASE,
+  STOCK_WAVE_LENGTHS,
+  STOCK_WAVE_SAMPLE_OFFSETS,
+  STOCK_WAVE_NAMES,
   GWAVE_FIELDS,
   gwaveCommandsFor,
   readGWaveRecord,
   patchGWaveRecord,
+  readWaveform,
+  patchWaveform,
+  waveformUsers,
   getField,
   setField,
 } from "../src/engine/gwaveEdit.ts";
@@ -212,5 +219,127 @@ describe("real ROM (golden) — when a dev fallback ROM is present", () => {
     const rom = new Uint8Array(readFileSync(p));
     expect(rom.length).toBe(0x800);
     expect(readGWaveRecord(rom, "defender", 0x01)).toEqual(HBDV);
+  });
+});
+
+// ─── Waveform bytes (GWVTAB) — Phase 5 step 2 ──────────────────────────────
+
+describe("GWVTAB constants", () => {
+  it("the 7 stock waveform lengths sum to GWVTAB span − 7 length bytes", () => {
+    expect(STOCK_WAVE_LENGTHS).toEqual([8, 8, 16, 16, 16, 72, 16]);
+    const sampleTotal = STOCK_WAVE_LENGTHS.reduce((a, b) => a + b, 0);
+    expect(sampleTotal).toBe(152); // 159 - 7 length bytes
+  });
+
+  it("sample-byte offsets stack with the length bytes interleaved", () => {
+    expect(STOCK_WAVE_SAMPLE_OFFSETS).toEqual([1, 10, 19, 36, 53, 70, 143]);
+  });
+
+  it("GWVTAB addresses match the generated label-map JSON", () => {
+    for (const game of ["defender", "stargate", "robotron"] as GameKind[]) {
+      const p = pathResolve(REPO, `public/data/${game}_labelmap.json`);
+      if (!existsSync(p)) continue;
+      const map = JSON.parse(readFileSync(p, "utf8")) as { labels: { label: string; addr: number }[] };
+      const gw = map.labels.find((l) => l.label === "GWVTAB");
+      expect(gw, `${game} labelmap has GWVTAB`).toBeDefined();
+      expect(gw!.addr).toBe(GWVTAB_BASE[game]);
+    }
+  });
+
+  it("stock wave names match the canonical roster (GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7)", () => {
+    expect(STOCK_WAVE_NAMES).toEqual(["GS2", "GSSQ2", "GS1", "GS12", "GSQ22", "GS72", "GS1.7"]);
+  });
+});
+
+describe("readWaveform / patchWaveform (synthetic ROM)", () => {
+  // Build a synthetic ROM with a recognisable byte at GWVTAB[idx]'s sample
+  // region, so we can verify reads + patches without depending on the dev ROM.
+  function synthGw(game: GameKind, idx: number, bytes: number[]): Uint8Array {
+    const size = game === "robotron" ? 0x1000 : 0x800;
+    const rom = new Uint8Array(size).fill(0xAA);
+    const off = (GWVTAB_BASE[game] + STOCK_WAVE_SAMPLE_OFFSETS[idx]!) - (0x10000 - size);
+    rom.set(bytes, off);
+    return rom;
+  }
+
+  it("reads exactly STOCK_WAVE_LENGTHS[idx] bytes at the right GWVTAB offset", () => {
+    const bytes = Array.from({ length: 16 }, (_, i) => i + 1); // 1..16
+    const rom = synthGw("defender", 2, bytes); // idx 2 = GS1, length 16
+    expect(readWaveform(rom, "defender", 2)).toEqual(bytes);
+  });
+
+  it("works for every idx 0..6 across all three games", () => {
+    for (const game of ["defender", "stargate", "robotron"] as GameKind[]) {
+      for (let idx = 0; idx < 7; idx++) {
+        const len = STOCK_WAVE_LENGTHS[idx]!;
+        const bytes = Array.from({ length: len }, (_, i) => i & 0xFF);
+        const rom = synthGw(game, idx, bytes);
+        expect(readWaveform(rom, game, idx), `${game} idx ${idx}`).toEqual(bytes);
+      }
+    }
+  });
+
+  it("patch returns a copy: original ROM is untouched", () => {
+    const rom = synthGw("defender", 0, [1, 2, 3, 4, 5, 6, 7, 8]);
+    const edited = patchWaveform(rom, "defender", 0, [9, 9, 9, 9, 9, 9, 9, 9]);
+    expect(edited).not.toBe(rom);
+    expect(readWaveform(rom, "defender", 0)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);     // original intact
+    expect(readWaveform(edited, "defender", 0)).toEqual([9, 9, 9, 9, 9, 9, 9, 9]);
+  });
+
+  it("patch rewrites only the N sample bytes (length byte + neighbouring waves untouched)", () => {
+    const rom = new Uint8Array(0x800).fill(0xAA);
+    const edited = patchWaveform(rom, "defender", 2, Array.from({ length: 16 }, (_, i) => i + 1));
+    let diff = 0;
+    for (let i = 0; i < rom.length; i++) if (rom[i] !== edited[i]) diff++;
+    expect(diff).toBe(16); // exactly the sample bytes, nothing else
+  });
+
+  it("rejects an idx outside 0..6", () => {
+    const rom = new Uint8Array(0x800).fill(0xAA);
+    expect(() => readWaveform(rom, "defender", -1)).toThrow(/range/i);
+    expect(() => readWaveform(rom, "defender", 7)).toThrow(/range/i);
+    expect(() => patchWaveform(rom, "defender", 7, [])).toThrow(/range/i);
+  });
+
+  it("rejects a replacement with wrong length or out-of-range bytes", () => {
+    const rom = new Uint8Array(0x800).fill(0xAA);
+    expect(() => patchWaveform(rom, "defender", 0, [1, 2, 3])).toThrow(/bytes/i);          // wrong length (3 vs 8)
+    expect(() => patchWaveform(rom, "defender", 0, [0, 0, 0, 0, 0, 0, 0, 256])).toThrow(/range/i);
+    expect(() => patchWaveform(rom, "defender", 0, [0, 0, 0, 0, 0, 0, 0, -1])).toThrow(/range/i);
+  });
+});
+
+describe("waveformUsers — which editable GWAVE commands reference a given waveform", () => {
+  it("on the real Defender ROM, GS72 (idx 5) is the canonical example used by SV3 ($0A) — at minimum that command is a user", () => {
+    const p = pathResolve(REPO, "public/roms/defender_sound.bin");
+    if (!existsSync(p)) return; // dev fallback ROM not present — skip
+    const rom = new Uint8Array(readFileSync(p));
+    // For each waveform idx, every reported user's SVTAB byte 1 low-nybble must equal idx.
+    for (let idx = 0; idx < 7; idx++) {
+      const users = waveformUsers(rom, "defender", idx);
+      for (const u of users) {
+        const rec = readGWaveRecord(rom, "defender", u.cmd);
+        expect(rec[1]! & 0x0F).toBe(idx);
+      }
+    }
+    // No editable command should appear under more than one idx — every command
+    // points at exactly one waveform.
+    const seen = new Set<number>();
+    for (let idx = 0; idx < 7; idx++) {
+      for (const u of waveformUsers(rom, "defender", idx)) {
+        expect(seen.has(u.cmd), `command $${u.cmd.toString(16)} listed under two indices`).toBe(false);
+        seen.add(u.cmd);
+      }
+    }
+  });
+
+  it("returns an empty list when no editable command targets that idx (synthetic ROM)", () => {
+    // A blank ROM has every SVTAB byte 1 = $AA, so WAVE# nybble = $A = 10 — out
+    // of stock range; no command shows up under any of idx 0..6.
+    const rom = new Uint8Array(0x800).fill(0xAA);
+    for (let idx = 0; idx < 7; idx++) {
+      expect(waveformUsers(rom, "defender", idx)).toEqual([]);
+    }
   });
 });

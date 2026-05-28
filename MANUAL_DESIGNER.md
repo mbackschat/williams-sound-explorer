@@ -51,7 +51,11 @@ ROMs are added on the Explore onboarding screen.
    - **GDFINC** / **GDCNT** — signed frequency-delta increment / how many samples between applications. Together they glide pitch.
    - **PATLEN** / **PATOFF** — pitch-pattern length + offset into GFRTAB (which existing pattern you point at).
 
-   In **step 1** of the GWAVE editor (this version), the seven SVTAB bytes are editable but the **waveform bytes** (in GWVTAB) and the **pitch-pattern bytes** (in GFRTAB) are not — that lands in steps 2 and 3 (canvas-based byte editors). For now, swapping `WAVE#` between the 7 stock waves and changing `PATOFF` / `PATLEN` to point at a different existing pattern gives you a wide audible range without those canvases.
+   Below the SVTAB sliders, a **waveform canvas** (Step 2 of the GWAVE editor) shows the resolved bytes of the slot's current `WAVE#` — switch the `WAVE#` slider and the canvas re-renders to the new waveform. Click-and-drag to redraw the bytes (each x-cell = one sample, y = amplitude 0..255). The length doesn't change — Step 2 only rewrites bytes in place, so it doesn't shift any pointers.
+
+   A **"Shared by:"** line under the canvas lists every editable GWAVE command currently pointing at this `WAVE#` (e.g. *"Shared by: $05 BBSV, $0D ED17 — your edits affect every one."*). Each of the 7 stock waveforms (GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7) is shared across whichever ROM commands happen to use it — redrawing it changes every one of those sounds. The **Reset to stock** button reverts your edits for this `WAVE#` (it's greyed out until you actually edit).
+
+   Pitch-pattern bytes (`GFRTAB`) are not yet editable — that's Step 3 of Phase 5.
 4. **Audition** — the transport:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.

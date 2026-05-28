@@ -38,6 +38,50 @@ export const SVTAB_BASE: Record<GameKind, number> = {
 /** Each SVTAB parameter record is 7 bytes. */
 export const SVTAB_STRIDE = 7;
 
+/**
+ * Start address of each game's `GWVTAB` (the table of 7 stock waveforms).
+ * Layout in every game is identical — a sequence of `length-byte, …samples`
+ * records, walked by `GWLD2`/`GWLD3` to look up a waveform by index.  Each
+ * record's sample bytes are exactly `length` long; total table = 159 bytes
+ * (verified against the real Defender ROM + the SVTAB-following-GWVTAB span
+ * in the label-map JSON).
+ */
+export const GWVTAB_BASE: Record<GameKind, number> = {
+  defender: 0xFE4D,
+  stargate: 0xFE4B,
+  robotron: 0xFD32,
+};
+
+/** Display name of each stock waveform (0..6), in GWVTAB order. */
+export const STOCK_WAVE_NAMES: readonly string[] = ["GS2", "GSSQ2", "GS1", "GS12", "GSQ22", "GS72", "GS1.7"];
+
+/** Length (sample bytes) of each stock waveform — fixed; lengths don't change in Step 2. */
+export const STOCK_WAVE_LENGTHS: readonly number[] = [8, 8, 16, 16, 16, 72, 16];
+
+/**
+ * Offset of each waveform's *sample* bytes within GWVTAB (skipping its
+ * leading length byte).  Derived from `STOCK_WAVE_LENGTHS`: each waveform
+ * occupies `length+1` bytes starting at the previous waveform's end.
+ *
+ *   idx | sample-byte offset | sample-byte span
+ *    0  |  1                 |  [1..8]    (8 bytes, GS2)
+ *    1  | 10                 |  [10..17]  (8 bytes, GSSQ2)
+ *    2  | 19                 |  [19..34]  (16 bytes, GS1)
+ *    3  | 36                 |  [36..51]  (16 bytes, GS12)
+ *    4  | 53                 |  [53..68]  (16 bytes, GSQ22)
+ *    5  | 70                 |  [70..141] (72 bytes, GS72)
+ *    6  | 143                |  [143..158] (16 bytes, GS1.7)
+ */
+export const STOCK_WAVE_SAMPLE_OFFSETS: readonly number[] = (() => {
+  const out: number[] = [];
+  let p = 0;
+  for (const len of STOCK_WAVE_LENGTHS) {
+    out.push(p + 1); // skip the length byte
+    p += 1 + len;
+  }
+  return out;
+})();
+
 export interface GWaveField {
   /** Stable identifier (lowercase). */
   key: string;
@@ -186,6 +230,78 @@ export function setField(record: readonly number[], field: GWaveField, value: nu
     out[field.byteOffset] = ((cur & 0xF0) | (v & 0x0F)) & 0xFF;
   } else {
     out[field.byteOffset] = v & 0xFF;
+  }
+  return out;
+}
+
+// ─── Waveform bytes (GWVTAB) — Phase 5 step 2 ──────────────────────────────
+
+/** Throw on invalid waveform index. */
+function assertWaveIdx(idx: number): void {
+  if (!Number.isInteger(idx) || idx < 0 || idx > 6) {
+    throw new Error(`waveform idx out of range 0..6: ${idx}`);
+  }
+}
+
+/** Byte offset into the ROM array of waveform `idx`'s first sample byte. */
+function waveformOffset(rom: Uint8Array, game: GameKind, idx: number): number {
+  assertWaveIdx(idx);
+  const off = (GWVTAB_BASE[game] + STOCK_WAVE_SAMPLE_OFFSETS[idx]!) - romBase(rom);
+  const len = STOCK_WAVE_LENGTHS[idx]!;
+  if (off < 0 || off + len > rom.length) {
+    throw new Error(`Waveform ${idx} (${STOCK_WAVE_NAMES[idx]}) falls outside the ${game} ROM`);
+  }
+  return off;
+}
+
+/** Read one of the 7 stock waveforms' sample bytes from a raw ROM image. */
+export function readWaveform(rom: Uint8Array, game: GameKind, idx: number): number[] {
+  const off = waveformOffset(rom, game, idx);
+  return Array.from(rom.subarray(off, off + STOCK_WAVE_LENGTHS[idx]!));
+}
+
+/**
+ * Return a copy of `rom` with waveform `idx`'s sample bytes replaced.  The
+ * replacement must be exactly the stock waveform's length — Step 2 never
+ * changes table lengths, so `length+1`-bytes-per-record walking in GWLD2/3
+ * stays valid and SVTAB byte-6 pattern offsets aren't touched.
+ */
+export function patchWaveform(
+  rom: Uint8Array,
+  game: GameKind,
+  idx: number,
+  bytes: readonly number[],
+): Uint8Array {
+  assertWaveIdx(idx);
+  const expected = STOCK_WAVE_LENGTHS[idx]!;
+  if (bytes.length !== expected) {
+    throw new Error(`Waveform ${idx} (${STOCK_WAVE_NAMES[idx]}) must be exactly ${expected} bytes, got ${bytes.length}`);
+  }
+  for (const b of bytes) {
+    if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+      throw new Error(`Waveform byte out of range (0..255): ${b}`);
+    }
+  }
+  const off = waveformOffset(rom, game, idx);
+  const out = rom.slice();
+  out.set(bytes, off);
+  return out;
+}
+
+/**
+ * Which editable GWAVE commands ($01..$0D) on `game` currently reference
+ * waveform `idx` in their SVTAB record's WAVE# nybble.  Drives the
+ * "Shared by" warning in the Designer canvas: editing a stock waveform
+ * affects *every* command pointing at it, not just the slot the user is
+ * currently editing.
+ */
+export function waveformUsers(rom: Uint8Array, game: GameKind, idx: number): GWaveCommand[] {
+  assertWaveIdx(idx);
+  const out: GWaveCommand[] = [];
+  for (const c of COMMANDS[game]) {
+    const rec = readGWaveRecord(rom, game, c.cmd);
+    const wave = rec[1]! & 0x0F; // low nybble of byte 1
+    if (wave === idx) out.push({ ...c });
   }
   return out;
 }
