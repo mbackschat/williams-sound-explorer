@@ -17,7 +17,8 @@
 | 4 | **Open in Explore** (live audition via Explore's worklet + dynamic Custom switcher entry) | ✅ shipped & smoke-tested |
 | 5 | **GWAVE editor** — full editing of all bytes the GWAVE kernel reads (SVTAB record + GWVTAB waveforms + GFRTAB pitch patterns), in 3 steps | ✅ all 3 steps shipped |
 | 5b | **Adding new waveforms** (extending GWVTAB via `LDX #GWVTAB` repoint + relocation into the free RADIO/ORGAN region) | ✅ shipped 2026-05-28 |
-| 5b.polish | **× Remove** waveform + **ROM-space indicator** (closes the add/edit/remove triad; surfaces the layout budget *before* a build throws) | ✅ shipped 2026-05-28 |
+| 5b.polish | **× Remove** waveform + **ROM-space indicator** + **↻ Reset record** (closes the add/edit/remove triad; surfaces the layout budget *before* a build throws) | ✅ shipped 2026-05-28 |
+| 6 | **"Fork-the-game" workflow** — pre-populated item list from the engine base + Download-as-`.bin` (closes the loop: edit a game's sounds, load the result in MAME / a real cabinet) | 📋 planned |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
@@ -124,11 +125,73 @@ Delivers full editing of every byte the GWAVE kernel reads: the SVTAB parameter 
 
 **Why these 3 steps can ship without pointer rebase:** none of them changes table *lengths* — no new waveforms, no new patterns, no length changes for existing ones — so SVTAB byte-6 pattern offsets and the GWVTAB walk positions stay valid. The custom ROM only ever rewrites bytes in place at the addresses the base ROM was already using.
 
-**Deferred to v-future (recorded here so the trade-off is visible):**
+---
+
+## Phase 6 — "Fork-the-game" workflow (planned)
+
+The motivating observation: the Designer's stated intention is **"make new sounds for the games"**, but its on-boarding asks you to *assemble* a custom bank from an empty list — which reads as "build something new". Most users want to *fork* the game's existing sound bank, modify a few sounds, and take the result out. Two changes deliver that mental model end-to-end without touching the storage architecture (the sparse JSON recipe stays the saved artefact — zero copyrighted ROM bytes persisted, unchanged from Phase 1's lock).
+
+### 6.1 Pre-populated item list
+
+**Today (empty start):** *New Project → Defender* gives you an empty item list and three call-to-actions ("+ New VARI" / "Copy VARI:" / "Override GWAVE:"). The first slot needs a deliberate action; the user invents what they want to build.
+
+**Phase 6.1 (populated start):** *New Project → Defender* pre-populates the item list with **every editable command from the engine base**, each tagged **"stock"** until you edit it. For Defender that's:
+- GWAVE overrides for `$01 HBDV` … `$0D ED17` (13 items)
+- VARI starters for `$1D SAW` / `$1E FOSHIT` / `$1F QUASAR` (3 items)
+
+Stargate: same shape, same 16 items. Robotron: all 14 GWAVE override targets + the existing VARI `$3F MOSQTO` (but VARI slots stay locked there — its non-linear dispatcher is still v-future). Total ~15–16 pre-filled items per game.
+
+The user clicks a stock row to edit it (sliders populate from the base ROM's bytes; nothing changes on disk yet). A row marked **stock** doesn't contribute to the saved recipe (no delta from base); editing it flips it to **edited** and from that point it's persisted. **+ New VARI** and the override / copy controls stay available for users who *do* want to add new sounds beyond the stock list. New visual treatment for stock-vs-edited rows: a dot indicator + colour, mirroring Explore's command-chip greying.
+
+**Schema impact: none.** `CustomProject.slots` already supports the right shapes (VARI and GWAVE). Whether a slot is "edited" is `!recordsEqual(slot.record, slot.start)` — already used by the **↻ Reset record** button. Persisted projects stay sparse: serialisation filters out unchanged slots so the on-disk JSON keeps its "diff from base" shape (a freshly-populated project that's never been edited → empty `slots: []`, identical to today's empty project).
+
+**buildCustomRom impact: none.** Unedited stock slots are a no-op (their record equals the base ROM's bytes; `patchGWaveRecord` / VVECT-extend overwrite with what's already there). The build doesn't need to learn about "stock vs edited" — that's purely a UX distinction.
+
+**UI deliverables:**
+- Pre-populate `project.slots` on *New Project*, sourced from `gwaveCommandsFor(game) + variCommandsFor(game)`.
+- Per-slot **stock / edited** state derived live from `recordsEqual(record, start)`; visible in the row (dot + label colour) and in the item count (`(VARI 1 edited / 16 total)`).
+- On save / export: `slots: project.slots.filter((s) => !recordsEqual(s.record, s.start))` — the wire shape stays sparse.
+
+### 6.2 Download custom ROM as `.bin`
+
+The Designer already builds a complete `Uint8Array` ROM image internally (`buildEdited()` in `designerMode.ts` — feeds Explore's worklet on **Open in Explore**). Phase 6.2 exposes it as a download.
+
+**UI deliverables:**
+- A `↓ Custom ROM (.bin)` button in the header, next to the existing `↓ Export JSON` / `↑ Import JSON` pair.
+- Click: `buildEdited()` → `Blob` → `<a download>.click()` (same pattern as the JSON export, ~10 LOC).
+- Filename: `{projectName}_{engineBase}.bin` (e.g. `MyDefender_defender.bin`).
+- Disclaimer alongside the button (tooltip + a small inline note): *"This file contains the original Williams ROM bytes with your edits applied. For your own use — don't redistribute."*
+
+**The .bin loads in MAME** (and any other 6802-cabinet emulator) by replacing the `defender_sound.bin` / `stargate_sound.bin` / `robotron_sound.bin` in the relevant MAME ROM set. That's the **loop close**: edit in WSED → play in MAME → real cabinet (if you build the EPROM). The JSON recipe stays the *shareable* artefact (zero ROM bytes, safe to publish); the `.bin` stays the *runnable* one.
+
+### Why the storage model stays sparse
+
+The on-disk artefact stays **`{ engineBase, slots: [edited deltas] }`** even after Phase 6 — both for the locked legal/copyright reason (zero ROM bytes persisted, set in Phase 1) and for the practical one (a delta is portable across base-ROM versions; a snapshot wouldn't be). The "fork-the-game" feeling is purely a UX rendering of the same underlying data: the populated list shows you the *base + your deltas*, every row is editable, but on disk we only store the deltas.
+
+This is the architectural inversion of how Phase 6 would have been done with the wrong design: "store the whole bank, diff at build time". We do it the other way ("store the diff, render the whole bank at view time"), which is cheaper, smaller, and copyright-safe.
+
+### Scope estimate
+
+- 6.1 (pre-populated item list + stock/edited UX): ~3 hours including tests + smoke + doc sweep.
+- 6.2 (.bin download + disclaimer): ~30 min.
+- Combined commit, single doc sweep pass: ~3.5 hours.
+
+### Out of scope (still)
+
+- **Storing ROM bytes in the recipe** — locked-out in Phase 1; #3 of the "fork-the-game" interpretations (the user surfaced it explicitly to ask if it was the intent — it isn't, and it shouldn't be).
+- **Editing non-data-driven engines (SCREAM / ORGAN / RADIO / NOISE / FNOISE / HYPER)** — bespoke code per sound, not data-authorable. Stock entries in the populated list for those engines would only be **viewable** (their command code + name shown for context), not editable. Decision pending — easier to *omit* them from the populated list than to render them as locked rows; revisit if users ask.
+
+---
+
+## Deferred to v-future (recorded here so the trade-off is visible):
 
 - ~~**Adding new waveforms (extending GWVTAB).**~~ ✅ **Shipped 2026-05-28** — see Phase 5b row above. The exact mechanic the feasibility analysis predicted: `LDX #GWVTAB` operand patched at the single CE-opcode site per game (Defender `$FBA8`, Stargate `$FB7E`, Robotron `$FA03`), new GWVTAB byte-built in `engine/gwaveEdit.ts` (`buildExtendedGwvtab`), laid out right after the VVECT extent in the free RADIO/ORGAN region. `CustomProject.addedWaveforms?: number[][]` (idx 7..15), capped at 9 entries. Layout overflow throws "Won't fit" with a byte-overrun count.
   - **Polish, 2026-05-28:** **× Remove** waveform (drops the entry, re-clamps every GWAVE slot's WAVE# via `reclampWaveformIdxAfterRemoval` — at→stock `$06`, above→`w-1`, below→untouched) + **ROM-space indicator** (`· ROM X/Y B (N free)` next to the item count; yellow under 20 B free, red when over; backed by new headless `computeBudget` in `engine/customRom.ts` so the indicator and the "Won't fit" guard share one source of truth) + **↻ Reset record** in the editor label row (per-slot `record ← start` revert; works for both VARI + GWAVE; disabled until edited). +12 tests, 532 total. Capture entries `designer-gwave-remove-waveform` + `designer-vari-reset-record`.
-- **Adding new GWAVE command codes.** **Feasible but higher risk, moderate rewrite.** Unlike VARI's 5→6-bit mask widen, GWAVE dispatch in Defender/Stargate is a hardcoded *branch tree* — unlocking a new code means *patching code, not data*: injecting a new branch test + a `JSR` to `GWLD` with a new SVTAB row into the dispatcher. Needs its own verified dispatcher spike per game (Defender + Stargate share dispatch; Robotron uses `JMPTBL` and is actually easier there — just append a JMPTBL entry). Schema impact: discriminated `{ kind: "gwave"; targetCmd?: number; addedCode?: number; record: number[] }` and a new patch type in `engine/customRom.ts`. No reshape of the existing solution.
+- ~~**Adding new GWAVE command codes.**~~ **Dropped 2026-05-28 after a dispatcher spike re-evaluation.** The plan's earlier framing ("Robotron uses JMPTBL and is actually easier — just append a JMPTBL entry") conflated two things: Robotron's JMPTBL band is the *middle* band (LFSR/SCREAM/etc), not GWAVE. Robotron's GWAVE dispatch is *already* wired for the upper half (commands `$20..$2B` → SVTAB rows `$0F..$1A`, all populated), so there are **no free command codes on Robotron** — every code in `$01..$3F` is a live sound, so "adding" one is just override-in-place (which we already do).
+
+  On Defender / Stargate the path is real but substantial: the dispatcher's GWAVE branch is `CMPA #$C; BHI IRQ10` (dense, no spare BLS slot), so adding new GWAVE-bound codes requires (a) a JMP-to-free-ROM **trampoline** (~20 bytes, replacing 3 bytes at `IRQ20`'s entry to redirect codes `$20..$3F` through a sub-band check before VARI), (b) **SVTAB relocation** into the same free RADIO/ORGAN region (SVTAB sits at `$FEEC` followed by GWAVE pattern data; can't extend in place), and (c) a new `LDX #SVTAB` repoint per game (mirror of the `LDX #GWVTAB` patch from Phase 5b).
+
+  Cost: ~6–8 hours; the trampoline + relocated SVTAB compete for the same 215-byte Defender free region that VVECT extension + relocated GWVTAB already share — adding new codes meaningfully tightens the budget. Value: niche (the override-in-place mechanic already lets users author a new sound that *plays on an existing trigger*; the "want a new code too" need is narrow). The Phase 6 "fork-the-game" workflow delivers most of the practical "make new sounds for the games" value without this complexity. **Not on the roadmap.**
 
 **Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `MANUAL_DESIGNER.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
 

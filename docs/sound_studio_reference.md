@@ -402,59 +402,63 @@ The "timbre" is a **bit-popcount waveform generator**: each tick, you AND the ru
 
 ## What's worth copying
 
-1. **`DacSampler`** — fractional zero-order-hold resampler that lets each routine declare per-instruction cycle costs via `wait(N)`. The single most important piece of plumbing.
-2. **Handler class shape**:
-   ```
-   class Handler {
-     setup(params)
-     synthOne(outArray) → returns -1 when finished
-     synthAll(outArray) → bulk render
-     runtimeStats() → { phase, lfsr, stage, … }
-   }
-   ```
-   Pull-driven, polyphony-friendly, has a built-in introspection surface.
-3. **Original-ROM presets as plain JS arrays**, exposed as numeric inputs. UX clarity: "this is what the ROM was actually telling the sound CPU to do".
-4. **`<a href="defender.asm">`** + **per-instruction asm cite comments** in the JS. Tiny but powerful for learners.
-5. **Tooltip-text style** — concise, in-place help.
-6. **Polyphony / DC-block / limiter** toggles as optional mixer controls.
+A short list of the Studio's load-bearing ideas — battle-tested across years of public use, worth lifting (or reaffirming when we've already mirrored them).
+
+| Idea | What it is | Why it matters | WSED status |
+|---|---|---|---|
+| **`DacSampler`** | A fractional zero-order-hold resampler. Each routine declares its own per-instruction cycle costs via `wait(N)` and pushes a new DAC byte via `sample(v)`; the resampler stretches the irregular ROM tick stream to a fixed PCM rate. | Without it every routine would need its own resampler, or you'd quantise to one fixed tick rate and lose timing fidelity. The Studio's single most important piece of plumbing. | Replaced by the cycle-accurate emulator (WSED runs the 6802 directly, so DAC writes happen at their *real* cycles — no per-routine hand-port of `wait` calls). |
+| **Handler class shape** | Per-sound class with four methods: `setup(params)` initialises state, `synthOne(out)` advances one DAC write (`-1` when done), `synthAll(out)` is a bulk-render convenience, `runtimeStats()` returns live introspection (`phase`, `lfsr`, `stage`, …). | Pull-driven (the audio thread asks for the next sample, not pushed by a timer), polyphony-friendly, and `runtimeStats` gives the UI a free instrumentation surface — every visualisation hangs off it. | Conceptually mirrored: WSED's engine snapshots (`engineState.ts` per-engine shape) are the `runtimeStats` equivalent, but driven by emulator state rather than per-handler bookkeeping. |
+| **Presets as plain JS arrays** | Each preset's parameters live as a literal `[…]` next to the routine, exposed unchanged as numeric inputs. | UX clarity: *"this is what the ROM was actually telling the sound CPU to do."* No abstraction layer between the user and the ROM bytes. | Mirrored in the Designer's slider readouts (`$XX` next to every slider; copy-from-game seeds slot bytes from the real ROM record). |
+| **Asm cite comments + linked source** | Every JS method comments the `defender.asm` line range it ports, and the UI links to a rendered HTML version of the disassembly. | Lets a learner pivot from the JS approximation to the original 6800 code in one click — closes the "where did this come from" gap. | Mirrored in spirit: WSED renders the actual ROM disassembly in the Code panel (Pattern 4) and steps through it line-by-line at real cycles. |
+| **Tooltip-text style** | Per-parameter tooltips that explain the byte in plain language ("attack increment per tick") rather than the symbol name. | In-place help means no manual hunt for what a control does — discovery-by-hover. | Mirrored everywhere — `VARI_FIELDS.help` / `GWAVE_FIELDS.help` carry the tooltips, and the Explore force-sliders use the same pattern. |
+| **Optional mixer controls** | Polyphony / DC-block / limiter toggles surfaced as opt-in checkboxes rather than always-on processing. | Lets a learner *hear* what each stage does by toggling it off. Pedagogy by ablation. | Partial: WSED's filter toggle (Pattern 7) is the same idea for the analog low-pass; we don't currently expose DC-block / limiter as toggles. |
 
 ## What's missing (where your explorer wins)
 
-1. **DAC byte stream view** — the actual 0..255 bytes being written. The Studio shows only the resampled, normalised, DC-blocked float output.
-2. **Cycle / wait-tick timing trace** (swimlane) correlating sample-emit events to the original `defender.asm` line.
-3. **Phase accumulator / state trace** per handler — `aliasedSweep.risePhase` over time, `humanoidFall`'s four `(incrementer, phase)` pairs, Handler A's current position in the period-offset curve.
-4. **LFSR state graphic** — 16-bit register drawn as bits, with the tap network visualised. The Studio prints `g_lfsr.toString(2)` but doesn't draw anything.
-5. **Envelope/decay overlay** — original ROM waveform plotted alongside the in-place-decayed RAM working copy. Watch the envelope physically subtract.
-6. **Animated period-curve playhead** — Handler A highlights the static selected slice but never animates the playhead through it.
-7. **Spectrogram synced to algorithmic stages** — annotate the FFT waterfall with `stageId` transitions ("now in stage_slideDacToRandom").
-8. **Command-code dispatch UI** — type `$13` → routes to `playerShoot`, shows the dispatch table from `defender.asm` `$FCE7..$FD0E`.
-9. **Comparison view** — diff two parameter sets' waveforms / spectra side by side.
-10. **MAME-comparable golden output** — embed reference recordings, support per-sample diff.
-11. **Preset diff** — show what's been changed vs. the loaded preset.
-12. **No Robotron** — Studio is Defender-only.
+Capabilities the Studio lacks and WSED delivers. Each row is the kind of question a learner naturally reaches for once they outgrow "just play it" — and each answers *why* the explorer surface exists.
+
+| Gap in the Studio | What it would let a learner do | How WSED fills it |
+|---|---|---|
+| **No DAC byte stream view.** The Studio shows the *resampled, normalised, DC-blocked float* output — what the speaker hears, not what the CPU wrote. | See the actual `0..255` bytes the 6802 stored to the DAC PIA, in order, with the real cycle gaps between writes. | The **DAC byte tape** (Pattern 1 / Eye-Swimlane). One cell per write, hex value above, cycle below. |
+| **No timing trace.** The Studio's `wait(N)` calls are hand-counted at port time and never visible during playback. | Correlate each emitted DAC sample with the ROM instruction that wrote it. | The **Stage swimlane** (Pattern 8) lays the routine's run on a real-time axis, every IRQ tick labelled with the disassembled instruction range. |
+| **No engine-state trace.** Live `phase`, `lfsr`, `stage` exist in `runtimeStats` but nothing draws them over time. | Watch a 16-bit LFSR's bit pattern rotate per tick; watch QUASAR's period sweep cross its `HIEN` threshold. | The per-engine view panes (`engine/state-*.ts`): LFSR drawn as 16 bit cells with the tap network shown; VARI's `LOPER`/`HIPER`/`SWPCT` plotted over the run. |
+| **No envelope/decay overlay.** GWAVE pre-decays the in-RAM waveform; the Studio doesn't show original-vs-current. | Watch the subtractive envelope physically remove material per echo. | Built into the **GWAVE waveform-canvas** + envelope visualization — original (light grey) behind the decayed RAM copy. |
+| **No animated period-curve playhead.** The Studio highlights the *selected* slice of Handler A's period table; it never animates the playhead sweeping through it during playback. | Watch a sweep enter its modulation region in real time. | The Designer's pitch-pattern canvas + scope playhead sync (Pattern 11) animate playback position synchronously. |
+| **No spectrogram-stage annotations.** The FFT waterfall is unlabelled. | Read off when an additive scream transitioned from `stage_slideDacToRandom` to its tail. | WSED's spectrogram is tied to the disassembled-stage label-map so transitions are annotated in-band. |
+| **No command-code dispatch UI.** The Studio routes by handler ID, not by the ROM's command code. | Type `$13`, see the dispatch table from `defender.asm $FCE7..$FD0E`, watch the IRQ route through the band-compare. | The **Command-code panel** (Pattern 4) shows the dispatcher band-compares + jump-table targets and highlights the live branch. |
+| **No A/B comparison.** No way to diff two parameter sets' waveforms or spectra side by side. | Hear *and see* a 1-byte change. | The **Diff overlay** in the Designer transport + the dedicated **A/B Diff** visualiser. |
+| **No MAME-comparable golden output.** No regression gate; correctness is by ear. | Catch a port regression sample-for-sample. | The golden DAC fixtures (`explorer/tests/golden/`) gate every commit; the bulk WAV corpus is browsable. |
+| **No preset-diff readout.** No "this is what's changed since you loaded the preset". | See your edits at a glance without scrolling through every slider. | The Designer's **Source: Edited\|Start** A/B + the **↻ Reset record** affordance both surface "what's changed" — by ear and by revert. |
+| **Defender only.** | Compare Defender SAW to Robotron MOSQTO directly. | All three games — Defender, Stargate, Robotron — share one explorer surface with a single switcher. |
 
 ## Things to do differently
 
-| Studio choice | Better choice for explorer |
-|---|---|
-| `ScriptProcessorNode` (main-thread, deprecated) | `AudioWorklet` — off-main-thread, jitter-free |
-| `g_sampleRate` inherited from AudioContext default | Pin explicitly to 48000 (configurable) |
-| Real-time pull-driven generation | `OfflineAudioContext` render path for full-buffer visualisation + playback |
-| `<input type="number">` for every parameter | Slider + numeric input pair, "knob" feel |
-| Whole `dan/*` ad-hoc GUI framework (~16k lines) | Modern stack (Svelte/Solid + a small canvas helper) |
-| Parameter changes apply on next Play | Hot-swap when feasible (most sounds < 1 s anyway) |
-| Hand-port every routine to JS | Cycle-accurate 6800 emulator → both ROMs work unchanged |
+Choices the Studio made that age has improved on, or that we'd skip for an explorer rather than a tweaker. The right column is what WSED actually does (mostly) — the table is the receipt, not the wish list.
+
+| Studio choice | Better choice for explorer | What WSED actually does |
+|---|---|---|
+| `ScriptProcessorNode` (main-thread, deprecated) | `AudioWorklet` — off-main-thread, jitter-free | AudioWorklet, dedicated audio thread (`web/worklet.ts`) |
+| `g_sampleRate` inherited from `AudioContext` default | Pin explicitly to 48000 (configurable) | Pinned to the AudioWorkletNode's negotiated rate (typically 48000), uniform across all sound rendering |
+| Real-time pull generation only | `OfflineAudioContext` render path for full-buffer visualisation + playback | Offline render path (`runner.ts` → `renderDacEvents` → `applyLpf` → `wavExport.ts`) for WAV export *and* the Designer's offline audition |
+| `<input type="number">` for every parameter | Slider + numeric readout, "knob" feel | `.param-row` (slider + hex readout + tooltip) is the only parameter control in the app |
+| Whole `dan/*` ad-hoc GUI framework (~16k lines) | Modern stack (Svelte/Solid + a small canvas helper) | Plain TS + canvas only (no reactive framework — Phase 1 locked decision) |
+| Parameter changes apply on next Play | Hot-swap when feasible | Live-edit replays the offline render (~130 ms debounce) on every slider tweak — most sounds re-render in under a second |
+| Hand-port every routine to JS | Cycle-accurate 6800 emulator → both ROMs work unchanged | Real 6802 emulator in `cpu/` runs the unmodified ROM bytes; any valid ROM image works |
 
 ## Concrete code patterns to reuse
 
-### The DacSampler (paraphrased)
+Three short patterns from the Studio that are general-purpose enough to lift verbatim into any 8-bit-DAC reverse-engineering project. Each is annotated with *what it solves* and *why this exact shape* — in case you adapt them for a different ROM.
+
+### The DacSampler — irregular-tick to fixed-rate PCM
+
+**What it solves.** The 6802 writes the DAC at whatever cycle the routine reached its `STAA DAC` — irregular, often non-uniform. Audio output needs a fixed sample rate (Web Audio's `AudioContext` rate is typically 44.1 / 48 kHz). The naive fix — quantise to the *highest* observed tick rate — wastes memory and still doesn't line up with the output. The Studio's `DacSampler` does it lazily: each routine declares its cycle cost via `wait(N)`, then writes a value via `sample(v)`. The sampler accumulates fractional ticks and emits exactly the right number of duplicated output samples per write (zero-order hold).
 
 ```javascript
 class DacSampler {
   constructor(inputTickRate, outputSampleRate) {
     this.ratio = outputSampleRate / inputTickRate;
     this.unrenderedTicks = 0;
-    this.value = 0;  // current DAC byte, [0,1]
+    this.value = 0;  // current DAC byte, normalised to [0, 1]
   }
   wait(n) { this.unrenderedTicks += n; }
   sample(newValue, outArray) {
@@ -466,19 +470,27 @@ class DacSampler {
 }
 ```
 
-### The Galois LFSR (paraphrased)
+**Why this shape.** `unrenderedTicks` is a `Number` not an integer, so the *fractional remainder* survives across `sample()` calls and never accumulates rounding error. The pattern is "every `wait(n)` is a promise, every `sample(v)` is its redemption" — separating the two means a routine can `wait` over a tight inner loop without flooding the output buffer until it's ready to emit. WSED replaces this with the real 6802 emulator's cycle counter (each `STAA DAC` carries the exact cycle it happened on), but for a *handler-port* project the `DacSampler` is the right shape.
+
+### The Galois LFSR — Williams' noise generator
+
+**What it solves.** Defender's noise engines (LFSR / FNOISE / NOISE) are driven by a 16-bit linear-feedback shift register whose tap network produces a 65 535-cycle pseudo-random sequence. The Studio runs the same algorithm in JS so the pseudo-random sequence is byte-identical to the ROM's — which is what makes Lightning *sound* like Lightning.
 
 ```javascript
 let g_lfsr = 0x3c00;  // 16-bit, seeded from ROM
 function clockLFSR() {
   const low = g_lfsr & 0xFF;
-  const bit = ((low >> 3) ^ low) & 1;  // tap at bits 0 & 3 of low byte
+  const bit = ((low >> 3) ^ low) & 1;  // tap at bits 0 & 3 of the low byte
   g_lfsr = (g_lfsr >> 1) | (bit << 15);
   return bit;
 }
 ```
 
-### The subtractive envelope (paraphrased)
+**Why this shape.** *Galois*, not Fibonacci — the XOR happens during the shift, not after, which lets the CPU do it in two 6802 instructions (an `EOR` and a `ROR`). The tap positions (`bits 0 & 3` of the low byte) are the ROM's exact taps; changing them would produce a different — and audibly wrong — noise stream. WSED runs the same LFSR through the 6802 emulator's actual instructions, so the bit sequence is automatically correct.
+
+### The subtractive envelope — GWAVE's "math-error" decay
+
+**What it solves.** GWAVE plays the same waveform repeatedly with each repeat *quieter than the last*. Williams' programmers didn't have multiply / divide hardware, so the decay isn't a multiplicative amplitude scale — it's a subtraction: `working_sample -= (original_sample >> 4) * PRDECA`. The 8-bit wrap that happens when the subtraction goes negative is *not* a bug — it's the source of GWAVE's signature timbre shift in late echoes.
 
 ```javascript
 function applyDecay(original, working, decay) {
@@ -488,7 +500,7 @@ function applyDecay(original, working, decay) {
 }
 ```
 
-The `& 0xFF` wrap is the source of the "math-error" timbre shift in late echoes — preserve it.
+**Why this shape.** The `& 0xFF` is load-bearing — without it, the working buffer would *clip* (go silent below zero) instead of *wrapping* (jump to 255), and the late-echo timbre would be wrong. Preserve the wrap when porting. WSED inherits this for free (the 6802 emulator's `SUB`/`SBC` instructions wrap natively), but a hand-port has to remember.
 
 ## Cross-references
 
