@@ -39,6 +39,28 @@ export const SVTAB_BASE: Record<GameKind, number> = {
 export const SVTAB_STRIDE = 7;
 
 /**
+ * Start address of each game's `GFRTAB` (the freely-laid-out byte arrays the
+ * GWAVE kernel reads as **pitch contours**).  Each SVTAB record's byte 6 is
+ * the low byte of an offset *into* this table, and byte 5 is the number of
+ * bytes to read — so patterns are not "indexed" like waveforms; they're
+ * located by raw offset+length and may overlap.  See `readPattern`.
+ *
+ * The table extends from `GFRTAB_BASE[game]` to just before the 6802 reset
+ * vector at `$FFFE`, so the largest usable `(offset, length)` end is
+ * `0xFFFE - GFRTAB_BASE[game]`.
+ */
+export const GFRTAB_BASE: Record<GameKind, number> = {
+  defender: 0xFF55,
+  stargate: 0xFF53,
+  robotron: 0xFF02,
+};
+
+/** Last byte index inside `GFRTAB` that's safe to read/write (before the 6802 vectors at $FFFE). */
+export function gfrtabMaxEnd(game: GameKind): number {
+  return 0xFFFE - GFRTAB_BASE[game];
+}
+
+/**
  * Start address of each game's `GWVTAB` (the table of 7 stock waveforms).
  * Layout in every game is identical — a sequence of `length-byte, …samples`
  * records, walked by `GWLD2`/`GWLD3` to look up a waveform by index.  Each
@@ -302,6 +324,73 @@ export function waveformUsers(rom: Uint8Array, game: GameKind, idx: number): GWa
     const rec = readGWaveRecord(rom, game, c.cmd);
     const wave = rec[1]! & 0x0F; // low nybble of byte 1
     if (wave === idx) out.push({ ...c });
+  }
+  return out;
+}
+
+// ─── Pitch-pattern bytes (GFRTAB) — Phase 5 step 3 ────────────────────────
+
+/** Validate a pattern (offset, length) range; throw if out of GFRTAB. */
+function patternRange(rom: Uint8Array, game: GameKind, offset: number, length: number): number {
+  if (!Number.isInteger(offset) || offset < 0 || offset > 0xFF) {
+    throw new Error(`pattern offset out of range 0..255: ${offset}`);
+  }
+  if (!Number.isInteger(length) || length < 1 || length > 0xFF) {
+    throw new Error(`pattern length out of range 1..255: ${length}`);
+  }
+  if (offset + length > gfrtabMaxEnd(game)) {
+    throw new Error(`pattern at offset ${offset} length ${length} runs past the ${game} GFRTAB end (max end ${gfrtabMaxEnd(game)})`);
+  }
+  const off = (GFRTAB_BASE[game] + offset) - romBase(rom);
+  if (off < 0 || off + length > rom.length) {
+    throw new Error(`pattern range falls outside the ${game} ROM`);
+  }
+  return off;
+}
+
+/** Read `length` pitch-modulation bytes starting at GFRTAB+offset. */
+export function readPattern(rom: Uint8Array, game: GameKind, offset: number, length: number): number[] {
+  const off = patternRange(rom, game, offset, length);
+  return Array.from(rom.subarray(off, off + length));
+}
+
+/**
+ * Return a copy of `rom` with `bytes.length` pitch-modulation bytes written
+ * at GFRTAB+offset.  Length is whatever the caller passes (the kernel reads
+ * `PATLEN` bytes per SVTAB record, so write whatever the user has drawn);
+ * Step 3 does not change any SVTAB byte-5/6 fields, so existing pointers
+ * into GFRTAB stay valid.
+ */
+export function patchPattern(rom: Uint8Array, game: GameKind, offset: number, bytes: readonly number[]): Uint8Array {
+  const off = patternRange(rom, game, offset, bytes.length);
+  for (const b of bytes) {
+    if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+      throw new Error(`pattern byte out of range (0..255): ${b}`);
+    }
+  }
+  const out = rom.slice();
+  out.set(bytes, off);
+  return out;
+}
+
+/**
+ * Which editable GWAVE commands ($01..$0D) on `game` have a pitch-pattern
+ * range that overlaps `[offset, offset+length-1]`.  Drives the "Shared by"
+ * warning in the Designer pitch-pattern canvas — patterns address bytes by
+ * raw offset+length and may overlap, so editing one byte can affect more
+ * than one command.  Commands with `PATLEN = 0` are skipped (no pattern).
+ */
+export function patternUsers(rom: Uint8Array, game: GameKind, offset: number, length: number): GWaveCommand[] {
+  if (!Number.isInteger(offset) || offset < 0 || offset > 0xFF) return [];
+  if (!Number.isInteger(length) || length < 1) return [];
+  const end = offset + length;
+  const out: GWaveCommand[] = [];
+  for (const c of COMMANDS[game]) {
+    const rec = readGWaveRecord(rom, game, c.cmd);
+    const cmdLen = rec[5]! & 0xFF;
+    const cmdOff = rec[6]! & 0xFF;
+    if (cmdLen === 0) continue;
+    if (cmdOff < end && cmdOff + cmdLen > offset) out.push({ ...c });
   }
   return out;
 }

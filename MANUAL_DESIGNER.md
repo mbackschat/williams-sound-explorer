@@ -55,7 +55,9 @@ ROMs are added on the Explore onboarding screen.
 
    A **"Shared by:"** line under the canvas lists every editable GWAVE command currently pointing at this `WAVE#` (e.g. *"Shared by: $05 BBSV, $0D ED17 — your edits affect every one."*). Each of the 7 stock waveforms (GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7) is shared across whichever ROM commands happen to use it — redrawing it changes every one of those sounds. The **Reset to stock** button reverts your edits for this `WAVE#` (it's greyed out until you actually edit).
 
-   Pitch-pattern bytes (`GFRTAB`) are not yet editable — that's Step 3 of Phase 5.
+   Below the waveform canvas is a **pitch-pattern canvas** (Step 3 of the GWAVE editor) — teal bars showing the `PATLEN` bytes starting at `PATOFF` in `GFRTAB`. Click-and-drag redraws the pitch contour byte by byte. Patterns are addressed by *raw offset+length* (not by index like waveforms), so two slots whose pattern ranges happen to overlap share those bytes — its **"Shared by:"** line names the other editable commands whose pattern range overlaps yours, so you know what else your edits touch. The **Reset to stock** button below the pattern canvas clears the project's override at this `PATOFF` (greyed out until you edit). When `PATLEN = 0` (no pitch sweep), the canvas shows an empty-state message instead of bars.
+
+   Across both canvases, **lengths never change in this version** — the canvas always covers exactly what the kernel reads, with the same byte offsets. That keeps the ROM's pointer math (GWLD waveform walk + SVTAB `PATOFF`) valid without any rebase pass.
 4. **Audition** — the transport:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.

@@ -32,8 +32,19 @@ export interface GWaveEditorApi {
    * override), plus the list of commands that share this waveform.
    */
   setWaveform(bytes: number[], sharedBy: { cmd: number; name: string }[], isOverridden: boolean): void;
+  /**
+   * Update the pitch-pattern canvas with the resolved bytes at the slot's
+   * current (PATOFF, PATLEN) — either stock from the base ROM or the
+   * project's pattern override.  `sharedBy` lists editable commands whose
+   * pattern range overlaps the slot's range.
+   */
+  setPattern(bytes: number[], sharedBy: { cmd: number; name: string }[], isOverridden: boolean): void;
   /** Current WAVE# (from the record's byte-1 low nybble) — convenience for the host. */
   currentWaveIdx(): number;
+  /** Current pitch-pattern offset (SVTAB byte 6). */
+  currentPatternOffset(): number;
+  /** Current pitch-pattern length (SVTAB byte 5). */
+  currentPatternLength(): number;
 }
 
 function fmtValue(field: GWaveField, value: number): string {
@@ -50,6 +61,8 @@ export function buildGWaveEditor(
   onRecordChange: (record: number[]) => void,
   onWaveformDraw: (idx: number, bytes: number[]) => void,
   onWaveformReset: (idx: number) => void,
+  onPatternDraw: (offset: number, bytes: number[]) => void,
+  onPatternReset: (offset: number) => void,
 ): GWaveEditorApi {
   let record: number[] = new Array(7).fill(0);
 
@@ -207,6 +220,127 @@ export function buildGWaveEditor(
     redrawCanvas();
   }
 
+  // ── Pitch-pattern canvas (Phase 5 step 3) ───────────────────────────────
+  // Below the waveform canvas, a second click-to-draw canvas shows the
+  // resolved bytes at the slot's current PATOFF / PATLEN — either stock
+  // GFRTAB bytes or the project's pattern override.  Drawing emits
+  // `onPatternDraw(offset, bytes)`; the host writes those into
+  // `project.patternOverrides[offset]` and rebuilds the custom ROM.
+  let patBytes: number[] = [];
+  let patOffsetAtPaint = 0; // PATOFF when the canvas was last seeded
+  const currentPatternOffset = (): number => (record[6] ?? 0) & 0xFF;
+  const currentPatternLength = (): number => (record[5] ?? 0) & 0xFF;
+
+  const patHost = document.createElement("div");
+  patHost.className = "designer-patcanvas-host";
+
+  const patLabel = document.createElement("div");
+  patLabel.className = "designer-patcanvas-label";
+
+  const patCanvas = document.createElement("canvas") as HTMLCanvasElement;
+  patCanvas.className = "designer-patcanvas";
+  patCanvas.width = 560;
+  patCanvas.height = 200;
+  patCanvas.style.width = "280px";
+  patCanvas.style.height = "100px";
+
+  const patShared = document.createElement("div");
+  patShared.className = "designer-patcanvas-shared";
+
+  const patResetBtn = document.createElement("button");
+  patResetBtn.className = "designer-patcanvas-reset";
+  patResetBtn.textContent = "Reset to stock";
+  patResetBtn.title = "Revert this pattern's bytes to the base ROM's original (clears the project's override at this PATOFF).";
+  patResetBtn.addEventListener("click", () => onPatternReset(currentPatternOffset()));
+
+  patHost.append(patLabel, patCanvas, patShared, patResetBtn);
+  el.append(patHost);
+
+  function redrawPatCanvas(): void {
+    const ctx = patCanvas.getContext("2d");
+    if (!ctx) return;
+    const W = patCanvas.width, H = patCanvas.height;
+    ctx.fillStyle = "#0c0e12";
+    ctx.fillRect(0, 0, W, H);
+    if (patBytes.length === 0) {
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "20px ui-monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("(PATLEN = 0 — no pattern)", W / 2, H / 2);
+      return;
+    }
+    const n = patBytes.length;
+    const cellW = W / n;
+    // Mid line — patterns are unsigned 0..255 like waveforms; show bars from $80.
+    ctx.strokeStyle = "#2a2f37";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, H / 2);
+    ctx.lineTo(W, H / 2);
+    ctx.stroke();
+    // Filled bars in a contrasting teal-ish hue so the pattern canvas reads
+    // distinct from the purple waveform canvas above it.
+    ctx.fillStyle = "#7fc1ce";
+    for (let i = 0; i < n; i++) {
+      const v = patBytes[i]! & 0xFF;
+      const y = ((255 - v) / 255) * H;
+      const top = Math.min(y, H / 2);
+      const bot = Math.max(y, H / 2);
+      ctx.fillRect(i * cellW + 0.5, top, Math.max(1, cellW - 1), bot - top);
+    }
+  }
+
+  function patPickAt(ev: MouseEvent): { i: number; v: number } | null {
+    if (patBytes.length === 0) return null;
+    const rect = patCanvas.getBoundingClientRect();
+    const xCss = ev.clientX - rect.left;
+    const yCss = ev.clientY - rect.top;
+    const i = Math.max(0, Math.min(patBytes.length - 1, Math.floor((xCss / rect.width) * patBytes.length)));
+    const v = Math.max(0, Math.min(255, Math.round(255 - (yCss / rect.height) * 255)));
+    return { i, v };
+  }
+
+  let patDrawing = false;
+  function patApplyAt(ev: MouseEvent): void {
+    const p = patPickAt(ev);
+    if (!p) return;
+    if (patBytes[p.i] === p.v) return;
+    patBytes[p.i] = p.v;
+    redrawPatCanvas();
+    onPatternDraw(patOffsetAtPaint, [...patBytes]);
+  }
+  patCanvas.addEventListener("mousedown", (ev: MouseEvent) => {
+    patDrawing = true;
+    patApplyAt(ev);
+    ev.preventDefault();
+  });
+  window.addEventListener("mousemove", (ev: MouseEvent) => {
+    if (patDrawing) patApplyAt(ev);
+  });
+  window.addEventListener("mouseup", () => { patDrawing = false; });
+
+  function setPattern(bytes: number[], sharedBy: { cmd: number; name: string }[], isOverridden: boolean): void {
+    patBytes = [...bytes];
+    patOffsetAtPaint = currentPatternOffset();
+    const overrideMark = isOverridden ? " · edited" : "";
+    patLabel.textContent = bytes.length > 0
+      ? `Pitch pattern — PATOFF $${patOffsetAtPaint.toString(16).toUpperCase().padStart(2, "0")} / PATLEN ${bytes.length}${overrideMark}`
+      : `Pitch pattern — PATLEN = 0 (no pattern)`;
+    patLabel.dataset.overridden = isOverridden ? "1" : "0";
+    // "Shared by" — every editable GWAVE command whose pattern range overlaps
+    // the slot's range.  We exclude *self* here since the slot's own
+    // targetCmd is what the user is currently editing; if the host wants to
+    // include it, it can.
+    if (sharedBy.length === 0) {
+      patShared.textContent = "No other editable GWAVE commands overlap this pattern range.";
+    } else {
+      const labels = sharedBy.map((s) => `$${s.cmd.toString(16).toUpperCase().padStart(2, "0")} ${s.name}`).join(", ");
+      patShared.innerHTML = `<span class="designer-bar-label">Shared by:</span> ${labels} — your edits affect their pitch contour too.`;
+    }
+    patResetBtn.disabled = !isOverridden;
+    redrawPatCanvas();
+  }
+
   return {
     el,
     setRecord(rec: number[]): void {
@@ -215,6 +349,9 @@ export function buildGWaveEditor(
     },
     getRecord: () => [...record],
     setWaveform,
+    setPattern,
     currentWaveIdx,
+    currentPatternOffset,
+    currentPatternLength,
   };
 }

@@ -167,3 +167,35 @@
 }
 .designer-wfcanvas-reset:hover:not(:disabled) { background: #2a2f37; }
 .designer-wfcanvas-reset:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Pitch-pattern canvas (Phase 5 step 3) — sibling of the waveform canvas.
+   Teal bars (vs purple waveform) to distinguish at a glance which canvas
+   you're editing. PATOFF can be 0 with PATLEN > 0 — the canvas only goes
+   empty when PATLEN = 0. */
+.designer-patcanvas-host {
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed #2a2f37;
+  display: flex; flex-direction: column; gap: 0.35rem;
+  max-width: 24rem;
+}
+.designer-patcanvas-label {
+  font-size: 0.78rem; color: #abafb6; font-variant-numeric: tabular-nums;
+}
+.designer-patcanvas-label[data-overridden="1"] { color: #7fc1ce; }
+.designer-patcanvas {
+  background: #0c0e12; border: 1px solid #2a2f37; border-radius: 4px;
+  cursor: crosshair; touch-action: none;
+}
+.designer-patcanvas-shared {
+  font-size: 0.72rem; color: #9098a6;
+}
+.designer-patcanvas-shared .designer-bar-label { margin-right: 0.25rem; }
+.designer-patcanvas-reset {
+  align-self: flex-start;
+  background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; font-size: 0.78rem;
+  padding: 0.25rem 0.6rem; cursor: pointer;
+}
+.designer-patcanvas-reset:hover:not(:disabled) { background: #2a2f37; }
+.designer-patcanvas-reset:disabled { opacity: 0.4; cursor: not-allowed; }

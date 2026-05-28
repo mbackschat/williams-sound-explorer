@@ -27,7 +27,7 @@
  */
 import type { GameKind } from "../../board/soundboard.ts";
 import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
-import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS } from "../../engine/gwaveEdit.ts";
+import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS, gfrtabMaxEnd } from "../../engine/gwaveEdit.ts";
 import { maxSlots } from "../../engine/customRom.ts";
 
 /**
@@ -77,6 +77,15 @@ export interface CustomProject {
    * index — surfaced in the Designer canvas as "Shared by …".
    */
   waveformOverrides?: Record<number, number[]>;
+  /**
+   * Per-offset pitch-pattern byte overrides (Phase 5 step 3).  Each key is
+   * a GFRTAB offset (0..255); the value's bytes replace the bytes starting
+   * at `GFRTAB + offset` for `bytes.length` bytes.  Patterns may overlap
+   * — overlapping overrides apply in iteration order (last write wins).
+   * SVTAB byte-5 (`PATLEN`) is *not* touched, so kernel-side reads stay
+   * unchanged.  Surfaced in the Designer canvas as "Shared by …".
+   */
+  patternOverrides?: Record<number, number[]>;
   createdAt: number;
   updatedAt: number;
 }
@@ -188,11 +197,18 @@ function coerceProject(raw: unknown): CustomProject {
         Object.entries(wfRaw).filter(([_, v]) => Array.isArray(v)),
       ) as Record<number, number[]>)
     : undefined;
+  const patRaw = o.patternOverrides as Record<string, unknown> | undefined;
+  const patternOverrides = patRaw && typeof patRaw === "object"
+    ? (Object.fromEntries(
+        Object.entries(patRaw).filter(([_, v]) => Array.isArray(v)),
+      ) as Record<number, number[]>)
+    : undefined;
   return {
     name: String(o.name ?? "untitled"),
     engineBase: (ENGINE_BASES.includes(o.engineBase as GameKind) ? o.engineBase : "defender") as GameKind,
     slots,
     ...(waveformOverrides && Object.keys(waveformOverrides).length > 0 ? { waveformOverrides } : {}),
+    ...(patternOverrides && Object.keys(patternOverrides).length > 0 ? { patternOverrides } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : 0,
     updatedAt: typeof o.updatedAt === "number" ? o.updatedAt : 0,
   };
@@ -289,12 +305,45 @@ export function importJson(text: string): CustomProject {
     if (Object.keys(acc).length > 0) waveformOverrides = acc;
   }
 
+  // Pattern overrides (optional, Phase 5 step 3).  Each key is a GFRTAB
+  // offset 0..255 and the value's bytes start at that offset; length is
+  // `bytes.length` (no separate length field).  Must end before GFRTAB's
+  // safe-write boundary on this game's ROM (just before the 6802 vectors).
+  let patternOverrides: Record<number, number[]> | undefined;
+  if (o.patternOverrides != null) {
+    if (typeof o.patternOverrides !== "object" || Array.isArray(o.patternOverrides)) {
+      throw new Error("patternOverrides must be an object mapping offset → bytes.");
+    }
+    const acc: Record<number, number[]> = {};
+    const gfrtabEnd = gfrtabMaxEnd(engineBase);
+    for (const [k, v] of Object.entries(o.patternOverrides as Record<string, unknown>)) {
+      const offset = Number(k);
+      if (!Number.isInteger(offset) || offset < 0 || offset > 0xFF) {
+        throw new Error(`patternOverrides key out of range 0..255: ${k}`);
+      }
+      if (!Array.isArray(v) || v.length < 1 || v.length > 0xFF) {
+        throw new Error(`patternOverrides[${offset}] must be 1..255 bytes.`);
+      }
+      if (offset + v.length > gfrtabEnd) {
+        throw new Error(`patternOverrides[${offset}] (length ${v.length}) runs past the ${engineBase} GFRTAB end (${gfrtabEnd}).`);
+      }
+      for (const b of v) {
+        if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+          throw new Error(`patternOverrides[${offset}] byte out of range (0..255): ${b}`);
+        }
+      }
+      acc[offset] = v as number[];
+    }
+    if (Object.keys(acc).length > 0) patternOverrides = acc;
+  }
+
   const now = Date.now();
   return {
     name: o.name,
     engineBase,
     slots,
     ...(waveformOverrides ? { waveformOverrides } : {}),
+    ...(patternOverrides ? { patternOverrides } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : now,
     updatedAt: now,
   };

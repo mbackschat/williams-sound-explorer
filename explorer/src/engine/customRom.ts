@@ -32,6 +32,7 @@ import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
 import {
   patchGWaveRecord, gwaveCommandsFor, SVTAB_STRIDE,
   patchWaveform, STOCK_WAVE_LENGTHS,
+  patchPattern, gfrtabMaxEnd,
 } from "./gwaveEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
@@ -129,15 +130,22 @@ function validateGwaveSlot(s: GwaveSlot, game: GameKind, seen: Set<number>): voi
 }
 
 /**
- * Optional build extras alongside the per-sound slot list.  Currently carries
- * waveform-byte overrides (Phase 5 step 2): a map from stock waveform index
- * (0..6) to its replacement sample bytes.  Each replacement MUST be exactly
- * the stock waveform's length — Step 2 never changes table lengths, so GWLD
- * walking and SVTAB byte-6 pattern offsets stay valid.  Future Steps may add
- * pitch-pattern overrides through the same options shape.
+ * Optional build extras alongside the per-sound slot list.  Carries:
+ *
+ *  - **`waveformOverrides`** (Phase 5 step 2) — a map from stock waveform
+ *    index (0..6) to its replacement sample bytes.  Each replacement MUST be
+ *    exactly the stock waveform's length; lengths don't change, so GWLD
+ *    walking and SVTAB byte-6 pattern offsets stay valid.
+ *  - **`patternOverrides`** (Phase 5 step 3) — a map from GFRTAB offset
+ *    (0..255) to replacement pitch-modulation bytes.  Patterns address bytes
+ *    by raw offset+length and may overlap; multiple overrides whose ranges
+ *    overlap are applied in iteration order (last write wins).  Length is
+ *    `bytes.length`; SVTAB byte-5 (`PATLEN`) is *not* modified here, so the
+ *    kernel still reads whatever PATLEN was set in the SVTAB record.
  */
 export interface BuildOptions {
   waveformOverrides?: Record<number, number[]>;
+  patternOverrides?: Record<number, number[]>;
 }
 
 /**
@@ -154,8 +162,10 @@ export function buildCustomRom(
   // ── Partition + validate up front (before touching the ROM) ──────────────
   const waveformOverrides = options.waveformOverrides ?? {};
   const waveformKeys = Object.keys(waveformOverrides);
-  if (slots.length === 0 && waveformKeys.length === 0) {
-    throw new Error("a custom ROM needs at least one slot or waveform override");
+  const patternOverrides = options.patternOverrides ?? {};
+  const patternKeys = Object.keys(patternOverrides);
+  if (slots.length === 0 && waveformKeys.length === 0 && patternKeys.length === 0) {
+    throw new Error("a custom ROM needs at least one slot, waveform override, or pattern override");
   }
   const variSlots: VariSlot[] = [];
   const gwaveSlots: GwaveSlot[] = [];
@@ -177,6 +187,25 @@ export function buildCustomRom(
     for (const b of bytes) {
       if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
         throw new Error(`waveformOverrides[${idx}] byte out of range (0..255): ${b}`);
+      }
+    }
+  }
+  const gfrtabEnd = gfrtabMaxEnd(game);
+  for (const k of patternKeys) {
+    const offset = Number(k);
+    if (!Number.isInteger(offset) || offset < 0 || offset > 0xFF) {
+      throw new Error(`patternOverrides key out of range 0..255: ${k}`);
+    }
+    const bytes = (patternOverrides as Record<number, number[]>)[offset];
+    if (!Array.isArray(bytes) || bytes.length < 1 || bytes.length > 0xFF) {
+      throw new Error(`patternOverrides[${offset}] must be 1..255 bytes, got ${bytes?.length}`);
+    }
+    if (offset + bytes.length > gfrtabEnd) {
+      throw new Error(`patternOverrides[${offset}] (length ${bytes.length}) runs past the ${game} GFRTAB end (${gfrtabEnd})`);
+    }
+    for (const b of bytes) {
+      if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+        throw new Error(`patternOverrides[${offset}] byte out of range (0..255): ${b}`);
       }
     }
   }
@@ -214,6 +243,17 @@ export function buildCustomRom(
   for (const k of waveformKeys) {
     const idx = Number(k);
     out = patchWaveform(out, game, idx, (waveformOverrides as Record<number, number[]>)[idx]!);
+  }
+
+  // ── GWAVE pitch-pattern bytes: patch GFRTAB in place (Phase 5 step 3) ─────
+  // Each override writes `bytes.length` bytes starting at GFRTAB+offset.
+  // Patterns may overlap (commands address GFRTAB by raw offset+length), so
+  // overlapping overrides apply in iteration order — last write wins.
+  // The Designer UI's "Shared by" surfaces which editable commands read into
+  // the same byte range.
+  for (const k of patternKeys) {
+    const offset = Number(k);
+    out = patchPattern(out, game, offset, (patternOverrides as Record<number, number[]>)[offset]!);
   }
 
   return out;

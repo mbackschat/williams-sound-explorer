@@ -204,3 +204,79 @@ describe("exportJson / importJson — waveformOverrides (Phase 5 step 2)", () =>
     expect(back.waveformOverrides).toEqual({ 4: FLAT16 });
   });
 });
+
+describe("exportJson / importJson — patternOverrides (Phase 5 step 3)", () => {
+  const BBSND_FLAT = Array.from({ length: 0x14 }, () => 0x20); // 20 bytes; covers BBSV's range
+
+  it("round-trips a project that overrides one pitch pattern", () => {
+    const p: CustomProject = {
+      name: "pat",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      patternOverrides: { 0x47: BBSND_FLAT }, // BBSV's pattern range
+      createdAt: 100,
+      updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.patternOverrides).toEqual({ 0x47: BBSND_FLAT });
+  });
+
+  it("a project with no patternOverrides has the field absent", () => {
+    const p: CustomProject = {
+      name: "no-pat",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100,
+      updatedAt: 200,
+    };
+    expect(importJson(exportJson(p)).patternOverrides).toBeUndefined();
+  });
+
+  it("rejects malformed patternOverrides (non-object, bad offset, wrong length, byte out of range, GFRTAB overrun)", () => {
+    const base: CustomProject = {
+      name: "pat-bad",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100, updatedAt: 200,
+    };
+    expect(() => importJson(JSON.stringify({ ...base, patternOverrides: [1, 2] }))).toThrow(/object/i);
+    expect(() => importJson(JSON.stringify({ ...base, patternOverrides: { 256: BBSND_FLAT } }))).toThrow(/range/i);
+    expect(() => importJson(JSON.stringify({ ...base, patternOverrides: { 0: [] } }))).toThrow(/bytes/i);
+    expect(() => importJson(JSON.stringify({ ...base, patternOverrides: { 0: [...BBSND_FLAT.slice(0, 19), 256] } }))).toThrow(/range/i);
+    // Defender GFRTAB safe-end is $A9 = 169; override at offset 100 length 100 overruns.
+    const tooLong = Array.from({ length: 100 }, () => 0);
+    expect(() => importJson(JSON.stringify({ ...base, patternOverrides: { 100: tooLong } }))).toThrow(/GFRTAB|past/i);
+  });
+
+  it("permits a project with only patternOverrides and no slots", () => {
+    const p: CustomProject = {
+      name: "pat-only",
+      engineBase: "defender",
+      slots: [],
+      patternOverrides: { 0x47: BBSND_FLAT },
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.slots).toHaveLength(0);
+    expect(back.patternOverrides).toEqual({ 0x47: BBSND_FLAT });
+  });
+
+  it("a mixed project carries every override channel through the round-trip", () => {
+    const FLAT16 = Array.from({ length: 16 }, () => 0x40);
+    const p: CustomProject = {
+      name: "mixed",
+      engineBase: "defender",
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x05 },
+      ],
+      waveformOverrides: { 4: FLAT16 },
+      patternOverrides: { 0x47: BBSND_FLAT },
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.slots).toHaveLength(2);
+    expect(back.waveformOverrides).toEqual({ 4: FLAT16 });
+    expect(back.patternOverrides).toEqual({ 0x47: BBSND_FLAT });
+  });
+});

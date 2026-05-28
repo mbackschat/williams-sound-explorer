@@ -20,7 +20,7 @@ import { resolve as pathResolve } from "node:path";
 import type { GameKind } from "../src/board/soundboard.ts";
 import { runSoundWithRom } from "../src/engine/runner.ts";
 import { readVariRecord, patchVariRecord } from "../src/engine/variEdit.ts";
-import { readGWaveRecord, patchGWaveRecord, readWaveform, patchWaveform, STOCK_WAVE_LENGTHS } from "../src/engine/gwaveEdit.ts";
+import { readGWaveRecord, patchGWaveRecord, readWaveform, patchWaveform, readPattern, patchPattern, STOCK_WAVE_LENGTHS } from "../src/engine/gwaveEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -235,5 +235,72 @@ describe("Waveform overrides (Phase 5 step 2)", () => {
     expect(() => buildCustomRom(base, "defender", [], { waveformOverrides: { 0: [1, 2, 3] } })).toThrow(/bytes/i);
     // out-of-range byte
     expect(() => buildCustomRom(base, "defender", [], { waveformOverrides: { 0: [0, 0, 0, 0, 0, 0, 0, 256] } })).toThrow(/range/i);
+  });
+});
+
+describe("Pitch-pattern overrides (Phase 5 step 3)", () => {
+  // The ground-truth for a pattern override at offset O with bytes B is: take
+  // the base ROM, manually patchPattern(offset=O, bytes=B), and render any
+  // command whose SVTAB pattern range overlaps with [O..O+B.length].
+  // buildCustomRom with that override should produce the same DAC value
+  // sequence on that command.
+  const truthPattern = (base: Uint8Array, game: GameKind, cmd: number, offset: number, bytes: number[]): number[] =>
+    dacValues(patchPattern(base, game, offset, bytes), game, cmd);
+
+  it("overriding BBSV's pattern bytes changes its rendered DAC trace", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // BBSV's stock pattern is the alternating 08/40 BBSND at offset $47 length $14.
+    // Flatten it to all $20 and the command renders an unmistakably different sound.
+    const flatPat = Array.from({ length: 0x14 }, () => 0x20);
+    const custom = buildCustomRom(base, "defender", [], { patternOverrides: { 0x47: flatPat } });
+    const heard = dacValues(custom, "defender", 0x05);
+    const truth = truthPattern(base, "defender", 0x05, 0x47, flatPat);
+    expect(eqSeq(heard, truth)).toBe(true);
+    // And it must differ from the stock command (otherwise the override didn't take).
+    expect(eqSeq(heard, dacValues(base, "defender", 0x05))).toBe(false);
+  });
+
+  it("a build with only a pattern override (no slots) is allowed", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+    const custom = buildCustomRom(base, "defender", [], { patternOverrides: { 0x60: bytes } });
+    // Reading the pattern back from the built ROM matches our override.
+    expect(readPattern(custom, "defender", 0x60, bytes.length)).toEqual(bytes);
+  });
+
+  it("mixed VARI + GWAVE + waveform + pattern in one build: each lands at its target", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const saw = readVariRecord(base, "defender", 0x1D);
+    const hbdv = readGWaveRecord(base, "defender", 0x01);
+    const wfBytes = Array.from({ length: 16 }, () => 0x40); // override GSQ22
+    const patBytes = Array.from({ length: 0x14 }, () => 0xC0); // override BBSND
+    const custom = buildCustomRom(
+      base, "defender",
+      [
+        { kind: "vari", code: 0x21, record: saw },
+        { kind: "gwave", cmd: 0x05, record: hbdv },
+      ],
+      { waveformOverrides: { 4: wfBytes }, patternOverrides: { 0x47: patBytes } },
+    );
+    // All four edits are visible in the built ROM.
+    const variTruth = dacValues(patchVariRecord(base, "defender", 0x1D, saw), "defender", 0x1D);
+    expect(eqSeq(dacValues(custom, "defender", 0x21), variTruth)).toBe(true);  // VARI slot
+    expect(readGWaveRecord(custom, "defender", 0x05)).toEqual(hbdv);            // GWAVE SVTAB override
+    expect(readWaveform(custom, "defender", 4)).toEqual(wfBytes);               // waveform override
+    expect(readPattern(custom, "defender", 0x47, patBytes.length)).toEqual(patBytes); // pattern override
+  });
+
+  it("rejects an out-of-range offset, empty/oversized bytes, or overrun past GFRTAB", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 256: [1] } })).toThrow(/range/i);
+    expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 0: [] } })).toThrow(/bytes/i);
+    // Defender max-end = 169.  Override at offset 100 with 100 bytes would end at 200 > 169.
+    expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 100: Array.from({ length: 100 }, () => 0) } })).toThrow(/GFRTAB|past/i);
+    // out-of-range byte
+    expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 0: [256] } })).toThrow(/range/i);
   });
 });

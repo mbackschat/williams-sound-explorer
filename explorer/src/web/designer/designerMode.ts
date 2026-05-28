@@ -17,7 +17,7 @@ import type { GameKind } from "../../board/soundboard.ts";
 import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
-import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers } from "../../engine/gwaveEdit.ts";
+import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers } from "../../engine/gwaveEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
@@ -161,7 +161,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // waveform-byte canvas edit (writes to project.waveformOverrides), and reset
   // (clears the override for that idx).  Both waveform paths drive auto-replay.
   const gwaveEditor: GWaveEditorApi = buildGWaveEditor(
-    (rec) => { onEditorChange(rec); refreshWaveformCanvas(); },
+    (rec) => { onEditorChange(rec); refreshWaveformCanvas(); refreshPatternCanvas(); },
     (idx, bytes) => {
       project.waveformOverrides ??= {};
       project.waveformOverrides[idx] = bytes;
@@ -177,6 +177,22 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       touch();
       scheduleAutoReplay();
       refreshWaveformCanvas();
+    },
+    (offset, bytes) => {
+      project.patternOverrides ??= {};
+      project.patternOverrides[offset] = bytes;
+      touch();
+      scheduleAutoReplay();
+      refreshPatternCanvas();
+    },
+    (offset) => {
+      if (project.patternOverrides) {
+        delete project.patternOverrides[offset];
+        if (Object.keys(project.patternOverrides).length === 0) delete project.patternOverrides;
+      }
+      touch();
+      scheduleAutoReplay();
+      refreshPatternCanvas();
     },
   );
   const editorHost = el("div", { className: "designer-editor-host" });
@@ -396,7 +412,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (slot) {
       showEditorFor(slot.kind);
       (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
-      if (slot.kind === "gwave") refreshWaveformCanvas();
+      if (slot.kind === "gwave") { refreshWaveformCanvas(); refreshPatternCanvas(); }
     }
     refreshItemList();
     setControlsEnabled(baseRom != null);
@@ -420,6 +436,42 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     const bytes = overridden ?? readWaveform(baseRom, project.engineBase, idx);
     const sharedBy = waveformUsers(baseRom, project.engineBase, idx).map((c) => ({ cmd: c.cmd, name: c.name }));
     gwaveEditor.setWaveform([...bytes], sharedBy, !!overridden);
+  }
+
+  /**
+   * Push the resolved bytes for the GWAVE slot's current (PATOFF, PATLEN)
+   * into the editor's pattern canvas: the project's override if any, else
+   * the base ROM's stock GFRTAB bytes.  When PATLEN is 0 the canvas
+   * renders an empty state.  "Shared by" excludes the slot's own targetCmd
+   * — it's the command the user is currently editing.
+   */
+  function refreshPatternCanvas(): void {
+    if (!baseRom) return;
+    const slot = project.slots[selected];
+    if (!slot || slot.kind !== "gwave") return;
+    const offset = gwaveEditor.currentPatternOffset();
+    const length = gwaveEditor.currentPatternLength();
+    if (length === 0) {
+      gwaveEditor.setPattern([], [], false);
+      return;
+    }
+    const overridden = project.patternOverrides?.[offset];
+    // If the override exists but doesn't cover the full PATLEN (e.g. user
+    // reduced PATLEN after editing), trim/extend from base to fill the gap.
+    let bytes: number[];
+    if (overridden) {
+      if (overridden.length >= length) {
+        bytes = overridden.slice(0, length);
+      } else {
+        bytes = [...overridden, ...readPattern(baseRom, project.engineBase, offset + overridden.length, length - overridden.length)];
+      }
+    } else {
+      bytes = readPattern(baseRom, project.engineBase, offset, length);
+    }
+    const sharedBy = patternUsers(baseRom, project.engineBase, offset, length)
+      .filter((c) => c.cmd !== slot.targetCmd)
+      .map((c) => ({ cmd: c.cmd, name: c.name }));
+    gwaveEditor.setPattern(bytes, sharedBy, !!overridden);
   }
 
   function addNew(): void {
@@ -477,6 +529,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   function buildEdited(): Uint8Array {
     return buildCustomRom(baseRom!, project.engineBase, toRomSlots(project.slots), {
       waveformOverrides: project.waveformOverrides,
+      patternOverrides: project.patternOverrides,
     });
   }
   function renderEdited(): RenderedSound {

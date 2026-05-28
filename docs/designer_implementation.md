@@ -158,11 +158,30 @@ Adds a **click-to-draw waveform canvas** below the SVTAB sliders. The canvas sho
 
 **Why these byte edits don't break pointers:**
 - GWLD2/3 walks GWVTAB by `length+1` bytes per record. Since `length` is unchanged, the walk lands at the same position for every idx.
-- SVTAB byte-6 (pattern offset into GFRTAB) doesn't touch GWVTAB — so it's irrelevant here. Step 3 will edit GFRTAB bytes; that step also keeps `PATLEN` unchanged so byte-6 stays valid.
+- SVTAB byte-6 (pattern offset into GFRTAB) doesn't touch GWVTAB — so it's irrelevant here.
+
+## GWAVE editor — Phase 5 step 3 (shipped)
+
+Adds a second click-to-draw canvas below the waveform canvas: the **pitch-pattern canvas**. It shows the resolved bytes at the slot's current `(PATOFF, PATLEN)` — the project's override if any, else the base ROM's bytes — and emits `onPatternDraw(offset, bytes)` per stroke. The host writes those into `project.patternOverrides[offset]` and rebuilds the custom ROM.
+
+**Sharing semantics surfaced in the UI:** patterns are *byte-addressed*, not index-addressed — SVTAB byte-6 (`PATOFF`) is a raw GFRTAB offset and byte-5 (`PATLEN`) the read length, so two commands' pattern ranges may overlap. The canvas's *"Shared by:"* line is driven by `patternUsers(baseRom, game, offset, length)` and lists every editable command whose range overlaps the slot's (excluding the slot's own `targetCmd`). A *"Reset to stock"* button clears the project's override at that `PATOFF`. When `PATLEN = 0` (no pitch sweep) the canvas renders an empty-state hint.
+
+**Module additions:**
+
+- `engine/gwaveEdit.ts` gains `GFRTAB_BASE` per game (Defender `$FF55`, Stargate `$FF53`, Robotron `$FF02`), `gfrtabMaxEnd(game)` (largest safe offset+length, stopping before the 6802 reset vector at `$FFFE`), `readPattern` / `patchPattern` (any length 1..255 in GFRTAB bounds), and `patternUsers(offset, length)` (overlap-not-equality — drives the "Shared by" warning).
+- `engine/customRom.ts` `BuildOptions` gains `patternOverrides?: Record<number, number[]>` (key = GFRTAB offset; value's length = how many bytes to write; overlapping overrides apply in iteration order, last write wins). Builds with only pattern overrides (no slots) are allowed.
+- `web/designer/gwaveEditor.ts` gains a second canvas (teal vs the waveform's purple), a *Pitch pattern — PATOFF $XX / PATLEN N · edited* label, the "Shared by" line, and a Reset-to-stock button. New API: `setPattern(bytes, sharedBy, isOverridden)`, `currentPatternOffset()`, `currentPatternLength()`.
+- `web/designer/designerMode.ts` adds `refreshPatternCanvas()` that resolves bytes (override or stock — with a partial-override fallback that fills any uncovered tail from base when the user changed `PATLEN` after editing), computes `sharedBy` excluding the slot's `targetCmd`, and threads `project.patternOverrides` through `buildEdited()`'s `buildCustomRom` options.
+- `web/designer/designerStore.ts` `CustomProject.patternOverrides?: Record<number, number[]>` with JSON round-trip + validation (offset 0..255, length 1..255 in-bounds, byte range).
+
+**Tests added by Step 3:** 11 new in `gwaveEdit.test.ts` (GFRTAB constants vs the label-map JSON, golden BBSV/HBDV pattern bytes against the real Defender ROM, readPattern/patchPattern bounds, `patternUsers` overlap correctness), 4 in `customRom.test.ts` (pattern-only build, mixed VARI+GWAVE+waveform+pattern, error paths), 5 in `designerStore.test.ts` (round-trip, absent field, malformed/range, standalone, mixed). **+20 tests**, 499 total.
+
+**Why these byte edits don't break pointers (step 3):**
+- `PATLEN` (SVTAB byte 5) is **not** modified by this step — kernel reads still consume exactly the bytes the user drew.
+- Patterns can be edited at *any* `(offset, length)` valid in GFRTAB, but the bytes are written *at the existing offset*. No relocation; the dispatcher and SVTAB pointers are untouched.
 
 ## Fast-follows (not yet built)
 
-- **GWAVE editor Step 3** — editable pitch-pattern canvas (GFRTAB bytes; lengths unchanged → SVTAB byte-6 offsets stay valid).
 - **Adding new waveforms / new GWAVE codes** — both feasible, deferred to v-future (see `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis).
 - **Robotron as engine base for VARI** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band. (GWAVE on Robotron *is* supported now since it's in-place SVTAB patching.)
 - **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
