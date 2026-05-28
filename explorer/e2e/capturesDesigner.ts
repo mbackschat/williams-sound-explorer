@@ -81,10 +81,13 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" }, // pre-populated $05 BBSV row
       { waitMs: 800 }, // editor switch + offline render
     ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      { textContains: [".designer-edit > .designer-edit-label", "GWAVE"] }, // the right editor is open
+    ],
     shot: { clip: "#designer-root", file: img("designer-gwave-overview") },
   },
 
@@ -99,10 +102,13 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='14'][data-kind='lfsr']" }, // pre-populated $14 TURBO row
+      { click: ".designer-item[data-cmd='14'][data-kind='lfsr'] .designer-item-code" }, // pre-populated $14 TURBO row
       { waitMs: 800 }, // editor switch + offline render
     ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      { textContains: [".designer-edit > .designer-edit-label", "LFSR"] }, // the LFSR editor is open, not the default GWAVE row
+    ],
     shot: { clip: "#designer-root", file: img("designer-lfsr-overview") },
   },
 
@@ -117,10 +123,13 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='17'][data-kind='fnoise']" }, // pre-populated $17 CANNON row
+      { click: ".designer-item[data-cmd='17'][data-kind='fnoise'] .designer-item-code" }, // pre-populated $17 CANNON row
       { waitMs: 800 },
     ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      { textContains: [".designer-edit > .designer-edit-label", "FNOISE"] }, // the FNOISE editor is open, not the default GWAVE row
+    ],
     shot: { clip: "#designer-root", file: img("designer-fnoise-overview") },
   },
 
@@ -134,10 +143,13 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='18'][data-kind='radio']" }, // pre-populated $18 RADIO row
+      { click: ".designer-item[data-cmd='18'][data-kind='radio'] .designer-item-code" }, // pre-populated $18 RADIO row
       { waitMs: 800 },
     ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      { textContains: [".designer-edit > .designer-edit-label", "RADIO"] }, // the RADIO editor is open, not the default GWAVE row
+    ],
     shot: { clip: "#designer-root", file: img("designer-radio-overview") },
   },
 
@@ -151,7 +163,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-open-explore" },
       { waitMs: 2500 },
@@ -177,7 +189,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-wfcanvas-add" },           // + New waveform
       { waitMs: 600 },
@@ -227,7 +239,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // select BBSV
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" }, // select BBSV
       { waitMs: 400 },
       // Edit the first GWAVE slider (GECHO) so the .bin diverges from base.
       { fill: [".designer-fields-gwave .param-row:nth-child(1) .param-slider", "5"] },
@@ -259,7 +271,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-wfcanvas-add" },           // + New waveform → idx 7
       { waitMs: 600 },
@@ -299,7 +311,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" },
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave'] .designer-item-code" },
       { waitMs: 600 },
       { click: ".designer-wfcanvas-add" }, // big edit so the diff is clearly visible
       { waitMs: 700 },
