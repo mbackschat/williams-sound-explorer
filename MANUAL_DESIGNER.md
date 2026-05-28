@@ -117,21 +117,23 @@ The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.n
 | **Explore vs Design** | tweak-and-play only | a separate **Explore** mode with the DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrubber, single-step — and **Open in Explore** drops your custom ROM into that live pipeline so every visualisation runs on your authored sound |
 | **A/B + diff** | — | **Source: Edited│Start** toggle (the slot's bytes when copied/created vs. now) + a **Diff** scope overlay |
 
-### Engine coverage (current state)
+### Engine coverage (current state vs. planned)
 
-The Studio has 9 UI tabs covering Defender's full dispatched sound surface, with **6 of them editable** (the other 3 are parameterless in the ROM, so they're "just hit play"). WSED currently has **2 engines editable** (**VARI** and **GWAVE**) across all three games — and 2 more are **planned with research done** (LFSR + FNOISE; see `plans/designer-mode.md` Phases 7 + 8).
+The Studio has 9 UI tabs of which **6 are editable** (the other 3 — *Insert credit* / *Humanoid fall* / a parameterless variant — are "just hit play" because the ROM has no preset record there; same blocker for WSED). Mapping the Studio's 6 editable tabs to WSED's engine taxonomy yields **5 distinct engines** — the Studio splits LFSR coverage across three tabs (*Square noise* + *Player shoot* + the wavetable side of *Sweeps*) that WSED groups under one editor.
 
-| Engine | Sound Studio | WSED today | WSED after Phases 7 + 8 |
-|---|---|---|---|
-| **GWAVE** (wavetable + envelope) | ✅ G-wave tab | ✅ shipped | ✅ |
-| **VARI** (pulse-train sweep) | ✅ Pulses tab | ✅ shipped | ✅ |
-| **LFSR** (LITE, APPEAR, TURBO, …) | ✅ Smooth/Square/Player-shoot/Sweeps tabs | ❌ | 📋 Phase 7 |
-| **FNOISE** (BG1, THRUST, CANNON, HBOMB) | ✅ Smooth noise tab | ❌ | 📋 Phase 8 |
-| **SCREAM** ($1A humanoid fall) | ❌ "just hit play" (no preset record in ROM) | ❌ same blocker | ❌ same blocker |
-| **HYPER** ($19 insert credit) | ❌ "just hit play" | ❌ | ❌ |
-| **ORGAN** tunes | ❌ (its *Music* tab is a separate sequencer) | ❌ — pitch is self-modifying code | ❌ — same blocker |
+| Engine | Studio tab(s) | WSED today | After Phases 7 + 8 | After Phase 9 |
+|---|---|---|---|---|
+| **GWAVE** | G-wave | ✅ | ✅ | ✅ |
+| **VARI** | Pulses | ✅ | ✅ | ✅ |
+| **FNOISE** | Smooth noise | ❌ | 📋 Phase 8 | 📋 Phase 8 |
+| **LFSR** | Square noise + Player shoot (same kernel) | ❌ | 📋 Phase 7 | 📋 Phase 7 |
+| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ | ❌ — gap | 📋 **Phase 9** |
+| SCREAM / HYPER | (parameterless tabs — same blocker as WSED) | ❌ — needs assembler | ❌ | ❌ |
+| ORGAN pitch | n/a (Music tab is a separate sequencer) | ❌ — self-modifying code | ❌ | ❌ |
 
-**So on Defender alone, the Studio currently edits more engines than WSED. After Phases 7 + 8 the editor coverage is equivalent** (both edit the four data-driven engines), with WSED extending across three games rather than one and running the actual ROMs rather than a hand-port.
+**Per-engine score:** Studio 5, WSED today 2 → after Phases 7+8 = 4 (one gap: RADIO) → after Phase 9 = **5 (parity on Defender)**.
+
+The two engines neither tool can edit (SCREAM / HYPER) are blocked by the same architectural reality: their routines have **no preset record in the ROM** — Williams hardcoded the parameters into the kernel itself. Without an in-browser 6800 assembler (which WSED deliberately doesn't ship), neither tool can change them.
 
 ### In short
 

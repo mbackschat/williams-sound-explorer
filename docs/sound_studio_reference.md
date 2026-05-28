@@ -2,7 +2,7 @@
 
 > Summary of what to learn from msarnoff's *Defender Sound Studio* (`zapspace.net/defender_sound/`) — the closest existing browser-based exploration tool. Use as input for your own design. Full deep-dive: `research/findings_sound_studio.md`.
 >
-> **WSED vs. Studio — quick read:** today WSED edits **2 of the Studio's 6 editable engines** (VARI + GWAVE) but across **3 games** instead of 1, and runs the **actual ROMs** instead of a hand-port. **LFSR + FNOISE editors are planned next** (`plans/designer-mode.md` Phases 7 + 8 — research done, byte-level details in `research/findings_designer_feasibility.md`), which closes the per-engine gap. The full feature-by-feature table is in `MANUAL_DESIGNER.md` § *How it compares*.
+> **WSED vs. Studio — quick read:** the Studio's 6 editable tabs cover **5 distinct engines** in WSED's taxonomy (it splits LFSR across 3 tabs that WSED would group under one editor). Today WSED edits 2 of those 5 (VARI + GWAVE) — but across **3 games** instead of 1, and runs the **actual ROMs** instead of a hand-port. **LFSR + FNOISE editors are planned (Phases 7 + 8 — research done); RADIO editor is planned next (Phase 9 — needs spike)**; together they close the per-engine Defender-parity gap. SCREAM and HYPER are un-editable in both tools — they have no preset record in the ROM. Plan: `plans/designer-mode.md` § Phase 7 + Phase 8 + Phase 9. Full feature-by-feature table: `MANUAL_DESIGNER.md` § *How it compares*.
 
 ## What it is
 

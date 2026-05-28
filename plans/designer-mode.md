@@ -22,6 +22,7 @@
 | 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | ✅ shipped 2026-05-28 (v1 full fidelity) |
 | 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH …) — third engine, parameter patches in caller immediates | 📋 planned (research done — see § Phase 7) |
 | 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | 📋 planned (research done — see § Phase 8) |
+| 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | 📋 planned (needs spike — see § Phase 9) |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
@@ -305,20 +306,70 @@ Both paths land at the same kernel (`FNOISE` `$F930` Defender/Stargate, `$F7B3` 
 
 ---
 
-## Engine coverage after Phases 7 + 8
+## Engine coverage vs. Sound Studio (Defender)
 
-| Engine | Authoring shape | Status after Phases 7+8 |
-|---|---|---|
-| VARI | 9-byte VVECT record | ✅ shipped (Phase 1) |
-| GWAVE | 7-byte SVTAB + GWVTAB + GFRTAB | ✅ shipped (Phase 5) |
-| **LFSR** | inline immediates in caller code | 📋 **Phase 7** |
-| **FNOISE** | FNTAB (Robotron) / inline (Defender/Stargate) | 📋 **Phase 8** |
-| SCREAM | **bespoke** — no preset record | ❌ not authorable as data |
-| ORGAN | tune data (`ORGTAB` 4 B/note) + self-modifying RAM pitch | ❌ pitch needs an assembler |
-| RADIO ($18) | likely small wavetable + phase-accum (needs spike) | ❌ not on roadmap |
-| HYPER ($19) | likely PWM sweep (needs spike) | ❌ not on roadmap |
+The Defender Sound Studio's 9 UI tabs include **6 editable tabs** that cover **5 engines** in WSED's taxonomy — the Studio splits LFSR across three tabs (Square noise / Player shoot / Sweeps' wavetable variant) where WSED groups them under one LFSR editor.
 
-After Phases 7+8: **4 of the 6 nominally data-driven Williams engines** editable in the Designer — matching the Defender Sound Studio's coverage (GWAVE / VARI / FNOISE / LFSR + 2 sub-variants) while spanning **3 games** instead of 1.
+| Engine | Studio tab(s) | WSED today | After Phases 7+8 | After Phase 9 |
+|---|---|---|---|---|
+| GWAVE | G-wave | ✅ | ✅ | ✅ |
+| VARI | Pulses | ✅ | ✅ | ✅ |
+| FNOISE | Smooth noise | ❌ | 📋 Phase 8 | 📋 Phase 8 |
+| LFSR | Square noise + Player shoot (same kernel) | ❌ | 📋 Phase 7 | 📋 Phase 7 |
+| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ | ❌ — still a gap | 📋 **Phase 9** |
+| SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
+| HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
+| ORGAN pitch | n/a | ❌ — self-modifying code | ❌ | ❌ |
+
+**Per-engine score:** Studio 5, WSED today 2 → after Phases 7+8 = 4 → after Phase 9 = **5 (parity on Defender)**.
+
+WSED's edge throughout: spans **3 games**, runs the **actual ROMs** on a cycle-accurate emulator (Studio is Defender-only and a hand-port), and pairs Design with a separate Explore mode + a `.bin` roundtrip the Studio doesn't have.
+
+---
+
+## Phase 9 — RADIO editor (planned, needs feasibility spike)
+
+The fifth and final engine in the data-driven set. Closes the per-engine Defender-parity gap with the Sound Studio's *Sweeps* tab.
+
+### What RADIO is
+
+A 16-byte wavetable phase-accumulator: `RADSND` holds 16 unsigned 8-bit samples (Defender `RADSND` = `8C 5B B6 40 BF 49 A4 73 73 A4 49 BF 40 B6 5B 8C` — half-period of a complex shape, mirrored). `(TEMPA:TEMPX+1)` is a 16-bit accumulator; each iteration adds the "freq" (held in TEMPX). The fractional part's low nybble of TEMPA indexes the LUT. When the accumulator's high byte carries, `TEMPX++` (pitch climbs). Terminates when `TEMPX` wraps to 0. Result: rising whistled-noise texture — Defender's "credit accepted" / hyperspace whoosh.
+
+Reference: `research/findings_defender_sound.md` § 2.5 RADIO (lines 430–452 in `VSNDRM1.SRC`).
+
+### Pre-spike plan
+
+1. **Spike** (~1 h):
+   - Locate `RADIO`'s entry routine + the `RADSND` wavetable address in each game (Defender / Stargate; Robotron has `$30 STRT` which uses a similar shape — verify whether it shares RADSND or has its own).
+   - Identify the editable parameters: the 16 wavetable bytes are obviously editable; the initial freq, initial accumulator, and any rate constants are likely inline immediates in the caller (same shape as LFSR).
+   - Write byte-level findings into `research/findings_designer_feasibility.md` § RADIO (mirror the LFSR + FNOISE section format).
+
+2. **Headless core** (`explorer/src/engine/radioEdit.ts`, ~1.5 h):
+   - `RADSND_BASE: Record<GameKind, number>`, stride 16.
+   - `readRadioWaveform` / `patchRadioWaveform`.
+   - Per-game record layout for the caller-side immediates (initial freq, etc.).
+   - Unit tests: golden bytes against real ROMs; round-trip.
+
+3. **`buildCustomRom` extension** (~30 min):
+   - Add `kind: "radio"` to `CustomSlot`. Patches RADSND bytes + caller immediates.
+
+4. **Designer UI** (`explorer/src/web/designer/radioEditor.ts`, ~2.5 h):
+   - Click-to-draw 16-cell wavetable canvas (same machinery as the GWAVE waveform canvas — reuse the `designer-wfcanvas-*` styling).
+   - 2–3 sliders for the initial-freq / rate parameters.
+   - Pre-populate the item list with `$18 RADIO RADSND` (one slot per game where available).
+   - Smoke capture: `designer-radio-overview`.
+
+5. **Doc sweep + commit** (~30 min).
+
+**Total: ~6 h** end-to-end including the spike + doc sweep + capture refresh.
+
+### Out of scope
+
+- HYPER ($19) — the Studio's *Insert credit* tab is parameterless; the ROM has no preset record for it. Same blocker for WSED.
+- SCREAM ($1A) — same.
+- ORGAN tunes ($1B/$1C) — the 4-byte-per-note `ORGTAB` data IS editable in principle, but per-note *pitch* is realised by self-modifying RAM code (`RDELAY`). Editing tunes without editing pitches is a half-feature; full pitch editing needs an in-browser 6800 assembler we deliberately don't ship.
+
+After Phase 9, **every Williams Defender engine that has a parameter record in the ROM is editable in WSED**.
 
 ---
 
