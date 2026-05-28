@@ -70,7 +70,7 @@ The assemble-from-source toolchain is included, but the **Williams sound source 
 
 ## Sound Designer
 
-Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for building your **own custom ROM** of VARI sounds: pick an engine base, copy any game's sound or add a new one into your own named list, edit its 9-byte parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes). Hit **▶ Open in Explore** to push your custom ROM into Explore's live worklet — pause/step/scrub on your own sound, with every Explore visualisation pointed at it. See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
+Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for forking a game's sound bank: opens with the game's editable sounds pre-loaded, edit any **VARI** or **GWAVE** sound's parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes) — *or* download a runnable custom **`.bin`** to load in MAME / a real cabinet, and upload it back to keep editing. Hit **▶ Open in Explore** to push your custom ROM into Explore's live worklet — pause/step/scrub on your own sound, with every Explore visualisation pointed at it. See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
 <p align="center">
   <img alt="Design mode with Defender SAW copied into the item list, the 8-slider VVECT parameter panel on the left, audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom" src="docs/img/manual/designer-overview.png" width="820">
@@ -97,7 +97,7 @@ The closest peer: [Defender Sound Studio](https://zapspace.net/defender_sound/),
 
 **Current state (editor coverage):**
 
-The Studio's 9 UI tabs edit **6 of Defender's data-driven sound engines** today (the other 3 are parameterless in the ROM). WSED currently edits **2 of those engines (VARI + GWAVE)** but across all three games; **LFSR and FNOISE editors are planned next** (research done — see `plans/designer-mode.md` Phases 7 + 8), at which point editor coverage matches the Studio's, with WSED still running the actual ROMs over three games rather than a hand-port over one.
+The Studio's 9 UI tabs include **6 editable tabs** covering **5 distinct engines** in WSED's taxonomy (it splits LFSR across multiple tabs WSED would group together). WSED currently edits **2 of those 5 engines (VARI + GWAVE)** but across all three games; **LFSR + FNOISE + RADIO editors are planned next** (research done for LFSR + FNOISE; RADIO needs a spike — see `plans/designer-mode.md` Phases 7 + 8 + 9), after which editor coverage matches the Studio's on Defender (5 of 5 data-driven engines), with WSED still running the actual ROMs across three games rather than a hand-port across one. SCREAM and HYPER are un-editable in both tools — they have no preset record in the ROM.
 
 → [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md); the full feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 

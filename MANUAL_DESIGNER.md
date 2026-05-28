@@ -141,4 +141,4 @@ The Studio *tweaks* one game's existing sounds with a JS re-implementation. WSED
 
 ## Limits
 
-The Designer covers **VARI** and **GWAVE** today; LFSR and FNOISE are next (planned — see `plans/designer-mode.md`). SCREAM, HYPER, and ORGAN pitch aren't authorable as data without an in-browser 6800 assembler, which WSED deliberately does not include. Robotron as a VARI engine base is also a future item (its dispatcher is non-linear). For pause/step/scrub on a custom sound, use **Open in Explore** above.
+The Designer covers **VARI** and **GWAVE** today. **LFSR**, **FNOISE**, and **RADIO** editors are planned next (Phases 7 + 8 + 9 — see `plans/designer-mode.md`); after they ship, Defender's per-engine editor coverage reaches parity with msarnoff's Defender Sound Studio. **SCREAM, HYPER, and ORGAN pitch** aren't authorable as data without an in-browser 6800 assembler — they have no preset record in the ROM, so no tool can edit them without porting/assembly. **Robotron as a VARI engine base** is also a future item (its dispatcher is non-linear). For pause/step/scrub on a custom sound, use **Open in Explore** above.

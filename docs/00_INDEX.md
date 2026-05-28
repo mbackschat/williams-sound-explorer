@@ -37,7 +37,7 @@ If you need only one document: read `explorer_implementation.md` (it links to ev
 | **`sound_studio_reference.md`** | What msarnoff's Defender Sound Studio does, what to copy, what to do differently — plus a deep dive on its **editable surface** + **under-the-hood** (hand-ported JS classes, `wait(N)` cycle annotations, `DacSampler`) and **per-engine command-code case studies** ($0A GWAVE, $16 FNOISE, $1A SCREAM, $1F VARI, $1B ORGAN — what the Studio surfaces, what it does *not*, and how each edit propagates, each with a parameter table + pseudocode walkthrough). | ~485 lines |
 | **`explorer_architecture.md`** | Architecture sketch — CPU emulator vs hand-port, layers, visualization spec, 6-phase plan. | ~200 lines |
 | **`explorer_implementation.md`** | **What's actually built** in `explorer/`: module dependency graph, design decisions, runner API, real-time AudioWorklet pipeline, six engine slots + viz panels, live grid (Ear·Swimlane/Eye·Code), scrubber + RAM time-travel, A/B diff + Genealogy, label-map, parameter overrides, known caveats. Phases 1–6 covered (all 12 UX patterns). | ~900 lines |
-| **`designer_implementation.md`** | **Sound Designer mode** implementation state: module map, locked decisions, the VARI/VVECT reference + recipe schema, tests. (The designer analog of `explorer_implementation.md`.) The user-facing manual is top-level [`../MANUAL_DESIGNER.md`](../MANUAL_DESIGNER.md). | ~150 lines |
+| **`designer_implementation.md`** | **Sound Designer mode** implementation state: module map, locked decisions, the VARI/VVECT + GWAVE/SVTAB references + recipe schema, the fork-the-game UX, the `.bin` roundtrip pipeline, tests. (The designer analog of `explorer_implementation.md`.) The user-facing manual is top-level [`../MANUAL_DESIGNER.md`](../MANUAL_DESIGNER.md). | ~400 lines |
 | **`web-capture.md`** | Playwright capture harness (`explorer/e2e/`) that verifies every MANUAL tutorial's click-path and emits the MANUAL/README screenshots + demo GIF. Local maintainer tool (no ROM bytes). | ~210 lines |
 | **`explainer_cards.md`** | **Source of truth** for Pattern 9 annotated explainer cards.  One `## ROUTINE — Title` section per card; `tools/build_explainer_cards.py` emits per-routine JSON to `explorer/public/data/explainer/`.  All 63 catalogued routines covered. | ~1400 lines |
 | **`reference_audio_plan.md`** | How to acquire WAV recordings of every effect (MAME, assemble-and-drive, prerecorded). | ~150 lines |
@@ -178,9 +178,15 @@ Detailed source-line indices into the sound routines are maintained with the pri
 
 ## Suggested next concrete steps
 
-**All 12 UX patterns from `docs/pedagogical_design.md` are now delivered**, and **Sound Designer v1 (VARI)** ships with **Open in Explore** for live audition.
+**All 12 UX patterns from `docs/pedagogical_design.md` are delivered.** The **Sound Designer** ships with two engines (VARI + GWAVE) across three games (Defender / Stargate / Robotron), a "fork-the-game" pre-populated item list, **Open in Explore** for live worklet audition, and a full `.bin` download/upload roundtrip for MAME / real-cabinet use.
 
-Designer fast-follows (in `designer_implementation.md`): more engines (GWAVE incl. editable waveform/curve canvases; LFSR/FNOISE), brand-new command codes (needs a verified dispatcher band-bound patch), and Robotron as engine base.
+**Designer next-up — planned phases** (see `plans/designer-mode.md`):
+
+- **Phase 7 — LFSR editor** (LITE / APPEAR / TURBO / LAUNCH). ~6 h. Research complete in `research/findings_designer_feasibility.md` § LFSR (per-game caller addresses + virtual-record field maps).
+- **Phase 8 — FNOISE editor** (BG1 / THRUST / CANNON / HBOMB). ~7 h. Dual-path build: Robotron's clean 6-byte `FNTAB` table at `$F785` + Defender/Stargate's inline-immediate parameters. Research complete in `research/findings_designer_feasibility.md` § FNOISE.
+- **Phase 9 — RADIO editor** ($18). ~6 h including a feasibility spike. Closes Defender per-engine parity with msarnoff's Defender Sound Studio (5 of 5 data-driven engines).
+
+**v-future (deferred / dropped):** Robotron as a VARI engine base (non-linear dispatcher); adding new GWAVE command codes (dropped after re-evaluation — see plan).
 
 Other optional polish items:
 

@@ -65,11 +65,12 @@ export const entries: Entry[] = [
     shot: { viewport: true, file: img("designer-audition-explore") },
   },
 
-  // GWAVE override flow (Phase 5 step 1+2): enter Design, pick BBSV ($05)
-  // from the "Override GWAVE:" select.  The slot is added and selected, the
-  // GWAVE editor shows the 9 SVTAB sliders **plus the click-to-draw
-  // waveform canvas** (Step 2) below them, with a "Shared by" line listing
-  // the other editable GWAVE commands that point at the same WAVE#.
+  // GWAVE editor view (Phase 5 step 1+2, Phase 6.1 pre-populated): enter Design,
+  // click the pre-populated $05 BBSV row.  The GWAVE editor shows the 9 SVTAB
+  // sliders **plus the click-to-draw waveform canvas** (Step 2) below them,
+  // with a "Shared by" line listing the other editable GWAVE commands that
+  // point at the same WAVE#.  ("Override GWAVE:" dropdown is gone since
+  // Phase 6.1 — every editable GWAVE row is already in the populated list.)
   {
     id: "designer-gwave-overview",
     game: "defender",
