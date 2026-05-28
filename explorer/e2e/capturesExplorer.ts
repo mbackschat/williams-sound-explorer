@@ -1,61 +1,21 @@
 /**
- * Capture/verify manifest — one entry per MANUAL.md tutorial, plus per-engine
- * showcase panels.  This file is the single source of truth: the Playwright
- * driver in `capture.ts` loops over it to BOTH verify the click-path still
- * works (`assert`) AND produce the illustrative image (`shot`).  Edit a
- * tutorial here and both update together.
+ * Capture manifest for the **Explorer** docs (`MANUAL.md`) — 20 entries:
+ *  - 12 tutorial chapter illustrations (`tut-01`..`tut-12`)
+ *  - 5 engine showcase panels (`engine-gwave`..`engine-organ`)
+ *  - 3 interface-tour shots (`ui-overview` / `ui-navigate-columns` / `ui-full-map`)
  *
- * Selectors used are the app's existing stable IDs / data-attrs — see
- * `src/web/main.ts`.  Nothing here is allowed to depend on ROM *bytes*;
- * the screenshots show the explorer's own visualisations only.
+ * Run this set after Explore-UI changes or when MANUAL.md needs a refresh:
+ *
+ *   npx tsx e2e/capture.ts explorer
+ *   npx tsx e2e/capture.ts explorer:tut-04        # filter by id substring
+ *
+ * Shared types + selector helpers live in `manifest.ts`. Designer-mode
+ * illustrations live in `capturesDesigner.ts`; transient regression-only
+ * flows go in `smokes.ts`.
  */
+import { type Entry, panel, enginePane, img } from "./manifest.ts";
 
-export type GameKind = "defender" | "stargate" | "robotron";
-
-/** A single UI action. The driver understands this fixed vocabulary. */
-export type Step =
-  | { fireChip: string } //            click #cmdChips button.chip[data-cmd=XX] (uppercase hex)
-  | { speed: "1" | "0.25" | "0.1" | "0.01" } // click button[data-speed=…]
-  | { click: string } //               click any selector
-  | { select: [sel: string, value: string] } // set a <select> value + fire change
-  | { fill: [sel: string, value: string] } //  set a text <input> value + fire input
-  | { hover: string } //               move the mouse over a selector (publishes the INSPECT cursor)
-  | { openSection: string } //          open the <details> containing this selector
-  | { scrubTo: number } //              set #scrubPos to a 0..1 fraction (deterministic freeze)
-  | { waitMs: number }; //              settle delay (let a canvas fill / animation advance)
-
-/** A single post-condition. DOM/text by default; one weak pixel probe. */
-export type Assert =
-  | { recorded: true } //               #scrubReadout left the "no recording yet" state
-  | { text: [sel: string, exact: string] }
-  | { textContains: [sel: string, sub: string] }
-  | { cmdInfoContains: string } //      shorthand for #cmdInfo textContains
-  | { hasClass: [sel: string, cls: string] }
-  | { markerCountAtLeast: number } //   #scrubMarkers child count
-  | { canvasNonBlank: string }; //      element is not a uniform fill (range of a colour channel)
-
-/** Where the screenshot comes from: an element clip, the viewport, or the whole page. */
-export type Shot =
-  | { clip: string; file: string } //   element-clip screenshot (a single panel)
-  | { viewport: true; file: string } // the visible window (interface-tour overview / navigation)
-  | { fullPage: true; file: string }; // the entire scrollable page (the full UI map)
-
-export interface Entry {
-  id: string; //                        also the MANUAL anchor it illustrates
-  game: GameKind;
-  steps: Step[];
-  readyWhen?: Assert; //                gate before asserting/capturing (default: none)
-  assert?: Assert[];
-  shot: Shot; //                        → repo-relative path
-}
-
-/** Clip the whole `section.panel` wrapping a live-grid canvas (includes its label). */
-const panel = (canvasId: string) => `section.panel:has(#${canvasId})`;
-/** Clip a per-engine pane (canvas + title). */
-const enginePane = (engine: string) => `section.engine-view-pane[data-engine="${engine}"]`;
-const img = (name: string) => `docs/img/manual/${name}.png`;
-
-export const tutorials: Entry[] = [
+export const entries: Entry[] = [
   // ── Tutorial 1: hear your first sound — the noisy LITE oscilloscope ──
   {
     id: "tut-01-first-sound",
@@ -278,51 +238,5 @@ export const tutorials: Entry[] = [
     readyWhen: { recorded: true },
     assert: [{ canvasNonBlank: "#spectroCanvas" }],
     shot: { fullPage: true, file: img("ui-full-map") },
-  },
-
-  // ── Designer-mode shots (MANUAL_DESIGNER.md + README "Sound Designer") ──
-  // The first switch to Design lazy-imports the module, so we wait long enough
-  // for it to mount AND for refreshCopySources() to finish reading available
-  // ROMs (its `loadRomBytes` calls are async; the `.designer-copy` select
-  // populates only once they resolve).
-
-  // Designer overview: enter Design, copy Defender SAW as the first slot.
-  // That auto-selects the slot, which reveals the editor + audition scope and
-  // triggers the offline render (so .designer-scope is non-blank without
-  // needing playback).
-  {
-    id: "designer-overview",
-    game: "defender",
-    steps: [
-      { click: "#modeDesign" },
-      { waitMs: 1500 }, // lazy import + mount + copy-sources populate
-      { select: [".designer-copy", "0"] }, // first source (Defender SAW)
-      { waitMs: 600 }, // offline render → scope draws
-    ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
-    shot: { clip: "#designer-root", file: img("designer-overview") },
-  },
-
-  // "Open in Explore" handoff: from the same starting state, click the
-  // designer-open-explore button.  Lands us in Explore with the custom ROM
-  // loaded into the worklet, the slot's command auto-fired, and a dynamic
-  // "Custom: <name>" entry in the game switcher.
-  {
-    id: "designer-audition-explore",
-    game: "defender",
-    steps: [
-      { click: "#modeDesign" },
-      { waitMs: 1500 },
-      { select: [".designer-copy", "0"] },
-      { waitMs: 600 },
-      { click: ".designer-open-explore" },
-      { waitMs: 2500 }, // worklet boots custom ROM, fires $1D, populates panels
-    ],
-    readyWhen: { recorded: true },
-    assert: [
-      { hasClass: [".game-pick-custom", "active"] },
-      { canvasNonBlank: "#spectroCanvas" },
-    ],
-    shot: { viewport: true, file: img("designer-audition-explore") },
   },
 ];

@@ -1,23 +1,31 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Playwright driver: walk the tutorial manifest, verify each click-path, and
- * capture the illustrative screenshot.  Local maintainer tool — it drives the
- * dev server (which serves your locally-supplied ROMs from public/roms/) and
- * emits only PNG, never ROM bytes.  NOT a CI job.  See docs/web-capture.md.
+ * Playwright driver: pick a manifest (or all), walk its entries, verify each
+ * click-path, and capture the illustrative screenshot.  Local maintainer tool —
+ * it drives the dev server (which serves your locally-supplied ROMs from
+ * public/roms/) and emits only PNG, never ROM bytes.  NOT a CI job.
+ * See `docs/web-capture.md`.
  *
  * Prereqs (the wrapper tools/refresh_screenshots.sh does these for you):
  *   cd explorer && npm run dev:roms && npm run dev      # server on :5173
  *
  * Usage:
- *   npx tsx e2e/capture.ts                 # run every entry
- *   npx tsx e2e/capture.ts tut-02          # run entries whose id includes "tut-02"
+ *   npx tsx e2e/capture.ts                    # default: explorer + designer (every shipping screenshot)
+ *   npx tsx e2e/capture.ts explorer           # only Explorer entries (MANUAL.md illustrations)
+ *   npx tsx e2e/capture.ts designer           # only Designer entries (MANUAL_DESIGNER.md illustrations)
+ *   npx tsx e2e/capture.ts smokes             # only transient regression smokes (no shipping screenshots)
+ *   npx tsx e2e/capture.ts explorer:tut-04    # filter by id substring within a manifest
+ *   npx tsx e2e/capture.ts tut-04             # legacy: id-only filter scans every manifest
  *   CAPTURE_URL=http://localhost:5173 npx tsx e2e/capture.ts --headed
  */
 import { type Page, type Locator } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { tutorials, type Entry, type Assert } from "./tutorials.ts";
+import { type Entry, type Assert } from "./manifest.ts";
+import { entries as explorerEntries } from "./capturesExplorer.ts";
+import { entries as designerEntries } from "./capturesDesigner.ts";
+import { entries as smokeEntries } from "./smokes.ts";
 import {
   REPO_ROOT,
   READY_TIMEOUT,
@@ -31,8 +39,29 @@ import {
   canvasRange,
 } from "./lib.ts";
 
+/** Each named manifest = an Entry[] that runs together as one "set". */
+const MANIFESTS: Record<string, Entry[]> = {
+  explorer: explorerEntries,
+  designer: designerEntries,
+  smokes: smokeEntries,
+};
+/** When no manifest is named, run everything that produces a shipping screenshot. */
+const DEFAULT_SET: string[] = ["explorer", "designer"];
+
 const HEADED = process.argv.includes("--headed");
-const idFilter = process.argv.slice(2).find((a) => !a.startsWith("--"));
+const arg = process.argv.slice(2).find((a) => !a.startsWith("--"));
+
+/** Parse the CLI selector — either `manifest`, `manifest:filter`, or `filter` (any manifest). */
+function pickEntries(): Entry[] {
+  if (!arg) return DEFAULT_SET.flatMap((k) => MANIFESTS[k]!);
+  const [head, rest] = arg.includes(":") ? arg.split(":") as [string, string] : [arg, ""];
+  if (head in MANIFESTS) {
+    const all = MANIFESTS[head]!;
+    return rest ? all.filter((e) => e.id.includes(rest)) : all;
+  }
+  // Treat the whole arg as an id-substring filter across every manifest.
+  return Object.values(MANIFESTS).flat().filter((e) => e.id.includes(arg));
+}
 
 async function checkAssert(page: Page, a: Assert): Promise<string | null> {
   if ("recorded" in a) {
@@ -76,12 +105,17 @@ async function checkAssert(page: Page, a: Assert): Promise<string | null> {
 
 async function runEntry(page: Page, e: Entry): Promise<boolean> {
   process.stdout.write(`\n▶ ${e.id} (${e.game})\n`);
-  // A previous entry may have flipped the top-level mode to Design, which
-  // hides #gameSwitcher under display:none and makes selectGame time out
-  // waiting for a visible active button.  Force Explore first; the click is
-  // a no-op if we're already in Explore.
+  // A previous entry may have left us in Design mode (which hides
+  // #gameSwitcher) or with a custom audition active.  Reset the top-level
+  // state before this entry so it starts from a clean Explore page:
+  //   - flip back to Explore (no-op if already there)
+  //   - reset the Designer's project to empty if Designer is mounted
+  //     (slot lists otherwise persist across mode flips and entries trying
+  //     to override the same GWAVE code would hit a disabled option)
   await page.evaluate(() => {
     (document.getElementById("modeExplore") as HTMLButtonElement | null)?.click();
+    const designNew = document.querySelector<HTMLButtonElement>(".designer-new");
+    designNew?.click();
   });
   await selectGame(page, e.game);
   await resetState(page); // clear scrub / freeze toggles / forced sliders left by a prior entry
@@ -119,9 +153,10 @@ async function runEntry(page: Page, e: Entry): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
-  const entries = idFilter ? tutorials.filter((t) => t.id.includes(idFilter)) : tutorials;
+  const entries = pickEntries();
   if (entries.length === 0) {
-    process.stdout.write(`No entries match "${idFilter}".\n`);
+    const known = Object.keys(MANIFESTS).join(", ");
+    process.stdout.write(`No entries match "${arg}". Known manifests: ${known}.\n`);
     process.exit(1);
   }
   const browser = await launch(HEADED);

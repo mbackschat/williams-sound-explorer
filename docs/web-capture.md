@@ -20,20 +20,36 @@ The locked decision is that the repo ships **zero Williams ROM bytes**. This too
 
 The committed outputs (the PNGs/GIF under `docs/img/`) are fine to publish — they are derived visualisations, not the copyrighted program.
 
-## Architecture: one manifest, one driver
+## Architecture: three manifests, one driver
 
 ```
-explorer/e2e/lib.ts         shared primitives: launch, boot, selectGame, reveal, runStep, canvasRange
-explorer/e2e/tutorials.ts   the manifest — one Entry per tutorial (source of truth)
-explorer/e2e/capture.ts     manifest driver — loops the manifest: verify + per-tutorial PNG
-explorer/e2e/readme.ts      bespoke README assets: the viewport hero PNG + the demo GIF
-docs/img/manual/*.png       committed per-tutorial screenshots
-docs/img/readme/*.png|gif   committed README hero shot + demo GIF
+explorer/e2e/lib.ts                shared Playwright primitives (launch, boot, selectGame, reveal, runStep, canvasRange)
+explorer/e2e/manifest.ts           shared types (Entry/Step/Assert/Shot) + selector helpers
+explorer/e2e/capturesExplorer.ts   MANUAL.md illustrations — 12 tutorials + 5 engine showcase + 3 UI tour
+explorer/e2e/capturesDesigner.ts   MANUAL_DESIGNER.md illustrations — Designer flows (incl. GWAVE)
+explorer/e2e/smokes.ts             transient regression-only flows — no shipping screenshots
+explorer/e2e/capture.ts            driver — picks one manifest (or all shipping ones) and runs it
+explorer/e2e/readme.ts             bespoke README assets: viewport hero PNG + demo GIF
+docs/img/manual/*.png              committed per-entry screenshots
+docs/img/readme/*.png|gif          committed README hero shot + demo GIF
+```
+
+The three manifests partition by **what each entry exists for** — illustrations for `MANUAL.md`, illustrations for `MANUAL_DESIGNER.md`, or transient regression checks during feature work — so a Designer-mode dev never has to re-run 20 unrelated Explorer screenshots, and smokes never accumulate as stale tutorials.
+
+Run a single set or filter within one:
+
+```bash
+npx tsx e2e/capture.ts                       # default: explorer + designer (every shipping screenshot)
+npx tsx e2e/capture.ts explorer              # only Explorer entries
+npx tsx e2e/capture.ts designer              # only Designer entries
+npx tsx e2e/capture.ts smokes                # only transient smokes
+npx tsx e2e/capture.ts explorer:tut-04       # filter by id substring within a manifest
+npx tsx e2e/capture.ts tut-04                # legacy: id-only filter scans every manifest
 ```
 
 It lives under `explorer/` (not the repo-root `tools/`) because it is fundamentally an end-to-end test of the explorer app and `playwright` is an explorer devDependency — the same reasoning that puts the Vitest suite in `explorer/tests/`. Node module resolution then finds `playwright` in `explorer/node_modules` with no path gymnastics.
 
-### The manifest (`tutorials.ts`)
+### Manifest entry shape
 
 Each entry is plain data the driver interprets — no per-tutorial imperative code:
 
@@ -172,7 +188,7 @@ Exit code is non-zero if any assertion fails, so the same invocation doubles as 
 
 ## Extending it
 
-Add an `Entry` to `tutorials.ts`. Example shapes:
+Add an `Entry` to the manifest matching its purpose — `capturesExplorer.ts` for a MANUAL.md illustration, `capturesDesigner.ts` for a MANUAL_DESIGNER.md illustration, or `smokes.ts` for a transient regression-only check. Example shapes:
 
 ```ts
 // scrub-freeze a deterministic VARI frame (Tutorial 4)
@@ -193,7 +209,7 @@ Add an `Entry` to `tutorials.ts`. Example shapes:
   shot: { clip: "#abCanvas", file: "docs/img/manual/tut-08-ab-diff.png" } },
 ```
 
-If a tutorial needs an action the vocabulary can't express, add a new `Step`/`Assert` variant in `tutorials.ts` and a handler branch in `capture.ts` — keep handlers generic (selector-driven), never tutorial-specific.
+If an entry needs an action the vocabulary can't express, add a new `Step`/`Assert` variant in `manifest.ts` (the shared types) and a handler branch in `capture.ts` — keep handlers generic (selector-driven), never tutorial- or feature-specific.
 
 ## Remaining work
 

@@ -148,8 +148,11 @@ explorer/
         └── robotron_1A_scream.json # SCREAM regression fixture (Step 5.1, first 1 s)
 └── e2e/                            # Playwright capture harness — local maintainer tool (docs/web-capture.md)
     ├── lib.ts                      # shared primitives (launch, boot, selectGame, runStep, canvasRange)
-    ├── tutorials.ts                # manifest: 12 tutorial + 5 engine-showcase entries
-    ├── capture.ts                  # verify each click-path + clip its panel → docs/img/manual/
+    ├── manifest.ts                 # shared types (Entry/Step/Assert/Shot) + selector helpers
+    ├── capturesExplorer.ts         # MANUAL.md illustrations: 12 tutorials + 5 engine-showcase + 3 UI tour
+    ├── capturesDesigner.ts         # MANUAL_DESIGNER.md illustrations: Designer flows
+    ├── smokes.ts                   # transient regression-only flows (no shipping screenshots)
+    ├── capture.ts                  # driver — `capture.ts <manifest>[:<id-substring>]`
     └── readme.ts                   # README hero PNG + demo GIF → docs/img/readme/
 ```
 

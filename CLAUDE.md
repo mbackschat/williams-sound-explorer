@@ -73,7 +73,9 @@ cd explorer && npm run typecheck                       # strict typecheck — fu
 cd explorer && npm run dev                             # Vite dev server → http://localhost:5173
 cd explorer && npm run build                           # production bundle → explorer/dist
 npx tsx tools/render_sound.ts defender 0x11 out/x.wav  # render any sound → WAV
-cd explorer && npx tsx e2e/capture.ts                  # verify every tutorial + (re)shoot MANUAL screenshots (needs dev:roms + dev server; docs/web-capture.md)
+cd explorer && npx tsx e2e/capture.ts                  # verify + (re)shoot every MANUAL/MANUAL_DESIGNER illustration (needs dev:roms + dev server; docs/web-capture.md)
+cd explorer && npx tsx e2e/capture.ts designer         # filter to one manifest (explorer | designer | smokes); `designer:gwave` filters within
+cd explorer && npx tsx e2e/capture.ts <id-substring>   # legacy: scan every manifest for matching ids
 cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README hero + demo GIF
 ```
 
@@ -108,4 +110,5 @@ cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README he
 - **Defender II = Stargate** — same game, different release name.
 - **Robotron's arcade ROM has no PCM speech** — it's all algorithmic synthesis.
 - **Test thoroughly**: every non-trivial change covers happy path + edge cases + invariants + negative cases. The golden DAC fixture (`explorer/tests/golden/defender_11_lite.json`) is the regression gate.
+- **Don't emit throwaway `smoke-*.ts` Playwright scripts — add an entry to the `explorer/e2e/` capture manifests instead.** Three manifests partition by purpose: `capturesExplorer.ts` (illustrations for `MANUAL.md`), `capturesDesigner.ts` (illustrations for `MANUAL_DESIGNER.md`), and `smokes.ts` (transient regression checks — no shipping screenshots; entries get deleted when their feature ships). Each entry verifies a click-path *and* produces an artefact, so it survives review. Chaining `cat > smoke-foo.ts && npx tsx … && rm` in a single Bash call leaves the harness wrapper shell hanging around between turns (the inner `rm` doesn't reap the outer shell) and produces no lasting artefact — every smoke run leaks a process. Run a single manifest with `npx tsx e2e/capture.ts <name>`; filter within one with `<name>:<id-substring>`.
 - **Bulk corpus freshness**: the WAV corpus at `out/corpus/{game}/{XX_ROUTINE}.wav` is *not* a regression gate (the golden DAC fixtures are). It's a *convenience artefact* — a browsable library of every sound, refreshed on demand.  It can quietly drift out of sync with the emulator as the codebase evolves.  Re-run `tools/refresh_corpus.sh` after any of: (a) the ROM binaries change; (b) edits to `explorer/src/engine/*` (`runner.ts`, `realtimeRunner.ts`, …) / `node/runnerNode.ts` / `cpu/*` / `synth/*` / `board/*`; (c) edits to `tools/render_all.ts` itself; (d) new command codes added to the glossary.  The script accepts a single-game arg (e.g. `tools/refresh_corpus.sh defender`) for quick partial refresh.  The full sweep takes ~30 s.

@@ -7,7 +7,7 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { resolve } from "node:path";
 
-import type { Step, GameKind } from "./tutorials.ts";
+import type { Step, GameKind } from "./manifest.ts";
 
 export const BASE_URL = process.env.CAPTURE_URL ?? "http://localhost:5173";
 export const REPO_ROOT = resolve(import.meta.dirname, "../.."); // explorer/e2e → repo root
@@ -40,10 +40,12 @@ export async function selectGame(page: Page, game: GameKind): Promise<void> {
   // auto-inits Defender on load; while a game loads every switcher button is
   // disabled, and the active game's button stays disabled as a no-op self-click.
   // To avoid the startup race (a brief enabled-but-not-yet-active window before
-  // auto-init disables the buttons), first wait until *some* game has settled
-  // active-and-not-loading (= auto-init finished), then only click if the target
-  // isn't already that game.
-  await page.waitForSelector(`#gameSwitcher button[data-game].active:not(.loading)`, {
+  // auto-init disables the buttons), first wait until *some* button in the
+  // switcher has settled active-and-not-loading (= auto-init finished).  We
+  // accept ANY active button here — when a Designer-mode audition is running
+  // the dynamic `.game-pick-custom` entry is `.active` and no base-game button
+  // is — so we wait on `button.active`, not `button[data-game].active`.
+  await page.waitForSelector(`#gameSwitcher button.active:not(.loading)`, {
     timeout: READY_TIMEOUT,
   });
   const sel = `#gameSwitcher button[data-game="${game}"]`;
