@@ -91,6 +91,14 @@ async function checkAssert(page: Page, a: Assert): Promise<string | null> {
     const has = await page.locator(sel).evaluate((el, c) => el.classList.contains(c), cls);
     return has ? null : `${sel} missing class "${cls}"`;
   }
+  if ("disabled" in a) {
+    // Buttons/inputs only — reads the live `disabled` property, not the
+    // attribute (jsdom-style attribute reads can lie for properties set via
+    // JS).  Useful for asserting a Reset-style control returned to idle.
+    const sel = a.disabled;
+    const isDisabled = await page.locator(sel).evaluate((el) => (el as HTMLButtonElement).disabled === true);
+    return isDisabled ? null : `${sel} is enabled (expected disabled)`;
+  }
   if ("markerCountAtLeast" in a) {
     const n = await page.locator("#scrubMarkers > *").count();
     return n >= a.markerCountAtLeast ? null : `#scrubMarkers has ${n}, expected ≥ ${a.markerCountAtLeast}`;

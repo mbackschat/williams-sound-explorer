@@ -125,4 +125,60 @@ export const entries: Entry[] = [
     assert: [{ canvasNonBlank: ".designer-scope" }],
     shot: { clip: "#designer-root", file: img("designer-gwave-added-waveform") },
   },
+
+  // Designer polish: "↻ Reset record" reverts a tweaked VARI slot's record
+  // to its start bytes.  Smoke walks: copy SAW → tweak slider → click Reset
+  // → assert status line confirms the revert + audition still renders.
+  {
+    id: "designer-vari-reset-record",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { select: [".designer-copy", "0"] },           // copy Defender SAW → first slot
+      { waitMs: 600 },
+      // Drag the first VARI slider away from the start record — `fill` works
+      // on range inputs the same way (`.value = X` + `input` event).
+      { fill: [".designer-fields .param-row:nth-child(1) .param-slider", "200"] },
+      { waitMs: 250 },
+      { click: ".designer-record-reset" },           // ↻ Reset record
+      { waitMs: 600 },
+    ],
+    // After Reset, the button is disabled again (record === start), and the
+    // scope replays from the start record.  Together: the reset path is
+    // wired end-to-end.  (The auto-replay's "Edited — N ms." overwrites the
+    // transient "Reverted" status message ~130 ms after the click, so we
+    // check the button state, not the status text.)
+    assert: [
+      { disabled: ".designer-record-reset" },
+      { canvasNonBlank: ".designer-scope" },
+    ],
+    shot: { clip: "#designer-root", file: img("designer-vari-reset-record") },
+  },
+
+  // Designer polish: × Remove drops a user-added waveform and re-clamps any
+  // slot's WAVE# that pointed at it (back to stock $06).  Click-path also
+  // verifies the ROM-space indicator stays present + the project recovers.
+  // (No shipped illustration — purely a regression smoke for the polish pass.)
+  {
+    id: "designer-gwave-remove-waveform",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { select: [".designer-gwave-override", "5"] }, // override BBSV
+      { waitMs: 600 },
+      { click: ".designer-wfcanvas-add" },           // + New waveform → idx 7
+      { waitMs: 600 },
+      { click: ".designer-wfcanvas-remove" },        // × Remove
+      { waitMs: 600 },
+    ],
+    // The slot survives, the ROM-space indicator is still drawn, and the
+    // scope still renders (we're back on a stock-pointed BBSV).
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      { hasClass: [".designer-rom-space", "designer-bar-label"] },
+    ],
+    shot: { clip: "#designer-root", file: img("designer-gwave-remove-waveform") },
+  },
 ];

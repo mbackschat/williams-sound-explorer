@@ -226,6 +226,26 @@ Beyond the 7 stock waveforms, a project can carry up to **9 user-added waveforms
 - When relocated, **only `LDX #GWVTAB`'s operand changes** (one instruction patched); SVTAB, GFRTAB, and every other ROM pointer are untouched.
 - VVECT extension still works alongside relocation (rows-required + new-GWVTAB-size budget checked together — the builder throws cleanly when both want to grow beyond the free region).
 
+## Phase 5b polish — × Remove + ROM-space indicator + ↻ Reset record (shipped 2026-05-28)
+
+Three follow-ups on Phase 5b closing the add/edit/remove triad, surfacing the layout budget *before* a build throws, and adding a commit-able revert for the parameter record:
+
+**× Remove waveform** — a per-added-wave button next to **Reset to stock** and **+ New waveform** in the waveform-canvas panel. Visible only when the canvas is on a user-added idx (≥ 7); hidden on stock waves where Reset already covers "undo my edit". The headless half is `reclampWaveformIdxAfterRemoval(record, removedIdx)` in `engine/gwaveEdit.ts` — pure SVTAB-byte-1 nybble math used to fix up every GWAVE slot whose `WAVE#` pointed at the dropped entry:
+
+| Slot's `WAVE#` was… | After removing idx `R` |
+|---|---|
+| `== R` | reset to stock `$06` (last stock; safe default) |
+| `> R`  | decremented by 1 (entries above `R` shift down) |
+| `< R`  | untouched |
+
+Status line reports "Removed user-added waveform idx N. K slots re-clamped." so the user sees the cascade without surprise. **+6 tests** in `gwaveEdit.test.ts` (at-/above-/below-the-removed-idx, immutability, stock-idx rejection, malformed record).
+
+**ROM-space indicator** — `· ROM X/Y B (N free)` shown next to the `(VARI N/M)` item count in the items-section header. `data-state` drives the colour: **ok** (≥ 20 B free), **tight** (< 20 B), **over** (the build will throw "Won't fit"). Tooltip carries the byte-by-byte detail (VVECT extent + relocated GWVTAB or just VVECT when no added waveforms). The math is `computeBudget(game, slots, options)` in `engine/customRom.ts` — same arithmetic the "Won't fit" guard uses, factored into a pure function so the indicator and the error stay in lockstep. **+6 tests** in `customRom.test.ts` (per-game free regions, empty floor, VARI extent, relocated GWVTAB, overrun reporting, agreement with `buildCustomRom`'s guard).
+
+**↻ Reset record** — a compact button at the right end of the editor's label row (works for both VARI and GWAVE; both slot shapes already carry `{ record, start }`). Clicking it does `slot.record = [...slot.start]`, pushes the start bytes back into the active editor via `setRecord`, and fires `onEditorChange` so the auto-replay + scope refresh kick in. Disabled when `record === start` so the row stays calm until you actually edit; refreshed on every editor change and slot select. Owned by `designerMode.ts` (single button + handler covers both kinds via the shared label row); no separate editor API additions. Distinct from the per-canvas **Reset to stock** buttons — *those* clear `waveformOverrides[idx]` or `patternOverrides[offset]`; **↻ Reset record** only touches the slot's slider bytes. Capture smoke `designer-vari-reset-record` exercises the copy → tweak → reset round-trip and asserts the button disables on Reset (`disabled` is a new manifest assertion type in `e2e/manifest.ts`).
+
+Together: **+12 tests**, 532 total. Capture entries `designer-gwave-remove-waveform` (Add → Remove → re-clamp) and `designer-vari-reset-record` (tweak → Reset → disabled).
+
 ## Fast-follows (not yet built)
 
 - **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.

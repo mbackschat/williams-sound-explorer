@@ -14,7 +14,7 @@
   <em>No install. You supply your own Williams sound ROMs (read in your browser, never uploaded), then explore the algorithms at slow motion. Works in Chrome and Firefox.</em>
 </p>
 
-![status](https://img.shields.io/badge/status-feature--complete-brightgreen) ![tests](https://img.shields.io/badge/tests-422%20%2F%20422-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Run in browser](https://img.shields.io/badge/run-in%20browser-blueviolet)](https://mbackschat.github.io/williams-sound-explorer/)
+![status](https://img.shields.io/badge/status-feature--complete-brightgreen) ![tests](https://img.shields.io/badge/tests-532%20%2F%20532-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Run in browser](https://img.shields.io/badge/run-in%20browser-blueviolet)](https://mbackschat.github.io/williams-sound-explorer/)
 
 The **Williams Sound Explorer and Designer** (**WSED**) is a browser tool for the arcade **sound effects** of **Defender** (1980), **Stargate / Defender II** (1981), and **Robotron 2084** (1982). Every sound on those cabinets is a tiny program running on a Motorola 6802 that streams bytes to an 8-bit DAC. WSED emulates that sound CPU and makes the algorithms **visible** (oscilloscope, spectrogram, DAC byte-tape, per-engine state, RAM heatmap) and **audible** at human-scale time — from 1× down to single-instruction stepping — and lets you **design your own** sounds (Design mode). Drive it by mouse or keyboard — `Space` fires, `1`–`4` set speed, `←/→` scrub or single-step, `G` cycles game, and `?` lists every shortcut.
 

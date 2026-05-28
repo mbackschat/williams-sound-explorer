@@ -17,8 +17,8 @@ import type { GameKind } from "../../board/soundboard.ts";
 import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
-import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH } from "../../engine/gwaveEdit.ts";
-import { buildCustomRom, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
+import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH, reclampWaveformIdxAfterRemoval } from "../../engine/gwaveEdit.ts";
+import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
   type CustomProject, type CustomSlot,
@@ -158,6 +158,11 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Item list ──────────────────────────────────────────────────────────
   const itemList = el("div", { className: "designer-items" });
   const itemCount = el("span", { className: "designer-bar-label" });
+  // ROM-space indicator — shows how many free-region bytes the current
+  // project would consume in the relocated layout.  Live readout so users
+  // see the headroom *before* they hit "+ New waveform" and discover via a
+  // "Won't fit" error.  `data-state` drives the colour: ok / tight / over.
+  const romSpace = el("span", { className: "designer-bar-label designer-rom-space" });
   const addNewBtn = el("button", { textContent: "+ New VARI", title: "Add a new VARI sound at the next free command code (seeded from the base game's SAW)." });
   const copySelect = el("select", { className: "designer-copy", title: "Copy a VARI sound from any loaded game as a starting point" });
   // GWAVE has no equivalent of VARI's mask widen — you can only override an
@@ -167,6 +172,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const gwaveOverrideSelect = el("select", { className: "designer-gwave-override", title: "Override an existing GWAVE command in place (its 7-byte SVTAB record becomes editable)." });
   const itemsSection = el("div", { className: "designer-section designer-items-head" }, [
     el("span", { className: "designer-bar-label", textContent: "Your sounds" }), itemCount,
+    romSpace,
     el("span", { className: "sep" }), addNewBtn,
     el("span", { className: "designer-bar-label", textContent: "Copy VARI:" }), copySelect,
     el("span", { className: "sep" }),
@@ -199,10 +205,11 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     },
     (idx) => {
       // "Reset to stock" only meaningful for stock idx (clears an override).
-      // For added waves (idx ≥ 7) there's no stock to revert to — this is a
-      // no-op today (could become "remove this waveform" in a v-future).
+      // For added waves (idx ≥ 7) there's no stock to revert to; the editor
+      // hides the Reset button there in favour of "× Remove" (handled below).
+      // This guard is the defensive belt for direct programmatic invocations.
       if (idx > 6) {
-        status("Added waveforms have no stock to revert to (use a stock idx 0..6 or remove via /reset… coming soon).", "");
+        status("Added waveforms have no stock to revert to — use × Remove to drop the waveform.", "");
         return;
       }
       if (project.waveformOverrides) {
@@ -272,6 +279,41 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       scheduleAutoReplay();
       status(`Added waveform idx ${newIdx} (${seed.length} bytes) — edit via the canvas.`, "ok");
     },
+    // "× Remove" handler: drop a user-added waveform from the project and
+    // re-clamp every GWAVE slot whose WAVE# nybble pointed at it (or at a
+    // higher idx that's now shifted down).  Stock waves (idx ≤ 6) can't be
+    // removed — `gwaveEditor` hides the button there, but we still guard.
+    (idx) => {
+      if (idx < 7) return;
+      const addedSlot = idx - 7;
+      if (!project.addedWaveforms || addedSlot >= project.addedWaveforms.length) return;
+      project.addedWaveforms.splice(addedSlot, 1);
+      if (project.addedWaveforms.length === 0) delete project.addedWaveforms;
+      // Re-clamp every GWAVE slot's WAVE# field — see
+      // `reclampWaveformIdxAfterRemoval` (headless, in `engine/gwaveEdit.ts`)
+      // for the at/above/below rules.
+      let touchedSlots = 0;
+      for (const s of project.slots) {
+        if (s.kind !== "gwave") continue;
+        const next = reclampWaveformIdxAfterRemoval(s.record, idx);
+        if (next[1] !== s.record[1]) {
+          s.record = next;
+          touchedSlots++;
+        }
+      }
+      touch();
+      // If the user was sitting on a GWAVE slot, push the re-clamped record
+      // back into the editor so the WAVE# slider readout matches.
+      const cur = project.slots[selected];
+      if (cur && cur.kind === "gwave") gwaveEditor.setRecord(cur.record);
+      refreshGwaveEditorLimits();
+      refreshWaveformCanvas();
+      scheduleAutoReplay();
+      const tail = touchedSlots > 0
+        ? ` ${touchedSlots} slot${touchedSlots === 1 ? "" : "s"} re-clamped.`
+        : "";
+      status(`Removed user-added waveform idx ${idx}.${tail}`, "ok");
+    },
   );
   // The sliders column contains *both* editors' slider panels (VARI + GWAVE);
   // only one is visible at a time depending on the selected slot's kind.
@@ -283,8 +325,23 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   gwaveEditor.waveformPanelEl.style.display = "none";
   gwaveEditor.patternPanelEl.style.display = "none";
 
-  /** Editor label that switches with the selected slot's kind. */
-  const editorLabel = el("div", { className: "designer-edit-label", textContent: "Parameter record (VVECT — VARI)" });
+  /**
+   * Editor label row — switches with the selected slot's kind and carries a
+   * "↻ Reset record" button.  The button reverts the slot's record to its
+   * `start` bytes (what was copied/created when the slot was added — also
+   * the reference the Source: Edited│Start toggle plays).  It's disabled
+   * when the record already equals start, so the row stays calm until you
+   * actually edit.  Works for both VARI and GWAVE since both editors share
+   * the slot-shape `{ record, start }`.
+   */
+  const editorLabelText = el("span", { textContent: "Parameter record (VVECT — VARI)" });
+  const recordResetBtn = el("button", {
+    className: "designer-record-reset",
+    textContent: "↻ Reset record",
+    disabled: true,
+    title: "Revert this slot's parameter record (the slider values) to its starting bytes — what was copied/created when the slot was added. Doesn't affect waveform/pattern overrides, which have their own per-canvas Reset.",
+  });
+  const editorLabel = el("div", { className: "designer-edit-label" }, [editorLabelText, recordResetBtn]);
 
   // The 3-column grid for the editor body.  CSS sizes the columns differently
   // per slot kind: `vari` shows only the sliders column; `gwave` shows
@@ -300,10 +357,38 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     gwaveEditor.patternPanelEl.style.display = kind === "gwave" ? "" : "none";
     editRow.classList.toggle("designer-edit-row-vari", kind === "vari");
     editRow.classList.toggle("designer-edit-row-gwave", kind === "gwave");
-    editorLabel.textContent = kind === "vari"
+    editorLabelText.textContent = kind === "vari"
       ? "Parameter record (VVECT — VARI)"
       : "Parameter record (SVTAB — GWAVE override)";
   }
+
+  /** Same length + every byte equal — used to gate the "↻ Reset record" button. */
+  function recordsEqual(a: number[] | undefined, b: number[] | undefined): boolean {
+    if (!a || !b || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  /** Enable/disable the "↻ Reset record" button by comparing record to start. */
+  function refreshRecordResetState(): void {
+    const slot = project.slots[selected];
+    recordResetBtn.disabled = !slot || recordsEqual(slot.record, slot.start);
+  }
+
+  recordResetBtn.addEventListener("click", () => {
+    const slot = project.slots[selected];
+    if (!slot || recordsEqual(slot.record, slot.start)) return;
+    // Push the start bytes back into the slot AND into the active editor's
+    // sliders so the UI follows.  onEditorChange below would re-source to
+    // "edited" and schedule the replay — we want both, since the user
+    // expects to hear the just-reverted record.
+    slot.record = [...slot.start];
+    const ed = slot.kind === "vari" ? variEditor : gwaveEditor;
+    ed.setRecord(slot.record);
+    if (slot.kind === "gwave") { refreshWaveformCanvas(); refreshPatternCanvas(); }
+    onEditorChange(slot.record);
+    status(`Reverted ${slot.name || "(unnamed)"} to its starting record.`, "ok");
+  });
 
   const playBtn = el("button", { className: "designer-play", textContent: "▶ Play", title: "Play the selected sound from the top." });
   const pauseBtn = el("button", { textContent: "⏸ Pause", title: "Pause / resume playback.", disabled: true });
@@ -482,6 +567,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       itemList.append(el("div", { className: "designer-empty", textContent: "No sounds yet — “+ New VARI” / “Copy VARI:” / “Override GWAVE:” to add one." }));
     }
     refreshGwaveOverrideOptions();
+    refreshRomBudget();
   }
 
   /** Populate the GWAVE override dropdown, greying out commands already overridden. */
@@ -500,7 +586,37 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     gwaveOverrideSelect.value = "";
   }
 
-  const touch = (): void => { project.updatedAt = Date.now(); };
+  const touch = (): void => { project.updatedAt = Date.now(); refreshRomBudget(); };
+
+  /**
+   * Recompute the "Custom ROM X/Y bytes" indicator from the project's current
+   * state.  Pure (no `baseRom` needed) — `computeBudget` mirrors the same
+   * arithmetic `buildCustomRom` uses for its overrun guard.  Three visual
+   * states drive the colour via `data-state`:
+   *
+   *   ok    — comfortable headroom (≥ 20 bytes free).
+   *   tight — < 20 free bytes; "+ New waveform" may not fit.
+   *   over  — already over (a build will throw "Won't fit").
+   */
+  function refreshRomBudget(): void {
+    const b = computeBudget(project.engineBase, toRomSlots(project.slots), {
+      waveformOverrides: project.waveformOverrides,
+      patternOverrides: project.patternOverrides,
+      addedWaveforms: project.addedWaveforms,
+    });
+    const headroom = b.freeRegion - b.used;
+    const state = b.overrun > 0 ? "over" : headroom < 20 ? "tight" : "ok";
+    romSpace.dataset.state = state;
+    if (b.overrun > 0) {
+      romSpace.textContent = `· ROM ${b.used}/${b.freeRegion} B (${b.overrun} over)`;
+    } else {
+      romSpace.textContent = `· ROM ${b.used}/${b.freeRegion} B (${headroom} free)`;
+    }
+    const detail = b.relocated
+      ? `VVECT ${b.vvectBytes} B + relocated GWVTAB ${b.gwvtabBytes} B = ${b.used} B in the free region.`
+      : `VVECT extent ${b.vvectBytes} B in the ${b.freeRegion} B free region. Adding new waveforms relocates GWVTAB into this region.`;
+    romSpace.title = `Custom ROM space (between VVECT and original GWVTAB): ${b.freeRegion} bytes total.\n${detail}`;
+  }
 
   function selectSlot(i: number): void {
     stopPlayback(); clearTimeout(autoReplayTimer);
@@ -513,6 +629,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     }
     refreshItemList();
     setControlsEnabled(baseRom != null);
+    refreshRecordResetState();
     if (slot && baseRom) redrawScope();
   }
 
@@ -639,6 +756,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     slot.record = rec;
     touch();
     source = "edited"; updateSourceUi();
+    refreshRecordResetState();
     scheduleAutoReplay();
   }
 

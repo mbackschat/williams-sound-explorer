@@ -76,6 +76,13 @@ export function buildGWaveEditor(
   onPatternDraw: (offset: number, bytes: number[]) => void,
   onPatternReset: (offset: number) => void,
   onAddWaveform: () => void,
+  /**
+   * "× Remove" for user-added waveforms (idx ≥ 7).  Drops the waveform from
+   * `addedWaveforms` and re-clamps any slot whose WAVE# pointed at that idx
+   * (or at a higher idx that just shifted down).  Stock waves (idx ≤ 6)
+   * cannot be removed; the host disables Remove for those.
+   */
+  onWaveformRemove: (idx: number) => void,
 ): GWaveEditorApi {
   let record: number[] = new Array(7).fill(0);
 
@@ -167,9 +174,19 @@ export function buildGWaveEditor(
   addWaveBtn.title = `Add a new ${DEFAULT_NEW_WAVE_LENGTH}-byte waveform to the project. Custom ROM relocates GWVTAB and switches this slot's WAVE# to the new index. Costs ~${DEFAULT_NEW_WAVE_LENGTH + 1} bytes of free ROM space.`;
   addWaveBtn.addEventListener("click", () => onAddWaveform());
 
+  // "× Remove" — only meaningful for user-added waves (idx ≥ 7).  Stock
+  // waves can't be removed (Reset-to-stock covers the "undo my edit" case).
+  // The host's handler does the index re-clamping for any slot whose WAVE#
+  // pointed at the removed entry or above.
+  const removeWaveBtn = document.createElement("button");
+  removeWaveBtn.className = "designer-wfcanvas-remove";
+  removeWaveBtn.textContent = "× Remove";
+  removeWaveBtn.title = "Remove this user-added waveform from the project. Slots that pointed at it reset to stock $06 (last stock wave); slots that pointed at a higher idx shift down by 1.";
+  removeWaveBtn.addEventListener("click", () => onWaveformRemove(currentWaveIdx()));
+
   const wfButtons = document.createElement("div");
   wfButtons.className = "designer-wfcanvas-btns";
-  wfButtons.append(resetBtn, addWaveBtn);
+  wfButtons.append(resetBtn, removeWaveBtn, addWaveBtn);
 
   canvasHost.append(canvasLabel, canvas, sharedRow, wfButtons);
   // `canvasHost` is now `waveformPanelEl` (column 2 of the GWAVE edit row).
@@ -247,10 +264,16 @@ export function buildGWaveEditor(
     // surfaced a confusing message after the user clicked it).
     if (!isStock) {
       resetBtn.disabled = true;
-      resetBtn.title = "User-added waveforms have no stock to revert to (remove the waveform via a future v-future control).";
+      resetBtn.title = "User-added waveforms have no stock to revert to — use × Remove to drop the waveform entirely.";
+      removeWaveBtn.style.display = "";
+      removeWaveBtn.disabled = false;
     } else {
       resetBtn.disabled = !isOverridden;
       resetBtn.title = "Revert this waveform's bytes to the base ROM's original (clears the project's override for this WAVE#). Only applies to stock waves 0..6.";
+      // Stock waves can't be removed; hide × Remove so the button row reads
+      // as a stock-specific control set (Reset only).
+      removeWaveBtn.style.display = "none";
+      removeWaveBtn.disabled = true;
     }
     // "Shared by" — every editable GWAVE command that points at this idx via
     // its SVTAB byte-1 low nybble.  The user's current edit affects all of

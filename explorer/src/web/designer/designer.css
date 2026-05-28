@@ -78,7 +78,25 @@
 .designer-edit-label {
   font-size: 0.72rem; color: #a9dc76; text-transform: uppercase;
   letter-spacing: 0.05em; margin-bottom: 0.4rem;
+  /* Editor label rows hold the title + optional inline buttons (e.g.
+     "↻ Reset record") at the right end.  Flex so the button stays on the
+     same line and aligns vertically with the label text. */
+  display: flex; align-items: center; gap: 0.5rem;
 }
+/* "↻ Reset record" — reverts the slot's parameter record to its start bytes.
+   Compact secondary button; tones with the panel border, not loud, since it
+   sits in the editor label row of every edit.  Sits immediately to the right
+   of the label text (the parent's `gap: 0.5rem` does the spacing) so it's
+   visually attached to the heading it modifies — not pushed to the far end
+   of the row, which made it read as a header-bar control instead. */
+.designer-record-reset {
+  background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
+  color: #d1d4dc; font: inherit; font-size: 0.72rem;
+  padding: 0.15rem 0.5rem; cursor: pointer;
+  text-transform: none; letter-spacing: 0;
+}
+.designer-record-reset:hover:not(:disabled) { background: #2a2f37; }
+.designer-record-reset:disabled { opacity: 0.4; cursor: not-allowed; }
 .designer-edit-sliders-col {
   background: #11141a; border: 1px solid #2a2f37; border-radius: 4px;
   padding: 0.5rem 0.7rem;
@@ -232,6 +250,22 @@
 }
 .designer-wfcanvas-add:hover:not(:disabled) { background: #2c2440; border-color: #b78ff5; color: #e8dcff; }
 .designer-wfcanvas-add:disabled { opacity: 0.4; cursor: not-allowed; }
+/* "× Remove" — shown only when the canvas is on a user-added wave (idx ≥ 7).
+   Subtle warning hue so the action reads as destructive but not alarming. */
+.designer-wfcanvas-remove {
+  background: #1a1d24; border: 1px solid #6b3a3a; border-radius: 4px;
+  color: #e3b6b6; font: inherit; font-size: 0.78rem;
+  padding: 0.25rem 0.6rem; cursor: pointer;
+}
+.designer-wfcanvas-remove:hover:not(:disabled) { background: #2c1c1c; border-color: #c97676; color: #ffd6d6; }
+.designer-wfcanvas-remove:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ROM-space indicator — sits next to the (VARI N/M) item count in the
+   items-section header.  Three colour states make the headroom legible
+   at a glance; the tooltip carries the byte-by-byte detail. */
+.designer-rom-space[data-state="ok"]    { color: #abafb6; }
+.designer-rom-space[data-state="tight"] { color: #e8c46c; }
+.designer-rom-space[data-state="over"]  { color: #e57a7a; font-weight: 600; }
 
 /* Pitch-pattern canvas (Phase 5 step 3) — sibling column to the waveform
    canvas in the 3-column GWAVE edit row.  Teal bars (vs purple waveform)

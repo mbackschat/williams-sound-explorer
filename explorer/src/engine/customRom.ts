@@ -84,6 +84,74 @@ export function maxSlots(game: GameKind): number {
   return spec.capacityRows;
 }
 
+/**
+ * The ROM-byte budget the Designer surfaces in its header.  Returns the
+ * footprint the project's VVECT extent + (relocated) GWVTAB would consume
+ * inside the free region (`GWVTAB_BASE − VVECT_BASE`).
+ *
+ *  - When `addedWaveforms.length === 0`, GWVTAB stays at its base address and
+ *    only the **VVECT extent** lives inside the free region (min 27 = 3 stock
+ *    rows; grows to `(maxRow+1)*9` when VARI slots push it).  Pure GWAVE
+ *    overrides + stock-waveform overrides don't consume free-region bytes —
+ *    they patch in place.
+ *  - When `addedWaveforms.length > 0`, the build relocates GWVTAB right after
+ *    the VVECT extent; **used = vvectBytes + gwvtabBytes**.  Adding a new
+ *    16-byte waveform costs 17 bytes (1 length + 16 samples).
+ *
+ * Mirrors the exact arithmetic in `buildCustomRom` so the indicator and the
+ * "Won't fit" error stay in lockstep.  Pure (no ROM bytes touched, no
+ * `baseRom` needed) → cheap to call after every project mutation.
+ */
+export interface RomBudget {
+  /** Bytes from `VVECT_BASE` to the original `GWVTAB_BASE` — the free region a relocated GWVTAB can grow into. */
+  freeRegion: number;
+  /** Bytes the project's VVECT extent occupies (min 27 = 3 stock rows). */
+  vvectBytes: number;
+  /** Bytes the relocated GWVTAB occupies (0 when `addedWaveforms` is empty — GWVTAB stays at base). */
+  gwvtabBytes: number;
+  /** Total free-region bytes the project consumes (`vvectBytes + gwvtabBytes`). */
+  used: number;
+  /** Whether the build will relocate GWVTAB (i.e. the project added one or more waveforms). */
+  relocated: boolean;
+  /** Bytes over the free region (`> 0` → "Won't fit"); negative or zero means it fits. */
+  overrun: number;
+}
+
+export function computeBudget(
+  game: GameKind,
+  slots: CustomSlot[],
+  options: BuildOptions = {},
+): RomBudget {
+  const addedWaveforms = options.addedWaveforms ?? [];
+  const variSlots = slots.filter((s): s is VariSlot => s.kind === "vari");
+
+  // VVECT extent — 27 bytes floor (3 stock rows), grows with VARI slots.
+  let vvectBytes = 27;
+  if (variSlots.length > 0) {
+    const maxRow = Math.max(...variSlots.map((s) => s.code - VARI_CMD_BASE));
+    vvectBytes = Math.max(vvectBytes, (maxRow + 1) * VVECT_STRIDE);
+  }
+
+  // GWVTAB only consumes free-region bytes when relocated.  Same shape as
+  // `buildExtendedGwvtab`: stock 159 + Σ(1 + samples.length) per added wave.
+  let gwvtabBytes = 0;
+  if (addedWaveforms.length > 0) {
+    gwvtabBytes = 159;
+    for (const wave of addedWaveforms) gwvtabBytes += 1 + wave.length;
+  }
+
+  const freeRegion = GWVTAB_BASE[game] - VVECT_BASE[game];
+  const used = vvectBytes + gwvtabBytes;
+  return {
+    freeRegion,
+    vvectBytes,
+    gwvtabBytes,
+    used,
+    relocated: addedWaveforms.length > 0,
+    overrun: used - freeRegion,
+  };
+}
+
 /** ROM occupies the top of the 64K space (vectors at $FFFE/$FFFF). */
 function romBase(rom: Uint8Array): number {
   return 0x10000 - rom.length;

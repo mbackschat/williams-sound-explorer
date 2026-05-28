@@ -42,6 +42,7 @@ import {
   setField,
   buildExtendedGwvtab,
   extendedGwvtabSize,
+  reclampWaveformIdxAfterRemoval,
 } from "../src/engine/gwaveEdit.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -582,6 +583,57 @@ describe("buildExtendedGwvtab", () => {
     expect(() => buildExtendedGwvtab(rom, "defender", {}, [[]])).toThrow(/1\.\.255/);
     expect(() => buildExtendedGwvtab(rom, "defender", {}, [Array.from({ length: 256 }, () => 0)])).toThrow(/1\.\.255/);
     expect(() => buildExtendedGwvtab(rom, "defender", {}, [[0, 0, 256]])).toThrow(/range/i);
+  });
+});
+
+describe("reclampWaveformIdxAfterRemoval — slot WAVE# re-clamp on × Remove", () => {
+  // SVTAB byte 1 packs `GECDEC` in the high nybble and `WAVE#` in the low.
+  // `removedIdx` must be ≥ 7 (only user-added waves are removable).  The
+  // function preserves the GECDEC hi-nybble and only rewrites the low nybble.
+  const mkRecord = (waveIdx: number, gecdec = 0xA): number[] =>
+    [0x00, (gecdec << 4) | (waveIdx & 0x0F), 0, 0, 0, 0, 0];
+
+  it("a slot pointing AT the removed idx resets to stock $06", () => {
+    const before = mkRecord(8);
+    const after = reclampWaveformIdxAfterRemoval(before, 8);
+    expect(after[1]! & 0x0F).toBe(6);
+    expect(after[1]! & 0xF0).toBe(0xA0); // GECDEC preserved
+  });
+
+  it("a slot pointing ABOVE the removed idx decrements by 1 (entries shift down)", () => {
+    const before = mkRecord(10);
+    const after = reclampWaveformIdxAfterRemoval(before, 8);
+    expect(after[1]! & 0x0F).toBe(9);
+    expect(after[1]! & 0xF0).toBe(0xA0);
+  });
+
+  it("a slot pointing BELOW the removed idx is untouched", () => {
+    const before = mkRecord(4);
+    const after = reclampWaveformIdxAfterRemoval(before, 8);
+    expect(after).toEqual(before);
+    // Stock idx 0..6 are always below any removable idx (≥7), so they're
+    // always preserved verbatim.
+    for (const stock of [0, 1, 2, 3, 4, 5, 6]) {
+      const rec = mkRecord(stock);
+      expect(reclampWaveformIdxAfterRemoval(rec, 7)).toEqual(rec);
+    }
+  });
+
+  it("does not mutate the input record", () => {
+    const before = mkRecord(8);
+    const snapshot = [...before];
+    const after = reclampWaveformIdxAfterRemoval(before, 8);
+    expect(before).toEqual(snapshot);
+    expect(after).not.toBe(before);
+  });
+
+  it("refuses to remove a stock idx (≤ 6) — stock waves aren't removable", () => {
+    expect(() => reclampWaveformIdxAfterRemoval(mkRecord(8), 6)).toThrow(/≥ 7/);
+    expect(() => reclampWaveformIdxAfterRemoval(mkRecord(8), 0)).toThrow(/≥ 7/);
+  });
+
+  it("rejects a malformed record (not 7 bytes)", () => {
+    expect(() => reclampWaveformIdxAfterRemoval([0, 0, 0], 7)).toThrow(/7 bytes/);
   });
 });
 

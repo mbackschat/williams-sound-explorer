@@ -486,3 +486,30 @@ export function extendedGwvtabSize(addedWaves: number[][]): number {
   for (const w of addedWaves) size += 1 + w.length;
   return size;
 }
+
+/**
+ * Adjust a GWAVE SVTAB record's `WAVE#` low-nybble after removing the
+ * user-added waveform at `removedIdx` (must be ≥ 7).
+ *
+ *   pointed AT `removedIdx` → reset to stock $06 (last stock; safe default).
+ *   pointed ABOVE           → decrement by 1 (entries above shifted down).
+ *   pointed BELOW           → untouched.
+ *
+ * Returns a new record (does not mutate input).  Caller is responsible for
+ * splicing `addedWaveforms` and re-applying this to every GWAVE slot in
+ * the project; the Designer's removal handler is the only call site today.
+ */
+export function reclampWaveformIdxAfterRemoval(record: number[], removedIdx: number): number[] {
+  if (removedIdx < 7) throw new Error(`reclampWaveformIdxAfterRemoval: removedIdx must be ≥ 7 (got ${removedIdx})`);
+  if (record.length !== SVTAB_STRIDE) throw new Error(`SVTAB record must be ${SVTAB_STRIDE} bytes (got ${record.length})`);
+  const b1 = record[1]!;
+  const w = b1 & 0x0F;
+  const hi = b1 & 0xF0;
+  let newW = w;
+  if (w === removedIdx) newW = 6;
+  else if (w > removedIdx) newW = w - 1;
+  if (newW === w) return [...record];
+  const out = [...record];
+  out[1] = hi | (newW & 0x0F);
+  return out;
+}

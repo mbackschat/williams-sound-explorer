@@ -26,7 +26,7 @@ import {
   GWVTAB_BASE, LDX_GWVTAB_LOC,
 } from "../src/engine/gwaveEdit.ts";
 import { VVECT_BASE } from "../src/engine/variEdit.ts";
-import { buildCustomRom, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
+import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
 const romPath = (g: string) => pathResolve(REPO, `public/roms/${g}_sound.bin`);
@@ -406,5 +406,67 @@ describe("Added waveforms (Phase 5 step 4) — GWVTAB relocation", () => {
     const base = loadRom("defender");
     const tenWaves = Array.from({ length: 10 }, () => TEST_WAVE_16);
     expect(() => buildCustomRom(base, "defender", [], { addedWaveforms: tenWaves })).toThrow(/9 added|nybble/i);
+  });
+});
+
+describe("computeBudget — Designer ROM-space indicator", () => {
+  // The free region matches `GWVTAB_BASE - VVECT_BASE` per game; we
+  // pin these as documented constants so the Designer's indicator and
+  // the builder's "Won't fit" math share one source of truth.
+  it("free region matches the documented per-game capacity", () => {
+    expect(computeBudget("defender", []).freeRegion).toBe(215);
+    expect(computeBudget("stargate", []).freeRegion).toBe(271);
+    expect(computeBudget("robotron", []).freeRegion).toBe(298);
+  });
+
+  it("empty project = 27-byte VVECT floor, GWVTAB not relocated, fits", () => {
+    const b = computeBudget("defender", []);
+    expect(b.vvectBytes).toBe(27);
+    expect(b.gwvtabBytes).toBe(0);
+    expect(b.used).toBe(27);
+    expect(b.relocated).toBe(false);
+    expect(b.overrun).toBeLessThan(0); // 27 - 215 = -188 free
+  });
+
+  it("VARI slots push VVECT extent: code $25 = row $08 → 81 B (3 stock floor only when ≤ 27 B)", () => {
+    const dummy = new Array(9).fill(0);
+    // Single slot at $25 → row $08 → (8+1)*9 = 81 B
+    const b = computeBudget("defender", [
+      { kind: "vari", code: 0x25, record: dummy },
+    ]);
+    expect(b.vvectBytes).toBe(81);
+    expect(b.used).toBe(81);
+    expect(b.relocated).toBe(false);
+  });
+
+  it("added waveforms relocate GWVTAB: 1×16-byte wave = 27 + 159 + 17 = 203 B on Defender", () => {
+    const wave16 = new Array(16).fill(0x80);
+    const b = computeBudget("defender", [], { addedWaveforms: [wave16] });
+    expect(b.vvectBytes).toBe(27);
+    expect(b.gwvtabBytes).toBe(159 + 17); // stock 159 + (1 length byte + 16 samples)
+    expect(b.used).toBe(203);
+    expect(b.relocated).toBe(true);
+    expect(b.overrun).toBe(203 - 215); // 12 bytes free
+  });
+
+  it("overruns are reported as positive `overrun`: 2×16-byte waves on Defender = 5 B over", () => {
+    const wave16 = new Array(16).fill(0x80);
+    const b = computeBudget("defender", [], { addedWaveforms: [wave16, wave16] });
+    // 27 + 159 + 17 + 17 = 220 vs 215 free region
+    expect(b.used).toBe(220);
+    expect(b.overrun).toBe(5);
+  });
+
+  it("matches buildCustomRom's free-region check: indicator agrees with the 'Won't fit' error", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const sawRec = readVariRecord(base, "defender", 0x1D);
+    const wave16 = new Array(16).fill(0x80);
+    // Configuration that throws: VARI $30 (row $13, VVECT 180 B) + 1 added wave (17 B) + stock GWVTAB (159 B).
+    const slots = [{ kind: "vari" as const, code: 0x30, record: sawRec }];
+    const opts = { addedWaveforms: [wave16] };
+    const b = computeBudget("defender", slots, opts);
+    expect(b.overrun).toBeGreaterThan(0);
+    expect(() => buildCustomRom(base, "defender", slots, opts)).toThrow(/over by/i);
   });
 });
