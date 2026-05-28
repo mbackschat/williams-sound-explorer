@@ -12,7 +12,13 @@
 .designer-transport {
   display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
 }
-.designer-bar { margin-bottom: 0.8rem; }
+/* Phase 6 UI fix: the bar holds 5 logical groups (Engine / Project / Open
+   / Recipe / ROM).  Each group is wrapped in `.designer-bar-group` so
+   `flex-wrap` breaks at group boundaries — never mid-group.  Wider gap
+   between groups (1.2rem) than inside a group (0.4rem) does the visual
+   separation that the old `.sep` dividers used to provide. */
+.designer-bar { margin-bottom: 0.8rem; gap: 0.5rem 1.2rem; }
+.designer-bar-group { display: flex; align-items: center; gap: 0.4rem; }
 .designer-bar-label { font-size: 0.8rem; color: #abafb6; }
 
 .designer-name {
@@ -151,9 +157,28 @@
 .designer-transport > button.designer-open-explore:hover:not(:disabled) {
   background: #2c2440; border-color: #b78ff5; color: #e8dcff;
 }
-/* Item list — the project's own sounds */
+/* Item list — the project's own sounds.  Phase 6 UI fix: laid out as a grid
+   with a fixed row count (8) and `grid-auto-flow: column` so codes read
+   *down* the first column then *right* to the next — the natural reading
+   order for a sound bank that's pre-populated with $01..$0D + $1D..$1F.
+   Defender / Stargate (16 items) get 2 columns; Robotron (13 items) gets
+   2 columns with the second short; adding user-VARI rows beyond 16 spills
+   into a third column.  Each cell needs ~280 px for the dot + $XX label +
+   name input, so columns are sized accordingly; the list grows wider as
+   items are added rather than taller.  `grid-template-columns: 1fr` keeps
+   a single column on viewports too narrow for two (`overflow-x: auto` is
+   *not* set — we accept reflow over horizontal scroll on tiny screens). */
 .designer-items-head { margin-top: 0.8rem; }
-.designer-items { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.4rem 0 0.2rem; max-width: 38rem; }
+.designer-items {
+  display: grid;
+  grid-template-rows: repeat(8, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(280px, 1fr);
+  gap: 0.25rem 0.6rem;
+  margin: 0.4rem 0 0.2rem;
+  max-width: 80rem;
+}
+.designer-empty { grid-column: 1 / -1; } /* span all columns when the list is empty */
 .designer-item {
   display: flex; align-items: center; gap: 0.5rem; padding: 0.18rem 0.5rem;
   background: #1a1d24; border: 1px solid #2a2f37; border-radius: 4px; cursor: pointer;

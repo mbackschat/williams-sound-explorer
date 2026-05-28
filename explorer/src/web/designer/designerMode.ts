@@ -187,25 +187,24 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
   });
 
-  // Logical groups separated by `.sep` dividers:
-  //   1. Engine base       — D / S / R picker.
-  //   2. Project (edit)    — "Project:" label + name input + Save + New.
-  //   3. Open (switch)     — load a saved project from the in-browser store.
-  //   4. JSON recipe       — Export / Import the *deltas* (no ROM bytes; shareable).
-  //   5. .bin roundtrip    — Export / Import the *built ROM* (Phase 6.2 — for MAME / cabinet).
+  // Logical groups, each wrapped in its own `.designer-bar-group` container so
+  // the row wraps as **whole groups** when the viewport narrows (groups stay
+  // atomic; the wrap break can't fall mid-group).  Five groups in two natural
+  // tiers — project identity (Engine / Project / Open) and file I/O (Recipe /
+  // ROM); CSS gap separates them without explicit dividers.
+  const group = (label: string, ...kids: Node[]): HTMLElement =>
+    el("div", { className: "designer-bar-group" }, [
+      el("span", { className: "designer-bar-label", textContent: label }), ...kids,
+    ]);
   const header = el("div", { className: "designer-header" }, [
     el("h2", { textContent: "🎛 Sound Designer — Custom ROM" }),
     el("span", { className: "designer-sub", textContent: "Fork the game's sound bank: edit any of its sounds, audition, save — or download as a .bin and load in MAME." }),
     el("div", { className: "designer-bar" }, [
-      el("span", { className: "designer-bar-label", textContent: "Engine:" }), enginePicker,
-      el("span", { className: "sep" }),
-      el("span", { className: "designer-bar-label", textContent: "Project:" }), nameInput, saveBtn, newBtn,
-      el("span", { className: "sep" }),
-      el("span", { className: "designer-bar-label", textContent: "Open:" }), projectSelect,
-      el("span", { className: "sep" }),
-      el("span", { className: "designer-bar-label", textContent: "Recipe:" }), exportBtn, importBtn, importInput,
-      el("span", { className: "sep" }),
-      el("span", { className: "designer-bar-label", textContent: "ROM:" }), exportBinBtn, importBinBtn, importBinInput,
+      group("Engine:", enginePicker),
+      group("Project:", nameInput, saveBtn, newBtn),
+      group("Open:", projectSelect),
+      group("Recipe:", exportBtn, importBtn, importInput),
+      group("ROM:", exportBinBtn, importBinBtn, importBinInput),
     ]),
   ]);
 
