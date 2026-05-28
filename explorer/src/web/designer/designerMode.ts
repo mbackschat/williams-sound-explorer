@@ -126,6 +126,11 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const srcStartBtn = el("button", { textContent: "Start", title: "Audition the sound's starting point (as copied/created)." });
   const sourceToggle = el("div", { className: "designer-source game-switcher", role: "radiogroup" }, [srcEditedBtn, srcStartBtn]);
   const diffBtn = el("button", { textContent: "⇄ Diff", title: "Overlay the starting point (grey) + divergence (red) behind the live trace." });
+  const openInExploreBtn = el("button", {
+    className: "designer-open-explore",
+    textContent: "▶ Open in Explore",
+    title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
+  });
   const volSlider = el("input", { type: "range", min: "0", max: "1", step: "0.01", value: String(volume), className: "designer-vol" });
   loopBtn.setAttribute("aria-pressed", "false");
   diffBtn.setAttribute("aria-pressed", "false");
@@ -151,6 +156,25 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     pauseBtn.disabled = s === "idle";
     pauseBtn.textContent = s === "paused" ? "▶ Resume" : "⏸ Pause";
   });
+  // Hand the selected slot off to Explore's worklet: build the custom image,
+  // load it via auditionCustomRom, fire the slot's command code, and flip the
+  // top-level mode toggle.  The rebuild closure means future clicks of the
+  // dynamic "Custom" switcher entry pick up edits made in Design afterwards.
+  openInExploreBtn.addEventListener("click", () => {
+    if (!baseRom || selected < 0) return;
+    stopPlayback();
+    const cmd = VARI_CMD_BASE + selected;
+    void ctx.auditionCustomRom({
+      baseGame: project.engineBase,
+      rom: buildEdited(),
+      cmd,
+      projectName: project.name || "untitled",
+      rebuild: () => ({
+        rom: buildEdited(),
+        cmd: VARI_CMD_BASE + (selected >= 0 ? selected : 0),
+      }),
+    }).then(() => ctx.switchToExploreMode());
+  });
 
   const scope = el("canvas", { className: "designer-scope" }) as HTMLCanvasElement;
   const statusLine = el("div", { className: "designer-status" });
@@ -167,6 +191,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
         el("div", { className: "designer-audition-row" }, [
           diffBtn, el("span", { className: "sep" }),
           el("span", { className: "designer-bar-label", textContent: "Vol" }), volSlider,
+          el("span", { className: "sep" }),
+          openInExploreBtn,
         ]),
       ]),
       el("div", { className: "designer-edit-right" }, [

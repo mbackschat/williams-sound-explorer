@@ -14,6 +14,7 @@
 | — | Dispatcher **spike** (can we add new VARI command slots?) | ✅ done — one-byte unlock proven |
 | 3a | **Custom-ROM image builder** (`engine/customRom.ts`, headless) | ✅ built & tested |
 | 3b | **Custom-ROM Designer UI** (own item list: copy-from-any-game + new) | ✅ built & verified |
+| 4 | **Open in Explore** (live audition via Explore's worklet + dynamic Custom switcher entry) | ✅ shipped & smoke-tested |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
@@ -98,7 +99,7 @@ Delivers the user's vision: a Custom ROM with its own named item list, sounds co
 - Clean for **VARI-only**. Cross-engine (GWAVE/SCREAM/ORGAN) is a further step: GWAVE needs its `GWVTAB`/`GFRTAB` tables copied along; SCREAM has no record (not data-authorable); ORGAN is code-as-data. The base ROM already *contains* all six engines' code, so engines are present — but per-engine complexity remains.
 - Genuinely novel synthesis (new DSP) needs an assembler — out of scope.
 
-**Other fast-follows:** live-worklet audition (pause/step/scrub on the custom ROM); ~~a MANUAL/README screenshot via the `e2e/` capture harness~~ ✅ done 2026-05-28 (`designer-overview` entry in `explorer/e2e/tutorials.ts`, embedded in `MANUAL_DESIGNER.md` + `README.md`); GWAVE editor (editable waveform/period-curve canvases — revisit msarnoff's `WavetableWithSlider` live then).
+**Other fast-follows:** ~~live-worklet audition (pause/step/scrub on the custom ROM)~~ ✅ done 2026-05-28 — shipped as **Open in Explore** (the custom ROM is pushed into Explore's existing worklet via `host.loadCustomRom`; a dynamic **✎ Custom: ⟨name⟩** entry in `#gameSwitcher` shows which ROM is loaded; details in `docs/designer_implementation.md` § *Open in Explore*); ~~a MANUAL/README screenshot via the `e2e/` capture harness~~ ✅ done 2026-05-28 (`designer-overview` + `designer-audition-explore` entries in `explorer/e2e/tutorials.ts`, embedded in `MANUAL_DESIGNER.md` + `README.md`); GWAVE editor (editable waveform/period-curve canvases — revisit msarnoff's `WavetableWithSlider` live then).
 
 **Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `MANUAL_DESIGNER.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
 

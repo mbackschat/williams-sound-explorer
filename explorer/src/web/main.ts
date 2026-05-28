@@ -61,6 +61,18 @@ let labelMap: LabelMap = emptyLabelMap();
 let selectedGame: GameKind = "defender";
 /** Game whose runner is currently loading (so the button can show ⟳). */
 let loadingGame: GameKind | null = null;
+/**
+ * Custom-ROM audition state.  When the user clicks "Open in Explore" in Design
+ * mode, the Designer pushes the custom ROM image into our worklet via
+ * `auditionCustomRom` below; we keep the rebuild closure here so the dynamic
+ * "Custom" switcher button can re-load the *current* project state on later
+ * clicks (edits made in Design between clicks are picked up).  `customRomActive`
+ * tracks which ROM the worklet last loaded — base game (false) or custom (true) —
+ * so the switcher UI reflects what's actually playing.
+ */
+let customAudition: { baseGame: GameKind; projectName: string; rebuild: () => { rom: Uint8Array; cmd?: number } } | null = null;
+let customRomActive = false;
+let customSwitcherBtn: HTMLButtonElement | undefined;
 const ALL_GAMES: readonly GameKind[] = ["defender", "stargate", "robotron"];
 /** Games whose ROM is in the local store — drives the switcher's locked state. */
 let availableGames = new Set<GameKind>();
@@ -77,7 +89,11 @@ function refreshGameSwitcherUi(): void {
   for (const btn of gamePickButtons) {
     const game = btn.dataset.game as GameKind;
     const has = availableGames.has(game);
-    const isActive = host !== undefined && game === selectedGame && loadingGame === null;
+    // A base-game button is "active" only when the worklet is actually
+    // playing that base game's stock ROM — when we've swapped in a custom
+    // ROM the base game's button shows as inactive (the dynamic Custom
+    // button is the active one then).
+    const isActive = host !== undefined && game === selectedGame && loadingGame === null && !customRomActive;
     const isLoading = game === loadingGame;
     btn.classList.toggle("active", isActive);
     btn.classList.toggle("loading", isLoading);
@@ -97,6 +113,52 @@ function refreshGameSwitcherUi(): void {
         : `Switch to ${label} — loads its sound ROM into the emulator`;
     }
   }
+  // Dynamic "Custom" entry — only present once Design mode has pushed an
+  // audition (otherwise the switcher is the original three).
+  if (customSwitcherBtn && customAudition) {
+    const label = `Custom: ${customAudition.projectName || "untitled"}`;
+    customSwitcherBtn.textContent = label;
+    customSwitcherBtn.classList.toggle("active", customRomActive);
+    customSwitcherBtn.classList.toggle("loading", false);
+    customSwitcherBtn.disabled = customRomActive || loadingGame !== null;
+    customSwitcherBtn.setAttribute("aria-checked", customRomActive ? "true" : "false");
+    customSwitcherBtn.title = customRomActive
+      ? `${label} — auditioning, running on ${customAudition.baseGame}'s engine`
+      : `Re-load this custom ROM into the emulator (built from the current Design-mode project)`;
+  }
+}
+
+/**
+ * Lazily insert the dynamic "Custom" entry into #gameSwitcher.  Created on
+ * first audition; persists for the rest of the session so the user can return
+ * to the custom ROM after switching to a base game and back.  Click handler
+ * re-runs `customAudition.rebuild` so any Design-mode edits made between
+ * clicks land in the next audition.
+ */
+function ensureCustomSwitcherBtn(): void {
+  if (customSwitcherBtn) return;
+  if (!els.gameSwitcher) return;
+  const btn = document.createElement("button");
+  btn.className = "game-pick game-pick-custom";
+  btn.setAttribute("role", "radio");
+  btn.setAttribute("aria-checked", "false");
+  btn.addEventListener("click", () => {
+    if (!customAudition || !host) return;
+    void (async () => {
+      const audition = customAudition!;
+      const fresh = audition.rebuild();
+      if (selectedGame !== audition.baseGame) {
+        await switchToGame(audition.baseGame);
+        if (!host) return;
+      }
+      host.loadCustomRom(audition.baseGame, fresh.rom);
+      customRomActive = true;
+      refreshGameSwitcherUi();
+      if (fresh.cmd !== undefined) host.fire(fresh.cmd);
+    })();
+  });
+  els.gameSwitcher.appendChild(btn);
+  customSwitcherBtn = btn;
 }
 
 /** Refresh `availableGames` from the store + dependent UI (switcher). */
@@ -718,7 +780,10 @@ async function initialise(game: GameKind): Promise<void> {
  */
 async function switchToGame(game: GameKind): Promise<void> {
   if (loadingGame !== null) return;
-  if (host !== undefined && game === selectedGame) return;
+  // Same-game self-click is a no-op UNLESS we're currently auditioning a
+  // custom ROM on this base game — in that case the click means "give me
+  // back the stock ROM", which needs a full reload.
+  if (host !== undefined && game === selectedGame && !customRomActive) return;
   // Can't init a game with no stored ROM — send the user to upload it instead.
   if (!availableGames.has(game)) { showOnboarding(game); return; }
   loadingGame = game;
@@ -733,6 +798,10 @@ async function switchToGame(game: GameKind): Promise<void> {
     }
     selectedGame = game;
     await initialise(game);
+    // A real base-game switch always lands us on the stock ROM; the custom
+    // audition is no longer the active image even if its switcher entry
+    // remains for the user to return to.
+    customRomActive = false;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`Switch to ${game} failed: ${msg}`, "err");
@@ -1071,6 +1140,42 @@ loadZeroPageMaps().then((m) => {
   ramHeatmap.setZeroPageMap(m, currentGame);
 });
 
+/**
+ * Audition a custom ROM in Explore's worklet.  Used by Design mode's "Open in
+ * Explore" — we land in Explore with the user's custom slot playing and every
+ * Explore visualisation pointed at the custom image.  The dynamic "Custom"
+ * switcher entry is created on first call and persists for the session, so
+ * the user can flip between base game and custom audition freely.
+ */
+async function auditionCustomRom(spec: {
+  baseGame: GameKind;
+  rom: Uint8Array;
+  cmd?: number;
+  projectName: string;
+  rebuild: () => { rom: Uint8Array; cmd?: number };
+}): Promise<void> {
+  // Need Explore's worklet up; if it isn't (or it's on a different base),
+  // route through the existing switch path first.  After this, `host` is the
+  // base-game host with the stock ROM loaded — we then overwrite the runner's
+  // ROM in place.
+  if (!host || selectedGame !== spec.baseGame) {
+    await switchToGame(spec.baseGame);
+    if (!host) { log("Audition: explore worklet not ready", "err"); return; }
+  }
+  customAudition = { baseGame: spec.baseGame, projectName: spec.projectName, rebuild: spec.rebuild };
+  ensureCustomSwitcherBtn();
+  host.loadCustomRom(spec.baseGame, spec.rom);
+  customRomActive = true;
+  refreshGameSwitcherUi();
+  if (spec.cmd !== undefined) host.fire(spec.cmd);
+}
+
+/** Click the top-level Explore button (no-op if already in Explore). */
+function switchToExploreMode(): void {
+  const btn = document.getElementById("modeExplore");
+  btn?.click();
+}
+
 const ctx: AppContext = {
   log,
   getHost: () => host,
@@ -1082,6 +1187,8 @@ const ctx: AppContext = {
   availableGames: () => availableGames,
   switchToGame,
   fireSequence,
+  auditionCustomRom,
+  switchToExploreMode,
 };
 const paramSliders = initParamSliders(ctx);
 const engineToggles = initEngineToggles(ctx);

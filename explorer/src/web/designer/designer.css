@@ -73,6 +73,14 @@
 .designer-audition-row > button.toggle-on {
   background: #2d4a2e; border-color: #a9dc76; color: #d6f5b8; font-weight: 600;
 }
+/* Open in Explore — purple accent matches the dynamic "Custom" entry in the
+   game switcher; signals that clicking hands control over to Explore mode. */
+.designer-audition-row > button.designer-open-explore {
+  border-color: #6e4fa3; color: #d4c2f7;
+}
+.designer-audition-row > button.designer-open-explore:hover:not(:disabled) {
+  background: #2c2440; border-color: #b78ff5; color: #e8dcff;
+}
 /* Item list — the project's own sounds */
 .designer-items-head { margin-top: 0.8rem; }
 .designer-items { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.4rem 0 0.2rem; max-width: 38rem; }

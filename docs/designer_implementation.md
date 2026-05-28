@@ -6,7 +6,7 @@
 
 A **separate top-level mode** (Explore ↔ Design toggle in the header) for building a **custom ROM with its own item list** of **VARI** sounds: pick an *engine base* (Defender or Stargate), then copy any game's VARI sound or add a new one into your list, edit each one's 9-byte parameter record with labelled sliders, audition, A/B against its starting point, and save. Sounds map to command codes `$1D`+ by list order; the runnable image is reconstituted from the user's base ROM (`buildCustomRom`) and runs through the real emulator unchanged.
 
-**Scope:** engine = **VARI only**; engine base = **Defender/Stargate** (Robotron's dispatch is non-linear). Capacity 23 (Defender) / 30 (Stargate) sounds. Other engines (GWAVE/SCREAM/ORGAN), Robotron as engine base, and live worklet step/scrub are fast-follows (see end).
+**Scope:** engine = **VARI only**; engine base = **Defender/Stargate** (Robotron's dispatch is non-linear). Capacity 23 (Defender) / 30 (Stargate) sounds. Live worklet pause/step/scrub on a custom ROM ships via the **Open in Explore** handoff (the custom ROM is pushed into Explore's existing worklet; see [Audition handoff](#open-in-explore--live-worklet-audition-via-explore) below). Other engines (GWAVE/SCREAM/ORGAN) and Robotron as engine base remain fast-follows (see end).
 
 **History:** v1 shipped first as *override-in-place* (edit a base game's existing VARI commands, marked ●). The user-chosen direction superseded it with the own-item-list model above; legacy v1 projects auto-convert on load (`designerStore.ts`).
 
@@ -20,7 +20,7 @@ A **separate top-level mode** (Explore ↔ Design toggle in the header) for buil
 - **Separate mode, zero Explore-UI change.** The only addition to the Explore surface is the header mode toggle; Design renders into its own `#designer-root` (Explore's `#pageLayout` is hidden, untouched). The designer module is **lazily imported** on first switch to Design (own JS+CSS chunk), so Explore's initial bundle is unaffected.
 - **No 4th `GameKind`.** The custom project is `{ baseGame, edits }`; audition runs **offline** via `runSoundWithRom(baseGame, editedBytes, cmd)` — the edited image is base-game bytes with 9 VVECT bytes rewritten, so `SoundBoard`'s size check passes and the base game's memory layout/decoders apply. This avoids threading `"custom"` through glossary / labelMap / zeroPageMap / romValidate / onboarding / the switcher / QuizPanel.
 - **Recipe, not bytes.** The saveable artefact is a JSON recipe (parameter edits over a base game), persisted to IndexedDB — **no copyrighted ROM bytes are ever stored**, consistent with the locked user-supplied-ROM decision. The runnable image is reconstituted from the user's base ROM at load. JSON export/import falls out for free.
-- **Audition = offline render + play**, through a dedicated `AudioContext`/`AudioBufferSource` (separate from the Explore worklet host). Transport: **Play** (restart) · dedicated **Pause/Resume** (context suspend/resume) · **Loop** · **Source ⟨Edited│Original⟩** toggle (instant A/B) · **Diff** overlay toggle · auto-replay on edit · a playhead synced to playback. Still **no live-worklet step/scrub** on the custom ROM (that remains a fast-follow).
+- **Audition = offline render + play**, through a dedicated `AudioContext`/`AudioBufferSource` (separate from the Explore worklet host). Transport: **Play** (restart) · dedicated **Pause/Resume** (context suspend/resume) · **Loop** · **Source ⟨Edited│Original⟩** toggle (instant A/B) · **Diff** overlay toggle · auto-replay on edit · a playhead synced to playback. For *live* pause/step/scrub on the custom ROM, the **▶ Open in Explore** button pushes the built image into Explore's existing worklet (`host.loadCustomRom` posts the worklet's existing `load` message with the custom bytes; the runner reboots in place, no new audio graph). Avoids the 4th-GameKind decision and reuses every Explore visualisation for free.
 
 ## Module map
 
@@ -36,6 +36,11 @@ Browser (`explorer/src/web/`):
 - `designer/designer.css` — scoped styling (lazy-loaded with the module).
 - `ui/modeToggle.ts` — `initModeToggle(ctx)`: the Explore↔Design toggle + lazy mount.
 - Wiring: `index.html` adds the `.mode-bar` toggle + empty `#designer-root`; `web/main.ts` calls `initModeToggle(ctx)` alongside the other controllers.
+
+**Audition handoff** (Open in Explore):
+- `web/host.ts` — `loadCustomRom(game, rom: Uint8Array)`: posts the existing worklet `{type:"load", game, rom}` with the custom bytes. Worklet reboots its `RealtimeRunner` in place; audio graph untouched.
+- `web/main.ts` — `auditionCustomRom(spec)` (exposed via `AppContext`): if the worklet isn't already on `spec.baseGame`, switches first; then calls `host.loadCustomRom` and `fire(spec.cmd)`. Tracks `customRomActive` + creates a dynamic **`.game-pick-custom`** entry in `#gameSwitcher` on first call (purple **✎ Custom: ⟨name⟩**); its click handler re-runs `spec.rebuild()` to pick up Design-mode edits made since the last hand-off. Clicking any base-game button clears `customRomActive` and reloads the stock ROM.
+- `web/ui/modeToggle.ts` + `AppContext.switchToExploreMode()` — Design's button calls this after the audition is queued, which clicks `#modeExplore` and shows the explore layout.
 
 ## VARI / VVECT reference
 
@@ -94,13 +99,31 @@ ROM array offset = `(VVECT_BASE + row*9) − (0x10000 − rom.length)` (ROM occu
 - Full suite: **422 tests**; `npm run typecheck` passes both the full project and the DOM-free core gate (`variEdit.ts` + `customRom.ts` stay headless).
 - Throwaway Playwright smokes (removed after running, not CI) verified each milestone end-to-end — latest: engine picker, +New / +Copy-from-any-game, rename, audition, auto codes `$1D/$1E`, save → reload → reopen persistence, zero console errors.
 
+## Open in Explore — live-worklet audition via Explore
+
+The in-Design audition is offline (render → buffer → play). For *live* pause/step/scrub + every Explore visualisation on the custom ROM, the **▶ Open in Explore** button hands the audition to Explore's worklet rather than duplicating it inside Design:
+
+```
+Design mode                              AppContext                Explore (main.ts)
+─────────                                ──────────                ──────────────────
+buildCustomRom(slots) → bytes ──── auditionCustomRom(spec) ──→ switchToGame(baseGame) if needed
+                                                                host.loadCustomRom(bytes)   // worklet posts {type:"load"}
+                                                                host.fire(spec.cmd)         // play the selected slot
+                                                                ensureCustomSwitcherBtn()   // dynamic ✎ Custom entry
+                                  ←── switchToExploreMode() ── click #modeExplore
+                                                                user lands in Explore, custom ROM running
+```
+
+Why this shape:
+- **Reuses the worklet's existing `load` protocol.** The worklet already rebuilds its `RealtimeRunner` on every `{type:"load"}` — sending the custom bytes is a one-line addition (`host.loadCustomRom`), no new messages, no graph rebuild.
+- **No 4th `GameKind`.** Explore stays pointed at the base game's glossary / labelmap / zero-page metadata; the worklet just runs the swapped bytes. Custom slots at codes `≥ $20` aren't in Explore's chip row, so Design fires them directly via `host.fire(cmd)` instead of expecting a chip-click.
+- **Visible source.** The dynamic `.game-pick-custom` entry in `#gameSwitcher` (purple, prefixed with `✎`) tells the user which ROM the worklet is *actually* running — base game vs. their custom image. Clicking a base game button reloads the stock ROM and clears `customRomActive`; clicking the Custom entry re-runs the project's rebuild closure (edits made in Design since the last hand-off are picked up).
+
 ## Fast-follows (not yet built)
 
-- **Live-worklet audition** — pause/step/scrub on the custom ROM (heavier; drifts toward a 4th-GameKind wiring).
 - **GWAVE editor** — adds editable waveform (`GWVTAB`) + period-curve (`GFRTAB`) byte tables; the point to revisit msarnoff's `WavetableWithSlider` interaction live.
 - **Robotron as engine base** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band.
 - **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
-- A MANUAL/README screenshot via the `e2e/` capture harness, plus the feature/approach comparison vs. msarnoff's Sound Studio (in `MANUAL_DESIGNER.md` + a README summary — see `plans/designer-mode.md`).
 
 ## The true Custom ROM (shipped) — how it works
 

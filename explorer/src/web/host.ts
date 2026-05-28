@@ -147,6 +147,20 @@ export class WilliamsSoundHost {
     this.post({ type: "fire", cmd });
   }
 
+  /**
+   * Replace the worklet's running ROM image with `rom` (built by Design mode's
+   * `buildCustomRom`).  The audio graph stays in place — the worklet just
+   * reboots its runner against the new bytes, so the next `fire` plays against
+   * the custom image.  `game` is the base game's `GameKind` (drives memory
+   * layout in the runner); call once `init()` has completed.
+   */
+  loadCustomRom(game: GameKind, rom: Uint8Array): void {
+    this.requireReady();
+    // Detach a fresh copy so the caller's buffer isn't transferred away.
+    const buffer = new Uint8Array(rom).buffer;
+    this.post({ type: "load", game, rom: buffer }, [buffer]);
+  }
+
   /** Set playback speed multiplier (1 = real time). */
   setSpeed(value: number): void {
     this.requireReady();

@@ -393,6 +393,12 @@ kbd {
 /* No ROM stored yet — dimmed + lock glyph, but still clickable (opens onboarding). */
 .game-switcher .game-pick.locked { opacity: 0.6; }
 .game-switcher .game-pick.locked::before { content: "🔒 "; }
+/* Custom-ROM audition entry (dynamic, appended once Design mode auditions). */
+/* Purple instead of yellow so the user can tell a custom ROM apart from the
+   three stock ROMs at a glance — the colour says "this is yours, not Williams's". */
+.game-switcher .game-pick-custom { border-left: 1px solid #353a44; color: #b78ff5; }
+.game-switcher .game-pick-custom.active { background: #b78ff5; color: #1a1a1d; }
+.game-switcher .game-pick-custom.active::before { content: "✎ "; }
 /* A/B diff + Genealogy chips (Steps 5.3 / 5.4). */
 .genealogy-row {
   padding: 0.4rem 0.55rem; margin-bottom: 0.4rem;

@@ -70,7 +70,7 @@ The assemble-from-source toolchain is included, but the **Williams sound source 
 
 ## Sound Designer
 
-Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for building your **own custom ROM** of VARI sounds: pick an engine base, copy any game's sound or add a new one into your own named list, edit its 9-byte parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes). See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
+Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for building your **own custom ROM** of VARI sounds: pick an engine base, copy any game's sound or add a new one into your own named list, edit its 9-byte parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes). Hit **▶ Open in Explore** to push your custom ROM into Explore's live worklet — pause/step/scrub on your own sound, with every Explore visualisation pointed at it. See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
 <p align="center">
   <img alt="Design mode with Defender SAW copied into the item list, the 8-slider VVECT parameter panel on the left, audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom" src="docs/img/manual/designer-overview.png" width="820">
@@ -91,7 +91,7 @@ The closest peer: [Defender Sound Studio](https://zapspace.net/defender_sound/),
 - **Real ROM, not a re-implementation.** The Studio is a hand-written JavaScript port of each routine; WSED runs the **actual ROM bytes** on a cycle-accurate 6802 emulator, so it's bit-faithful and any valid ROM works unchanged.
 - **Three games, not one.** Defender only, vs. WSED's Defender + Stargate + Robotron.
 - **Far more visible.** WSED adds the DAC byte-tape, the routine swimlane, LFSR/engine state, the RAM heatmap, the spectrogram, the scrubber, and single-step — none of which the Studio has.
-- **Design, not just tweak.** WSED's Design mode **builds a custom ROM** with its own list of new sounds at new command codes; the Studio only tweaks existing presets.
+- **Design, not just tweak.** WSED's Design mode **builds a custom ROM** with its own list of new sounds at new command codes; **Open in Explore** then drops that custom ROM into Explore's live worklet, so every visualisation (and pause/step/scrub) runs on your authored sound. The Studio only tweaks existing presets in a JS re-implementation.
 
 → [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md); the detailed feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 

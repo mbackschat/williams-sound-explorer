@@ -302,4 +302,27 @@ export const tutorials: Entry[] = [
     assert: [{ canvasNonBlank: ".designer-scope" }],
     shot: { clip: "#designer-root", file: img("designer-overview") },
   },
+
+  // "Open in Explore" handoff: from the same starting state, click the
+  // designer-open-explore button.  Lands us in Explore with the custom ROM
+  // loaded into the worklet, the slot's command auto-fired, and a dynamic
+  // "Custom: <name>" entry in the game switcher.
+  {
+    id: "designer-audition-explore",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { select: [".designer-copy", "0"] },
+      { waitMs: 600 },
+      { click: ".designer-open-explore" },
+      { waitMs: 2500 }, // worklet boots custom ROM, fires $1D, populates panels
+    ],
+    readyWhen: { recorded: true },
+    assert: [
+      { hasClass: [".game-pick-custom", "active"] },
+      { canvasNonBlank: "#spectroCanvas" },
+    ],
+    shot: { viewport: true, file: img("designer-audition-explore") },
+  },
 ];

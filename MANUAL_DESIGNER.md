@@ -44,6 +44,16 @@ You need a **Defender or Stargate ROM** loaded — your custom ROM runs on one o
    - Name the project and click **Save** — it persists in your browser (IndexedDB) and reappears in **Open**.
    - **⬇ JSON** downloads the project as a recipe; **⬆ JSON** loads one back. The file holds only your sounds' names + parameter values — **no copyrighted ROM bytes** — so it's safe to share, and it's reconstituted against your own base ROM.
 
+## Auditioning in Explore (pause, step, scrub)
+
+The in-Design transport plays your sound as a single offline render — fine for a quick listen, but the scope only shows the rendered float buffer. For the *live* experience — pause, single-step, scrub, the spectrogram, the DAC byte-tape, the RAM heatmap, the swimlane, all reading your custom sound — click **▶ Open in Explore** (the purple button next to **Vol**).
+
+What happens: the app builds your custom ROM image, pushes it into Explore's worklet, fires the selected slot, and flips you back to Explore. The game switcher gains a new **✎ Custom: ⟨project name⟩** entry (in purple, to set it apart from the three stock ROMs) — that's the marker that you're auditioning a *custom* image rather than the original Williams ROM. Click any base game button to drop back to that stock ROM; click the **Custom** entry to come back to your audition (it rebuilds from your *current* Design-mode project, so edits made in between are picked up).
+
+<p align="center">
+  <img src="docs/img/manual/designer-audition-explore.png" width="820" alt="Explore mode running the custom ROM after 'Open in Explore' — the purple 'Custom: untitled' entry is active in the game switcher (top-right of toolbar), and every Explore panel (oscilloscope, spectrogram, byte-tape, swimlane, RAM heatmap, code) is reading the user's SAW slot">
+</p>
+
 ## Good first experiments
 
 - **+ Copy from… Defender SAW**, then raise **LOPER** a lot → the zap stretches longer and drops in pitch (you'll hit the 5 s cap).
@@ -61,11 +71,11 @@ The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.n
 | **What you make** | tweak one handler's existing preset | your **own custom ROM** — copy/new VARI sounds in your **own named item list**, at **new command codes** |
 | **Editing** | numeric inputs + tooltips | sliders + tooltips (same idea) |
 | **Comparing** | — | **A/B** (Edited vs Start) + a visual **Diff** overlay |
-| **Seeing** | oscilloscope + FFT | + DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrub, single-step (in Explore) |
+| **Seeing** | oscilloscope + FFT | + DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrub, single-step — via **Open in Explore** the custom ROM runs in Explore's live pipeline |
 | **Saving** | JSON preset | JSON recipe — **zero ROM bytes**, reconstituted against your own ROM |
 
 In short: the Studio *tweaks* one game's existing sounds with a JS re-implementation; this builds a **new custom ROM** of sounds across all three games on the actual emulated hardware.
 
 ## Limits
 
-VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes), use Robotron as the engine base, or pause/step the live CPU on a custom sound — those are planned follow-ups (see [`docs/designer_implementation.md`](docs/designer_implementation.md)).
+VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes) or use Robotron as the engine base — those are planned follow-ups (see [`docs/designer_implementation.md`](docs/designer_implementation.md)). For pause/step/scrub on a custom sound, use **Open in Explore** above.
