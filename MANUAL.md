@@ -112,7 +112,7 @@ Context-specific (when an element has focus):
 
 ### Designer mode (a separate mode)
 
-The **Explore | Design ✎** switch in the header flips between this read-only explorer and a separate **Sound Designer** mode, for building your own custom sound ROM. Switching to Design doesn't change anything in Explore. It has its own manual: **[`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md)**.
+The **Explore | Design ✎** switch in the header flips between this read-only explorer and a separate **Sound Designer** mode, for building your own custom sound ROM. It forks the game's sound bank and lets you edit any of its **five data-driven engines** (VARI, GWAVE, LFSR, FNOISE, RADIO — per-engine parity with the Defender Sound Studio, but across all three games), audition + A/B, and export a JSON recipe or a runnable `.bin` for MAME / a real cabinet. Switching to Design doesn't change anything in Explore. It has its own manual: **[`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md)**.
 
 ---
 

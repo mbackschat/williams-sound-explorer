@@ -137,7 +137,7 @@ The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.n
 | **Explore vs Design** | tweak-and-play only | a separate **Explore** mode with the DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrubber, single-step — and **Open in Explore** drops your custom ROM into that live pipeline so every visualisation runs on your authored sound |
 | **A/B + diff** | — | **Source: Edited│Start** toggle (the slot's bytes when copied/created vs. now) + a **Diff** scope overlay |
 
-### Engine coverage (current state vs. planned)
+### Engine coverage
 
 The Studio has 9 UI tabs of which **6 are editable** (the other 3 — *Insert credit* / *Humanoid fall* / a parameterless variant — are "just hit play" because the ROM has no preset record there; same blocker for WSED). Mapping the Studio's 6 editable tabs to WSED's engine taxonomy yields **5 distinct engines** — the Studio splits LFSR coverage across three tabs (*Square noise* + *Player shoot* + the wavetable side of *Sweeps*) that WSED groups under one editor.
 
