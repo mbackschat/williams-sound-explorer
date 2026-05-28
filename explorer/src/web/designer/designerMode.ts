@@ -120,30 +120,38 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const projectSelect = el("select", { className: "designer-open", title: "Open a saved project" });
   const saveBtn = el("button", { className: "designer-save", textContent: "Save", title: "Save this custom ROM to the browser (IndexedDB)." });
   const newBtn = el("button", { className: "designer-new", textContent: "New", title: "Start an empty custom ROM." });
-  const exportBtn = el("button", { textContent: "⬇ JSON", title: "Download this project as a JSON recipe (no ROM bytes)." });
+  const exportBtn = el("button", { textContent: "↓ Export", title: "Download this project as a JSON recipe file (no ROM bytes — safe to share)." });
   const importInput = el("input", { type: "file", accept: "application/json,.json", className: "designer-import" });
-  const importBtn = el("button", { textContent: "⬆ JSON", title: "Load a project from a JSON recipe file." });
+  const importBtn = el("button", { textContent: "↑ Import", title: "Load a project from a JSON recipe file." });
   importBtn.addEventListener("click", () => importInput.click());
-  // "Open in Explore" lives in the header because it's a **mode handoff**
-  // (Design → Explore), not a transport control.  Semantically it sits next
-  // to Save/JSON, and it's never below the fold there.
+  // "Open in Explore" is created with the transport controls below; it
+  // re-joins them as the rightmost button in the sticky transport row
+  // (it sat in the header briefly during the Phase 5 redesign; user
+  // feedback was to put it back with Play/Pause where it visually
+  // belongs as an audition action).
   const openInExploreBtn = el("button", {
     className: "designer-open-explore",
     textContent: "▶ Open in Explore",
     title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
   });
 
+  // Four logical groups separated by `.sep` dividers so the bar reads as
+  // grouped controls rather than one long shoulder-to-shoulder row:
+  //   1. Engine base       — D / S / R picker.
+  //   2. Project (edit)    — "Project:" label + name input + Save + New.
+  //   3. Open (switch)     — load a saved project from the in-browser store.
+  //   4. File transfer     — Export / Import the project as JSON.
   const header = el("div", { className: "designer-header" }, [
     el("h2", { textContent: "🎛 Sound Designer — Custom ROM" }),
     el("span", { className: "designer-sub", textContent: "Build your own list of VARI sounds: copy from any game or start new, edit, audition, save." }),
     el("div", { className: "designer-bar" }, [
       el("span", { className: "designer-bar-label", textContent: "Engine:" }), enginePicker,
       el("span", { className: "sep" }),
-      nameInput, saveBtn, newBtn,
-      el("span", { className: "designer-bar-label", textContent: "Open:" }), projectSelect,
-      exportBtn, importBtn, importInput,
+      el("span", { className: "designer-bar-label", textContent: "Project:" }), nameInput, saveBtn, newBtn,
       el("span", { className: "sep" }),
-      openInExploreBtn,
+      el("span", { className: "designer-bar-label", textContent: "Open:" }), projectSelect,
+      el("span", { className: "sep" }),
+      exportBtn, importBtn, importInput,
     ]),
   ]);
 
@@ -337,9 +345,10 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   ]);
 
   // Sticky transport bar — single row of Play / Pause / Loop / Source / Diff
-  // / Vol, glued to the bottom of the viewport when the editor exceeds the
-  // window height.  "Open in Explore" is NOT here — it lives in the header
-  // because it's a mode handoff, not a transport action.
+  // / Vol / Open in Explore, glued to the bottom of the viewport when the
+  // editor exceeds the window height.  Open in Explore sits at the right
+  // end of the row, visually separated by a sep so it reads as a distinct
+  // audition-handoff action.
   const transport = el("div", { className: "designer-transport" }, [
     playBtn, pauseBtn, loopBtn,
     el("span", { className: "sep" }),
@@ -348,6 +357,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     diffBtn,
     el("span", { className: "sep" }),
     el("span", { className: "designer-bar-label", textContent: "Vol" }), volSlider,
+    el("span", { className: "sep" }),
+    openInExploreBtn,
   ]);
 
   const lockedMsg = el("div", { className: "designer-locked" });

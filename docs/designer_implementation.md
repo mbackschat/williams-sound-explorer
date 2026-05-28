@@ -184,7 +184,7 @@ Adds a **pitch-pattern canvas** as a third sibling to the SVTAB sliders and the 
 
 The original Designer layout dedicated half the screen to a tall audition scope and stacked the SVTAB sliders / waveform canvas / pitch canvas vertically — pushing the transport row below the viewport fold on a 1080-tall window, so `▶ Open in Explore` needed a scroll to reach. The redesign:
 
-- **`▶ Open in Explore` moved to the header bar** (next to the JSON buttons). Semantically it's a *mode handoff*, not a transport control; visually it's now always in view.
+- **`▶ Open in Explore` lives in the sticky transport row** at the right end. (We tried the header bar briefly during the redesign — user feedback was that it belongs visually with the audition controls; the sticky transport already guarantees it stays in view.)
 - **3-column edit row for GWAVE**: sliders | waveform canvas | pitch canvas, sized so each canvas column can grow up to ~600 px (gives ~2.4 px/cell at the worst v-future case of a 255-byte waveform — still drawable). VARI slots show only the sliders column.
 - **Audition scope is now a thin full-width strip** (120 px tall) below the edit row, replacing the half-screen tall right column. The trace is a static offline render anyway — a strip is plenty.
 - **Sticky single-row transport** at the bottom of `#designer-root` (`position: sticky; bottom: 0;`): Play · Pause · Loop · Source · Diff · Vol, glued to the viewport bottom when the editor exceeds window height.

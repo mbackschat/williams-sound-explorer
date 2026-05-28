@@ -38,16 +38,24 @@ export function initGlossaryUi(ctx: AppContext): GlossaryUiApi {
       els.cmdInfo.style.borderLeftColor = "#5a5e68";
       return;
     }
+    // If a Designer-mode custom audition is active and this cmd is one of
+    // the user's named slots, the slot's name should headline the readout —
+    // not the base game's stock label (e.g. show "My BBSV" instead of
+    // "BBSV" when auditioning a $05 override).  Falls back to the stock
+    // entry if no custom slot matches.
+    const customName = ctx.getCustomSlots?.()?.find((s) => s.code === cmd)?.name ?? null;
     const entry = lookup(ctx.getGlossary(), ctx.currentGame(), cmd);
-    if (!entry) {
+    if (!entry && !customName) {
       els.cmdInfo.textContent = `$${cmd.toString(16).padStart(2, "0").toUpperCase()} — no glossary entry for ${ctx.currentGame()}.`;
       els.cmdInfo.style.borderLeftColor = "#5a5e68";
       return;
     }
     const code = cmd.toString(16).padStart(2, "0").toUpperCase();
     // The engine name renders as a clickable term link if we have an
-    // explanation for it; otherwise plain text.
-    const engineHtml = entry.engine
+    // explanation for it; otherwise plain text.  Empty when there's no
+    // matching glossary entry (e.g. a custom VARI slot at a code the
+    // base ROM doesn't define).
+    const engineHtml = entry?.engine
       ? (lookupTerm(ctx.getGlossary(), entry.engine)
           ? ` · <a class="term-link" data-term="${escapeHtml(entry.engine)}">${escapeHtml(entry.engine)}</a>`
           : ` · ${escapeHtml(entry.engine)}`)
@@ -114,12 +122,27 @@ export function initGlossaryUi(ctx: AppContext): GlossaryUiApi {
         "kick the background poll" but otherwise silent.
       </div>`;
     }
-    els.cmdInfo.innerHTML =
-      `<strong>$${code}</strong>  ${escapeHtml(entry.routine)}` +
-      `<span style="color: #abafb6;">${engineHtml} · ${escapeHtml(entry.name)}</span>` +
-      (entry.blurb ? `<br><span style="color: #abafb6; font-size: 0.82rem;">${escapeHtml(entry.blurb)}</span>` : "") +
-      extra;
-    els.cmdInfo.style.borderLeftColor = cmd === 0x1B ? "#ffd866" : cmd === 0x1C ? "#ff6188" : "#ffd866";
+    // Heading: user's slot name wins when present (with a "✎ custom" tag);
+    // stock entry's `routine` otherwise.  Below the heading, show whichever
+    // context applies — for a custom override, name the stock command the
+    // user is replacing; for a stock command, the usual engine · name pair.
+    if (customName) {
+      const stockContext = entry
+        ? `<span style="color: #abafb6;">overriding ${escapeHtml(entry.routine)}${engineHtml} · ${escapeHtml(entry.name)}</span>`
+        : `<span style="color: #abafb6;">custom slot at a code the base ROM doesn't define</span>`;
+      els.cmdInfo.innerHTML =
+        `<strong>$${code}</strong>  ${escapeHtml(customName)} <span style="color: #b78ff5; font-size: 0.75rem; font-weight: 600;">✎ custom</span>` +
+        `<br>${stockContext}` +
+        extra;
+      els.cmdInfo.style.borderLeftColor = "#b78ff5";
+    } else {
+      els.cmdInfo.innerHTML =
+        `<strong>$${code}</strong>  ${escapeHtml(entry!.routine)}` +
+        `<span style="color: #abafb6;">${engineHtml} · ${escapeHtml(entry!.name)}</span>` +
+        (entry!.blurb ? `<br><span style="color: #abafb6; font-size: 0.82rem;">${escapeHtml(entry!.blurb)}</span>` : "") +
+        extra;
+      els.cmdInfo.style.borderLeftColor = cmd === 0x1B ? "#ffd866" : cmd === 0x1C ? "#ff6188" : "#ffd866";
+    }
     annotateTermLinks(els.cmdInfo); // hover tooltip on the (re-rendered) engine term-link
 
     // Wire the Arm+Play button for $1B (deferred until after innerHTML).

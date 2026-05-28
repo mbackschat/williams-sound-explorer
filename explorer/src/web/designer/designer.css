@@ -113,27 +113,23 @@
 }
 .designer-vol { width: 6rem; }
 
-/* Transport + Open-in-Explore button styling — applies in both their homes
-   (transport bar at the bottom AND the header bar for Open-in-Explore). */
-.designer-transport > button,
-.designer-bar > button.designer-open-explore {
+/* Transport button styling — all controls in the sticky bottom bar. */
+.designer-transport > button {
   background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
   color: #d1d4dc; font: inherit; padding: 0.35rem 0.7rem; cursor: pointer;
 }
-.designer-transport > button:hover:not(:disabled),
-.designer-bar > button.designer-open-explore:hover:not(:disabled) { background: #2a2f37; }
-.designer-transport > button:disabled,
-.designer-bar > button.designer-open-explore:disabled { opacity: 0.45; cursor: not-allowed; }
+.designer-transport > button:hover:not(:disabled) { background: #2a2f37; }
+.designer-transport > button:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Loop / Diff toggles when active */
 .designer-transport > button.toggle-on {
   background: #2d4a2e; border-color: #a9dc76; color: #d6f5b8; font-weight: 600;
 }
 /* Open in Explore — purple accent matches the dynamic "Custom" entry in the
    game switcher; signals that clicking hands control over to Explore mode. */
-.designer-bar > button.designer-open-explore {
+.designer-transport > button.designer-open-explore {
   border-color: #6e4fa3; color: #d4c2f7;
 }
-.designer-bar > button.designer-open-explore:hover:not(:disabled) {
+.designer-transport > button.designer-open-explore:hover:not(:disabled) {
   background: #2c2440; border-color: #b78ff5; color: #e8dcff;
 }
 /* Item list — the project's own sounds */
