@@ -23,7 +23,8 @@
   background: #11141a; border: 1px solid #353a44; border-radius: 4px;
   color: #d1d4dc; font: inherit; padding: 0.3rem 0.4rem;
 }
-.designer-import { display: none; }
+.designer-import,
+.designer-import-bin { display: none; }
 
 /* Command picker — one button per editable VARI sound. */
 .designer-cmds { display: flex; gap: 0.4rem; flex-wrap: wrap; }

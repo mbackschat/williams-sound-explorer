@@ -26,7 +26,9 @@ export type Step =
   | { hover: string } //               move the mouse over a selector (publishes the INSPECT cursor)
   | { openSection: string } //          open the <details> containing this selector
   | { scrubTo: number } //              set #scrubPos to a 0..1 fraction (deterministic freeze)
-  | { waitMs: number }; //              settle delay (let a canvas fill / animation advance)
+  | { waitMs: number } //              settle delay (let a canvas fill / animation advance)
+  | { expectDownload: [sel: string, path: string] } // click selector, await `download` event, save to absolute path
+  | { uploadFile: [sel: string, path: string] }; //    setInputFiles on a file <input> at selector
 
 /** A single post-condition. DOM/text by default; one weak pixel probe. */
 export type Assert =

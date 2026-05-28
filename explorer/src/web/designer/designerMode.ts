@@ -19,6 +19,7 @@ import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
 import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH, reclampWaveformIdxAfterRemoval } from "../../engine/gwaveEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
+import { importBinAsProject, ROM_SIZE } from "../../engine/projectFromBin.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
   type CustomProject, type CustomSlot,
@@ -157,10 +158,24 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const projectSelect = el("select", { className: "designer-open", title: "Open a saved project" });
   const saveBtn = el("button", { className: "designer-save", textContent: "Save", title: "Save this custom ROM to the browser (IndexedDB)." });
   const newBtn = el("button", { className: "designer-new", textContent: "New", title: "Start an empty custom ROM." });
-  const exportBtn = el("button", { textContent: "↓ Export", title: "Download this project as a JSON recipe file (no ROM bytes — safe to share)." });
+  const exportBtn = el("button", { textContent: "↓ JSON", title: "Download this project as a JSON recipe file (no ROM bytes — safe to share)." });
   const importInput = el("input", { type: "file", accept: "application/json,.json", className: "designer-import" });
-  const importBtn = el("button", { textContent: "↑ Import", title: "Load a project from a JSON recipe file." });
+  const importBtn = el("button", { textContent: "↑ JSON", title: "Load a project from a JSON recipe file." });
   importBtn.addEventListener("click", () => importInput.click());
+  // Phase 6.2: Download the built custom ROM image as a .bin file — closes
+  // the loop "edit → MAME → upload → edit".  The .bin contains the user's
+  // base ROM bytes with their edits applied, so the file IS copyrighted ROM
+  // content; the tooltip + status note flag it as personal-use, not shareable.
+  const exportBinBtn = el("button", {
+    textContent: "↓ .bin",
+    title: "Download your custom ROM as a .bin file you can load in MAME or burn to EPROM. Contains the original Williams ROM bytes with your edits — for personal use, don't redistribute.",
+  });
+  const importBinInput = el("input", { type: "file", accept: ".bin,application/octet-stream", className: "designer-import-bin" });
+  const importBinBtn = el("button", {
+    textContent: "↑ .bin",
+    title: "Load a custom ROM .bin file back into the Designer. Diffs against your base ROM to reconstruct the project. Requires the base ROM to already be loaded in Explore mode.",
+  });
+  importBinBtn.addEventListener("click", () => importBinInput.click());
   // "Open in Explore" is created with the transport controls below; it
   // re-joins them as the rightmost button in the sticky transport row
   // (it sat in the header briefly during the Phase 5 redesign; user
@@ -172,15 +187,15 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
   });
 
-  // Four logical groups separated by `.sep` dividers so the bar reads as
-  // grouped controls rather than one long shoulder-to-shoulder row:
+  // Logical groups separated by `.sep` dividers:
   //   1. Engine base       — D / S / R picker.
   //   2. Project (edit)    — "Project:" label + name input + Save + New.
   //   3. Open (switch)     — load a saved project from the in-browser store.
-  //   4. File transfer     — Export / Import the project as JSON.
+  //   4. JSON recipe       — Export / Import the *deltas* (no ROM bytes; shareable).
+  //   5. .bin roundtrip    — Export / Import the *built ROM* (Phase 6.2 — for MAME / cabinet).
   const header = el("div", { className: "designer-header" }, [
     el("h2", { textContent: "🎛 Sound Designer — Custom ROM" }),
-    el("span", { className: "designer-sub", textContent: "Build your own list of VARI sounds: copy from any game or start new, edit, audition, save." }),
+    el("span", { className: "designer-sub", textContent: "Fork the game's sound bank: edit any of its sounds, audition, save — or download as a .bin and load in MAME." }),
     el("div", { className: "designer-bar" }, [
       el("span", { className: "designer-bar-label", textContent: "Engine:" }), enginePicker,
       el("span", { className: "sep" }),
@@ -188,7 +203,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       el("span", { className: "sep" }),
       el("span", { className: "designer-bar-label", textContent: "Open:" }), projectSelect,
       el("span", { className: "sep" }),
-      exportBtn, importBtn, importInput,
+      el("span", { className: "designer-bar-label", textContent: "Recipe:" }), exportBtn, importBtn, importInput,
+      el("span", { className: "sep" }),
+      el("span", { className: "designer-bar-label", textContent: "ROM:" }), exportBinBtn, importBinBtn, importBinInput,
     ]),
   ]);
 
@@ -552,7 +569,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Behaviour ──────────────────────────────────────────────────────────
 
   function setControlsEnabled(on: boolean): void {
-    for (const b of [saveBtn, newBtn, exportBtn]) b.disabled = !on;
+    for (const b of [saveBtn, newBtn, exportBtn, exportBinBtn, importBinBtn]) b.disabled = !on;
     const variOk = on && supportsVari(project.engineBase);
     addNewBtn.disabled = !variOk || variCount(project.slots) >= maxVari();
     copySelect.disabled = !variOk;
@@ -1136,6 +1153,72 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     void file.text().then((text) => { void openProject(importJson(text)); })
       .catch((e: unknown) => status(`Import failed: ${e instanceof Error ? e.message : String(e)}`, "err"))
       .finally(() => { importInput.value = ""; });
+  });
+
+  // Phase 6.2: ↓ .bin — download the built custom ROM image.  We need a
+  // valid baseRom (the build won't run otherwise) AND the build itself to
+  // succeed; an over-budget project's "Won't fit" error surfaces here.
+  exportBinBtn.addEventListener("click", () => {
+    if (!baseRom) { status("Load the base ROM first.", "err"); return; }
+    project.name = nameInput.value.trim() || "untitled";
+    let bytes: Uint8Array;
+    try { bytes = buildEdited(); }
+    catch (e) { status(`Build failed: ${e instanceof Error ? e.message : String(e)}`, "err"); return; }
+    // Wrap in a fresh Uint8Array so its `.buffer` is a plain `ArrayBuffer`
+    // (not `ArrayBufferLike` / potentially `SharedArrayBuffer`), which Blob's
+    // strict type signature requires.
+    const blob = new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const safeName = project.name.replace(/[^A-Za-z0-9]+/g, "_");
+    const a = el("a", { href: url, download: `${safeName}_${project.engineBase}.bin` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status(`Exported "${safeName}_${project.engineBase}.bin" — for personal use, don't redistribute (contains Williams ROM bytes).`, "ok");
+  });
+  // ↑ .bin — diff against the user's base ROM in IndexedDB and reconstruct
+  // the project's deltas via importBinAsProject (headless, full-fidelity).
+  // The file picker's `accept=".bin"` is advisory; we re-validate size before
+  // passing to the importer.
+  importBinInput.addEventListener("change", () => {
+    const file = importBinInput.files?.[0];
+    if (!file) return;
+    void file.arrayBuffer().then(async (buf) => {
+      const bin = new Uint8Array(buf);
+      // Identify game by size (Defender/Stargate share 2 KB, Robotron is 4 KB).
+      // For the 2 KB ambiguity, use the project's current engine base — the
+      // user picked which game in the header before clicking ↑ .bin.
+      const game: GameKind = bin.length === ROM_SIZE.robotron
+        ? "robotron"
+        : project.engineBase;
+      if (bin.length !== ROM_SIZE[game]) {
+        throw new Error(`Wrong .bin size: got ${bin.length}, expected ${ROM_SIZE[game]} bytes for ${LABEL[game]}.`);
+      }
+      if (!ctx.availableGames().has(game)) {
+        throw new Error(`${LABEL[game]} base ROM is not loaded — add it in Explore mode first.`);
+      }
+      const refRom = await loadRomBytes(game);
+      const reconstructed = importBinAsProject(bin, refRom, game);
+      // Fold the reconstruction into a CustomProject and open it through the
+      // normal path so engine UI, populate, audition all wire up.
+      const now = Date.now();
+      const newProj: CustomProject = {
+        name: file.name.replace(/\.bin$/i, "") || "imported",
+        engineBase: reconstructed.engineBase,
+        slots: reconstructed.slots as CustomSlot[],
+        ...(reconstructed.waveformOverrides ? { waveformOverrides: reconstructed.waveformOverrides } : {}),
+        ...(reconstructed.patternOverrides ? { patternOverrides: reconstructed.patternOverrides } : {}),
+        ...(reconstructed.addedWaveforms ? { addedWaveforms: reconstructed.addedWaveforms } : {}),
+        createdAt: now,
+        updatedAt: now,
+      };
+      await openProject(newProj);
+      const editCount = reconstructed.slots.length
+        + Object.keys(reconstructed.waveformOverrides ?? {}).length
+        + Object.keys(reconstructed.patternOverrides ?? {}).length
+        + (reconstructed.addedWaveforms?.length ?? 0);
+      status(`Imported "${file.name}" — reconstructed ${editCount} edit(s) from the .bin.`, "ok");
+    }).catch((e: unknown) => status(`.bin import failed: ${e instanceof Error ? e.message : String(e)}`, "err"))
+      .finally(() => { importBinInput.value = ""; });
   });
 
   // ── Boot ──────────────────────────────────────────────────────────────

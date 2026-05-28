@@ -69,9 +69,11 @@ ROMs are added on the Explore onboarding screen.
    - **⇄ Diff** toggles an overlay of the starting point (grey) + divergence (red) behind the live trace, without interrupting audio.
    - A **playhead** sweeps the scope in time with playback and freezes on Pause; **editing any slider auto-replays** so you hear each change immediately.
    (Audition runs the actual custom ROM image through the real emulator offline — what you hear is faithful. Very long sounds are capped at 5 seconds.)
-6. **Save / share** —
-   - Name the project and click **Save** — it persists in your browser (IndexedDB) and reappears in **Open**. **The saved project is sparse:** only your edits are stored (stock rows are reconstructed from the engine base when you re-open). That keeps the recipe small and ensures the saved artefact carries **zero copyrighted ROM bytes**.
-   - **⬇ JSON** downloads the same sparse recipe as a file; **⬆ JSON** loads one back. Safe to share — the file is just your sounds' names + parameter values.
+6. **Save / share / export** — three channels with different trade-offs:
+   - **Save** — persist the project to your browser (IndexedDB) and reappear in **Open**. Sparse: only your edits are stored; stock rows reconstruct from the engine base on re-open. **Zero copyrighted ROM bytes** kept in storage.
+   - **Recipe: ↓ JSON** / **↑ JSON** — same sparse recipe as a file. **Safe to share** — it's just your sounds' names + parameter values; reconstituted against the recipient's own base ROM.
+   - **ROM: ↓ .bin** / **↑ .bin** — the *runnable* output. **↓ .bin** writes the full custom ROM bytes (your base ROM + your edits) to a file named `{project}_{engine}.bin`. Load it in **MAME** (replace the matching `*_sound.bin` in the game's ROM set) or burn it to EPROM for a real cabinet. **↑ .bin** reads such a file back in: the Designer diffs the bytes against your base ROM in IndexedDB and reconstructs your project — closing the loop *edit → MAME → upload → edit → download* round-trip.
+     The `.bin` contains the original Williams ROM bytes with your edits applied — **for personal use, don't redistribute** (the JSON recipe is the shareable artefact).
 
 ## Auditioning in Explore (pause, step, scrub)
 

@@ -139,6 +139,22 @@ export async function runStep(page: Page, step: Step): Promise<void> {
     }, step.scrubTo);
   } else if ("waitMs" in step) {
     await page.waitForTimeout(step.waitMs);
+  } else if ("expectDownload" in step) {
+    // Phase 6.2 .bin roundtrip — click a selector that triggers a download
+    // (e.g. the Designer's ↓ .bin button) and save the bytes to a path.
+    const [sel, path] = step.expectDownload;
+    await reveal(page, sel);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator(sel).click(),
+    ]);
+    await download.saveAs(path);
+  } else if ("uploadFile" in step) {
+    // Phase 6.2 .bin roundtrip — programmatically set the file picker's
+    // value (`<input type="file">.setInputFiles`).
+    const [sel, path] = step.uploadFile;
+    await reveal(page, sel);
+    await page.locator(sel).setInputFiles(path);
   }
 }
 

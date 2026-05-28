@@ -317,9 +317,18 @@ export function buildCustomRom(
     const vvOff = VVECT_BASE[game]! - romBase(out);
     const byRow = new Map(variSlots.map((s) => [s.code - VARI_CMD_BASE, s.record]));
     const maxRow = Math.max(...byRow.keys());
-    const fill = variSlots[0]!.record; // benign default for any unassigned in-between row
+    // Phase 6.2: write *only* user-supplied rows; leave gaps as the base
+    // ROM's bytes.  Previously gaps were filled with the first slot's
+    // record (benign default), but that made an upload-side .bin → project
+    // reconstruction ambiguous — fill placeholders looked indistinguishable
+    // from real user-added rows.  Since Phase 6.1 always pre-populates stock
+    // rows 0..2, gaps are effectively impossible in practice; the fall-back
+    // behaviour for the rare programmatic gap (firing a code that maps to an
+    // unfilled row) is "play whatever the base ROM had at those bytes",
+    // which is non-crashing and arguably more intuitive than the old fill.
     for (let row = 0; row <= maxRow; row++) {
-      out.set(byRow.get(row) ?? fill, vvOff + row * VVECT_STRIDE);
+      const rec = byRow.get(row);
+      if (rec) out.set(rec, vvOff + row * VVECT_STRIDE);
     }
   }
 
@@ -374,6 +383,16 @@ export function buildCustomRom(
     // Write the relocated GWVTAB right after the VVECT extent.
     const newGwvtabAddr = VVECT_BASE[game] + vvectExtent;
     out.set(newGwvtabBytes, newGwvtabAddr - romBase(out));
+    // Phase 6.2: zero-fill the tail of the free region after the relocated
+    // GWVTAB so a future .bin upload can walk added waveforms (length-prefixed
+    // records) and stop cleanly at the first `length = 0` byte.  Without
+    // this, the tail still carries the base ROM's RADIO/ORGAN data, whose
+    // first byte could look like a valid length and confuse reconstruction.
+    // The dispatcher never reads past the relocated GWVTAB (GWLD walks by
+    // wave index, not to a sentinel), so zeroing the tail is safe.
+    const tailStart = (newGwvtabAddr + newGwvtabBytes.length) - romBase(out);
+    const tailEnd = GWVTAB_BASE[game] - romBase(out);
+    for (let off = tailStart; off < tailEnd; off++) out[off] = 0;
     // Patch `LDX #GWVTAB` operand (2 bytes, big-endian) at +1 past the CE opcode.
     const ldxOperandOff = (LDX_GWVTAB_LOC[game] + 1) - romBase(out);
     out[ldxOperandOff] = (newGwvtabAddr >> 8) & 0xFF;

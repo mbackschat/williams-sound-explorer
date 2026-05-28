@@ -158,6 +158,39 @@ export const entries: Entry[] = [
     shot: { clip: "#designer-root", file: img("designer-vari-reset-record") },
   },
 
+  // Phase 6.2 .bin roundtrip — full UI loop: edit BBSV → ↓ .bin → ↑ .bin →
+  // status reports "Imported" with the reconstructed edit.  Verifies the
+  // download + upload buttons wire through to buildEdited / importBinAsProject
+  // end-to-end.  The headless test (`tests/projectFromBin.test.ts`) is the
+  // exhaustive correctness gate; this smoke catches UI-wiring regressions.
+  {
+    id: "designer-bin-roundtrip",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // select BBSV
+      { waitMs: 400 },
+      // Edit the first GWAVE slider (GECHO) so the .bin diverges from base.
+      { fill: [".designer-fields-gwave .param-row:nth-child(1) .param-slider", "5"] },
+      { waitMs: 200 },
+      // ↓ .bin → save to a temp file.  Uses the bar's `↓ .bin` button.
+      { expectDownload: ["button[title^='Download your custom ROM']", "/tmp/wsed-roundtrip.bin"] },
+      { waitMs: 200 },
+      // ↑ .bin → re-upload that file.  Hits the hidden file input directly
+      // (the visible `↑ .bin` button only clicks() the input behind it).
+      { uploadFile: [".designer-import-bin", "/tmp/wsed-roundtrip.bin"] },
+      { waitMs: 800 },
+    ],
+    assert: [
+      // Status line confirms the import reconstructed an edit; the scope
+      // still draws (the imported project auto-selects slot 0 + replays).
+      { textContains: [".designer-status", "Imported"] },
+      { canvasNonBlank: ".designer-scope" },
+    ],
+    shot: { clip: "#designer-root", file: img("designer-bin-roundtrip") },
+  },
+
   // Designer polish: × Remove drops a user-added waveform and re-clamps any
   // slot's WAVE# that pointed at it (back to stock $06).  Click-path also
   // verifies the ROM-space indicator stays present + the project recovers.

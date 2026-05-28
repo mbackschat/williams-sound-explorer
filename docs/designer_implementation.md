@@ -273,6 +273,37 @@ The Designer's empty-list onboarding suggested "build something new" when most u
 
 **Tests:** existing 532 tests stay green (no headless changes). The `recordsEqualStatic` / `isStockSlot` helpers are exercised through the e2e captures + the designer mode's render path.
 
+## Phase 6.2 — `.bin` roundtrip (download + upload) (shipped 2026-05-28)
+
+Closes the *edit → MAME → upload → edit* loop. Two halves:
+
+**↓ .bin (download).** `buildEdited()` already produces the full ROM image (used by **Open in Explore** to feed Explore's worklet). Phase 6.2 adds a header button that emits the same bytes as a `Blob` with filename `{projectName}_{engineBase}.bin`. The button + tooltip flag the file as personal-use (it contains the user's base ROM bytes with their edits — not redistributable; the JSON recipe stays the shareable artefact).
+
+**↑ .bin (upload).** New headless **`engine/projectFromBin.ts`** — `importBinAsProject(bin, baseRom, game)` reverse-engineers a `ReconstructedProject` by diffing the bin against the user's base ROM. Six detection paths, full fidelity:
+
+| Detection | Mechanism |
+|---|---|
+| Edited GWAVE rows | Per-cmd SVTAB byte diff over `gwaveCommandsFor(game)` ($01..$0D) |
+| Edited stock VARI rows | VVECT rows 0..2 byte diff |
+| User-added VARI ($20+) | Find `COMA / ANDA #$1F` (`43 84 1F`) in base ROM → check bin's operand byte; if `$3F`, walk VVECT rows 3+ (stopping at the relocated GWVTAB position if LDX was patched) and emit a slot per row that diverges from base. Skips Robotron (no widen needed; non-linear dispatch unsupported). |
+| Stock waveform overrides | Resolve `LDX #GWVTAB` operand → read effective GWVTAB → per-idx (0..6) byte diff via `STOCK_WAVE_SAMPLE_OFFSETS`. |
+| Added waveforms (idx 7+) | If LDX operand differs from base, walk relocated table past the 7 stock entries (length-prefixed records); stops cleanly at the **zero-byte tail** that `buildCustomRom` now writes. |
+| Pattern overrides | Two passes over editable GWAVE cmds: collect the *longest* PATLEN at each PATOFF, then diff that range — handles overlapping pattern ranges between commands (e.g. BBSV + ED17 both pointing at $47) without losing coverage. |
+
+**Two `buildCustomRom` enhancements** to make reconstruction unambiguous:
+- **Skip the VARI fill.** Pre-Phase-6.2, rows in `[0..maxRow]` not explicitly defined by a slot got filled with the first slot's record (`fill = variSlots[0].record`). Reconstruction couldn't distinguish a placeholder fill from a real user-added row. Since Phase 6.1 pre-populates stock rows 0..2, gaps don't happen in practice; unfilled rows now keep the base ROM's original bytes (non-crashing fall-through).
+- **Zero-fill the GWVTAB tail.** When relocating, the bytes past the new GWVTAB's end (up to `GWVTAB_BASE`) are zeroed so the upload-side added-waveform walk stops cleanly at a `length = 0` byte — without it the tail still carried the base ROM's RADIO/ORGAN data, whose first byte could look like a valid length and produce false added-waveform entries.
+
+**Browser-side wiring (`designerMode.ts`):**
+- New header buttons (in a separate group): **↓ .bin** (`exportBinBtn`) emits the build via Blob + `<a download>`; **↑ .bin** (`importBinBtn` → hidden `importBinInput`) reads the file, identifies the game by size (4 KB → Robotron; 2 KB → current `engineBase`), looks up the matching base ROM in IndexedDB, and feeds `importBinAsProject`'s result into `openProject`. Status reports `Imported "<file>" — reconstructed N edit(s) from the .bin.`
+- Header bar relabelled: **Recipe:** ↓ JSON / ↑ JSON (sparse, shareable) and **ROM:** ↓ .bin / ↑ .bin (built, personal-use).
+
+**E2E vocabulary additions (`e2e/manifest.ts` + `e2e/lib.ts`):**
+- `{ expectDownload: [sel, path] }` — click selector, await `download` event, save bytes to absolute path.
+- `{ uploadFile: [sel, path] }` — `setInputFiles(path)` on a `<input type="file">` at selector.
+
+**Tests:** 13 new in `tests/projectFromBin.test.ts` exercising every detection path in isolation + a kitchen-sink round-trip that combines all six. **545 tests total** (was 532). Capture entry `designer-bin-roundtrip` covers the UI wiring end-to-end (edit BBSV → ↓ .bin → ↑ .bin → status reports the reconstructed edit).
+
 ## Fast-follows (not yet built)
 
 - **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.
