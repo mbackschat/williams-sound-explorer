@@ -11,6 +11,10 @@ import { keyAction, KEY_HELP, type KeyAction } from "./keymap.ts";
 
 export function initKeyboard(ctx: AppContext): void {
   window.addEventListener("keydown", (e) => {
+    // Design mode owns its own shortcut surface (see web/designer/designerMode.ts).
+    // While Explore is hidden behind the mode toggle, none of its key bindings
+    // should fire — otherwise Space would still trigger Fire, etc.
+    if (isDesignActive()) return;
     const el = document.activeElement;
     const typing = !!el && (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA");
     const mod = e.ctrlKey || e.metaKey || e.altKey;
@@ -19,6 +23,12 @@ export function initKeyboard(ctx: AppContext): void {
     e.preventDefault();
     dispatch(action, ctx);
   });
+}
+
+/** True when the top-level mode toggle is in Design (designer-root visible). */
+function isDesignActive(): boolean {
+  const dr = document.getElementById("designer-root");
+  return !!dr && !dr.hidden;
 }
 
 function clickPreset(i: number): void {

@@ -70,7 +70,12 @@ let loadingGame: GameKind | null = null;
  * tracks which ROM the worklet last loaded — base game (false) or custom (true) —
  * so the switcher UI reflects what's actually playing.
  */
-let customAudition: { baseGame: GameKind; projectName: string; rebuild: () => { rom: Uint8Array; cmd?: number } } | null = null;
+let customAudition: {
+  baseGame: GameKind;
+  projectName: string;
+  slots: { code: number; name: string }[];
+  rebuild: () => { rom: Uint8Array; cmd?: number; slots: { code: number; name: string }[] };
+} | null = null;
 let customRomActive = false;
 let customSwitcherBtn: HTMLButtonElement | undefined;
 const ALL_GAMES: readonly GameKind[] = ["defender", "stargate", "robotron"];
@@ -151,10 +156,17 @@ function ensureCustomSwitcherBtn(): void {
         await switchToGame(audition.baseGame);
         if (!host) return;
       }
+      // Pick up Design-mode edits made since the last hand-off: bytes + slots.
+      audition.slots = fresh.slots;
       host.loadCustomRom(audition.baseGame, fresh.rom);
       customRomActive = true;
       refreshGameSwitcherUi();
-      if (fresh.cmd !== undefined) host.fire(fresh.cmd);
+      glossaryUi.refreshChipTooltips();
+      if (fresh.cmd !== undefined) {
+        els.cmd.value = fresh.cmd.toString(16).toUpperCase().padStart(2, "0");
+        glossaryUi.refreshCmdInfo();
+        host.fire(fresh.cmd);
+      }
     })();
   });
   els.gameSwitcher.appendChild(btn);
@@ -1152,7 +1164,8 @@ async function auditionCustomRom(spec: {
   rom: Uint8Array;
   cmd?: number;
   projectName: string;
-  rebuild: () => { rom: Uint8Array; cmd?: number };
+  slots: { code: number; name: string }[];
+  rebuild: () => { rom: Uint8Array; cmd?: number; slots: { code: number; name: string }[] };
 }): Promise<void> {
   // Need Explore's worklet up; if it isn't (or it's on a different base),
   // route through the existing switch path first.  After this, `host` is the
@@ -1162,12 +1175,22 @@ async function auditionCustomRom(spec: {
     await switchToGame(spec.baseGame);
     if (!host) { log("Audition: explore worklet not ready", "err"); return; }
   }
-  customAudition = { baseGame: spec.baseGame, projectName: spec.projectName, rebuild: spec.rebuild };
+  customAudition = { baseGame: spec.baseGame, projectName: spec.projectName, slots: spec.slots, rebuild: spec.rebuild };
   ensureCustomSwitcherBtn();
   host.loadCustomRom(spec.baseGame, spec.rom);
   customRomActive = true;
   refreshGameSwitcherUi();
-  if (spec.cmd !== undefined) host.fire(spec.cmd);
+  // F3 fix: the "Try:" chip row should reflect the custom item list, not the
+  // base game's commands — overlay happens inside refreshChipTooltips().
+  glossaryUi.refreshChipTooltips();
+  if (spec.cmd !== undefined) {
+    // User-requested follow-up: when handing off to Explore, fill #cmd with
+    // the auditioned slot's code so the user sees what's playing in the
+    // hex input and the cmdInfo readout matches.
+    els.cmd.value = spec.cmd.toString(16).toUpperCase().padStart(2, "0");
+    glossaryUi.refreshCmdInfo();
+    host.fire(spec.cmd);
+  }
 }
 
 /** Click the top-level Explore button (no-op if already in Explore). */
@@ -1189,6 +1212,7 @@ const ctx: AppContext = {
   fireSequence,
   auditionCustomRom,
   switchToExploreMode,
+  getCustomSlots: () => (customRomActive && customAudition ? customAudition.slots : null),
 };
 const paramSliders = initParamSliders(ctx);
 const engineToggles = initEngineToggles(ctx);

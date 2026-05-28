@@ -54,6 +54,17 @@ What happens: the app builds your custom ROM image, pushes it into Explore's wor
   <img src="docs/img/manual/designer-audition-explore.png" width="820" alt="Explore mode running the custom ROM after 'Open in Explore' — the purple 'Custom: untitled' entry is active in the game switcher (top-right of toolbar), and every Explore panel (oscilloscope, spectrogram, byte-tape, swimlane, RAM heatmap, code) is reading the user's SAW slot">
 </p>
 
+## Keyboard shortcuts
+
+Design has its own minimal keymap so Explore's bindings don't interfere while you're authoring — pressing <kbd>Space</kbd> here triggers Design's Play, not Explore's Fire.
+
+| Key | Action |
+|---|---|
+| <kbd>Space</kbd> | Play the selected slot from the top |
+| <kbd>P</kbd> | Pause / Resume |
+
+Shortcuts are ignored while you're typing in the project name, slot name, or any other text input. Explore's full keymap (Fire, scrub, single-step, game-cycle, …) is documented in [`MANUAL.md`](MANUAL.md) §*Keyboard shortcuts* and reactivates the moment you flip back to Explore.
+
 ## Good first experiments
 
 - **+ Copy from… Defender SAW**, then raise **LOPER** a lot → the zap stretches longer and drops in pitch (you'll hit the 5 s cap).

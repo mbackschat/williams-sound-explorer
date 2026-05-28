@@ -50,9 +50,18 @@ export interface AppContext {
     rom: Uint8Array;
     cmd?: number;
     projectName: string;
-    rebuild: () => { rom: Uint8Array; cmd?: number };
+    /** Per-slot `(code, name)` pairs — drives Explore's "Try:" chip row while custom is active. */
+    slots: { code: number; name: string }[];
+    rebuild: () => { rom: Uint8Array; cmd?: number; slots: { code: number; name: string }[] };
   }): Promise<void>;
 
   /** Programmatically flip the Explore | Design top toggle (used by Design's "Open in Explore"). */
   switchToExploreMode(): void;
+
+  /**
+   * Custom-ROM slots currently in the worklet (or `null` when a stock ROM is
+   * loaded).  Used by the glossary UI to overlay the "Try:" chip row with
+   * the user's named slots while a custom audition is active.
+   */
+  getCustomSlots(): { code: number; name: string }[] | null;
 }

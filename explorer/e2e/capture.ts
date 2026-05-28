@@ -76,6 +76,13 @@ async function checkAssert(page: Page, a: Assert): Promise<string | null> {
 
 async function runEntry(page: Page, e: Entry): Promise<boolean> {
   process.stdout.write(`\n▶ ${e.id} (${e.game})\n`);
+  // A previous entry may have flipped the top-level mode to Design, which
+  // hides #gameSwitcher under display:none and makes selectGame time out
+  // waiting for a visible active button.  Force Explore first; the click is
+  // a no-op if we're already in Explore.
+  await page.evaluate(() => {
+    (document.getElementById("modeExplore") as HTMLButtonElement | null)?.click();
+  });
   await selectGame(page, e.game);
   await resetState(page); // clear scrub / freeze toggles / forced sliders left by a prior entry
   for (const step of e.steps) await runStep(page, step);

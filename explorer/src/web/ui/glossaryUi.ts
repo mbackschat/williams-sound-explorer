@@ -217,20 +217,56 @@ export function initGlossaryUi(ctx: AppContext): GlossaryUiApi {
       els.cmdChips.appendChild(placeholder);
       return;
     }
-    const sorted = Object.keys(entries)
-      .map((k) => ({ key: k, code: Number.parseInt(k, 16), entry: entries[k]! }))
-      .filter((x) => Number.isFinite(x.code))
-      .sort((a, b) => a.code - b.code);
-    for (const { key, entry } of sorted) {
+    // When a custom ROM is being auditioned (Design's "Open in Explore"), the
+    // user's named slots replace the base game's chips for the slot codes
+    // they cover, and new chips appear for codes outside the base game's
+    // glossary.  Renders as the project's actual item list — what the worklet
+    // is actually running — not the base game's stock commands.
+    const customSlots = ctx.getCustomSlots?.() ?? null;
+    const customByCode = new Map(customSlots?.map((s) => [s.code, s.name]) ?? []);
+    type Row = { key: string; code: number; label: string; engine?: string; titleText: string; custom: boolean };
+    const rows: Row[] = [];
+    for (const k of Object.keys(entries)) {
+      const code = Number.parseInt(k, 16);
+      if (!Number.isFinite(code)) continue;
+      const entry = entries[k]!;
+      const customName = customByCode.get(code);
+      rows.push({
+        key: k,
+        code,
+        label: customName ?? (entry.routine || "—"),
+        engine: customName ? "VARI" : entry.engine,
+        titleText: customName
+          ? `$${k.toUpperCase()} — “${customName}” (custom VARI slot; overlaid over the base game's ${entry.routine || "—"} entry)`
+          : summarize(entry),
+        custom: !!customName,
+      });
+    }
+    // Add custom slots whose codes aren't in the base game's glossary at all
+    // (typically anything ≥ $20 unlocked by the mask widen in `customRom.ts`).
+    for (const s of customSlots ?? []) {
+      if (rows.some((r) => r.code === s.code)) continue;
+      const k = s.code.toString(16).padStart(2, "0");
+      rows.push({
+        key: k,
+        code: s.code,
+        label: s.name,
+        engine: "VARI",
+        titleText: `$${k.toUpperCase()} — “${s.name}” (custom VARI slot at a command code the base ROM doesn't define)`,
+        custom: true,
+      });
+    }
+    rows.sort((a, b) => a.code - b.code);
+    for (const r of rows) {
       const btn = document.createElement("button");
-      btn.className = "chip";
-      btn.dataset.cmd = key.toUpperCase();
-      if (entry.engine) btn.dataset.engine = entry.engine;
-      btn.title = summarize(entry);
+      btn.className = "chip" + (r.custom ? " chip-custom" : "");
+      btn.dataset.cmd = r.key.toUpperCase();
+      if (r.engine) btn.dataset.engine = r.engine;
+      btn.title = r.titleText;
       btn.innerHTML =
         `<span class="chip-engine"></span>` +
-        `<span class="chip-cmd">$${key.toUpperCase()}</span>` +
-        `<span class="chip-name">${escapeHtml(entry.routine || "—")}</span>`;
+        `<span class="chip-cmd">$${r.key.toUpperCase()}</span>` +
+        `<span class="chip-name">${escapeHtml(r.label)}</span>`;
       btn.addEventListener("click", () => {
         els.cmd.value = btn.dataset.cmd ?? "";
         refreshCmdInfo();

@@ -94,6 +94,10 @@ button.chip {
 button.chip:hover:not(:disabled) { background: #2a2f37; border-color: #4a5060; }
 button.chip .chip-cmd { color: #ffd866; font-weight: 600; font-variant-numeric: tabular-nums; }
 button.chip .chip-name { color: #d1d4dc; }
+/* Custom-ROM slot — purple to match the ✎ Custom switcher entry. */
+button.chip.chip-custom { border-color: #6e4fa3; }
+button.chip.chip-custom .chip-cmd { color: #b78ff5; }
+button.chip.chip-custom .chip-cmd::before { content: "✎ "; }
 .chip-engine {
   display: inline-block; width: 9px; height: 9px; border-radius: 50%;
   background: #5a5e68;

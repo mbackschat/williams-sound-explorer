@@ -156,6 +156,24 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     pauseBtn.disabled = s === "idle";
     pauseBtn.textContent = s === "paused" ? "▶ Resume" : "⏸ Pause";
   });
+  // Design-mode keyboard map (F1): kept minimal and scoped to this surface —
+  // Space = Play (restart) · P = Pause/Resume.  Listener fires only when
+  // designer-root is visible (Explore's keyboard handler already early-returns
+  // in that state) and ignores key events while the user is typing into the
+  // project name, copy select, or any slider/text input.
+  window.addEventListener("keydown", (e) => {
+    if (root.hidden) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = document.activeElement;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      playBtn.click();
+    } else if (e.key === "p" || e.key === "P") {
+      e.preventDefault();
+      if (!pauseBtn.disabled) pauseBtn.click();
+    }
+  });
   // Hand the selected slot off to Explore's worklet: build the custom image,
   // load it via auditionCustomRom, fire the slot's command code, and flip the
   // top-level mode toggle.  The rebuild closure means future clicks of the
@@ -164,19 +182,31 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (!baseRom || selected < 0) return;
     stopPlayback();
     const cmd = VARI_CMD_BASE + selected;
+    // Snapshot the project's current item list as (code, name) pairs so
+    // Explore's "Try:" chip row can show your slots instead of the base
+    // game's stock commands (F3 fix).  Each click of the dynamic Custom
+    // switcher button refreshes this via the rebuild closure.
+    const slotsOf = (): { code: number; name: string }[] =>
+      project.slots.map((s, i) => ({ code: VARI_CMD_BASE + i, name: s.name }));
     void ctx.auditionCustomRom({
       baseGame: project.engineBase,
       rom: buildEdited(),
       cmd,
       projectName: project.name || "untitled",
+      slots: slotsOf(),
       rebuild: () => ({
         rom: buildEdited(),
         cmd: VARI_CMD_BASE + (selected >= 0 ? selected : 0),
+        slots: slotsOf(),
       }),
     }).then(() => ctx.switchToExploreMode());
   });
 
   const scope = el("canvas", { className: "designer-scope" }) as HTMLCanvasElement;
+  // Status line lives near the header (above the item list), not in the
+  // Audition column — save/open/copy/error feedback shouldn't pollute the
+  // scope area, and the line should be visible regardless of which slot is
+  // selected.  See F2 fix.
   const statusLine = el("div", { className: "designer-status" });
   const editPanel = el("div", { className: "designer-edit" }, [
     el("div", { className: "designer-edit-cols" }, [
@@ -197,13 +227,13 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       ]),
       el("div", { className: "designer-edit-right" }, [
         el("div", { className: "designer-edit-label", textContent: "Audition" }),
-        scope, statusLine,
+        scope,
       ]),
     ]),
   ]);
 
   const lockedMsg = el("div", { className: "designer-locked" });
-  root.append(header, itemsSection, itemList, editPanel, lockedMsg);
+  root.append(header, statusLine, itemsSection, itemList, editPanel, lockedMsg);
 
   // ── Behaviour ──────────────────────────────────────────────────────────
 
@@ -430,12 +460,19 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (!name) { status("Give the project a name first.", "err"); return; }
     project.name = name; touch();
     void saveProject(project)
-      .then(() => { status(`Saved "${name}".`, "ok"); return refreshProjectList(); })
+      .then(() => {
+        status(`Saved "${name}".`, "ok");
+        // F2 fix: after refreshing the option list, point the Open dropdown
+        // at the just-saved project so the user sees "this is what I'm on"
+        // instead of the default "— open —" placeholder.
+        return refreshProjectList().then(() => { projectSelect.value = name; });
+      })
       .catch((e: unknown) => status(`Save failed: ${e instanceof Error ? e.message : String(e)}`, "err"));
   });
   newBtn.addEventListener("click", () => {
     project = emptyProject(project.engineBase);
     nameInput.value = ""; selected = -1;
+    projectSelect.value = ""; // empty project → drop the Open: selection too
     refreshItemList(); setControlsEnabled(baseRom != null);
     status("New project.");
   });
