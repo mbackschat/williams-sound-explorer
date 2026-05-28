@@ -2,6 +2,10 @@
 
 > How to build your own custom sound ROM in the explorer's **Design** mode (the companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/designer_implementation.md`](docs/designer_implementation.md).
 
+<p align="center">
+  <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode with Defender SAW copied into the item list — engine picker, the slot row, the 8-slider VVECT parameter panel on the left, the audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom">
+</p>
+
 ## What it is
 
 A Williams arcade sound isn't a sample or an FM patch — it's a tiny **parameter record** that a shared synthesis engine reads. The VARI engine, for instance, turns just **nine bytes** into a swept variable-duty square wave (that's the whole of SAW, FOSHIT, QUASAR…). Design mode lets you do what Sam Dicker did when building a new Williams game: **assemble your own list of VARI sounds** — copy any game's sound as a starting point or add a new one, edit its parameter record, hear it, and save it as a custom ROM.

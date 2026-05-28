@@ -279,4 +279,27 @@ export const tutorials: Entry[] = [
     assert: [{ canvasNonBlank: "#spectroCanvas" }],
     shot: { fullPage: true, file: img("ui-full-map") },
   },
+
+  // ── Designer-mode shots (MANUAL_DESIGNER.md + README "Sound Designer") ──
+  // The first switch to Design lazy-imports the module, so we wait long enough
+  // for it to mount AND for refreshCopySources() to finish reading available
+  // ROMs (its `loadRomBytes` calls are async; the `.designer-copy` select
+  // populates only once they resolve).
+
+  // Designer overview: enter Design, copy Defender SAW as the first slot.
+  // That auto-selects the slot, which reveals the editor + audition scope and
+  // triggers the offline render (so .designer-scope is non-blank without
+  // needing playback).
+  {
+    id: "designer-overview",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 }, // lazy import + mount + copy-sources populate
+      { select: [".designer-copy", "0"] }, // first source (Defender SAW)
+      { waitMs: 600 }, // offline render → scope draws
+    ],
+    assert: [{ canvasNonBlank: ".designer-scope" }],
+    shot: { clip: "#designer-root", file: img("designer-overview") },
+  },
 ];

@@ -72,6 +72,10 @@ The assemble-from-source toolchain is included, but the **Williams sound source 
 
 Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for building your **own custom ROM** of VARI sounds: pick an engine base, copy any game's sound or add a new one into your own named list, edit its 9-byte parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes). See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
+<p align="center">
+  <img alt="Design mode with Defender SAW copied into the item list, the 8-slider VVECT parameter panel on the left, audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom" src="docs/img/manual/designer-overview.png" width="820">
+</p>
+
 ## How it compares
 
 Most tools for these sounds either *play* them (emulators) or *document* them (disassemblies); a couple let you *tweak* them. **WSED** sets out to do all of it — emulate the real hardware, make every layer visible at human-scale time, and let you design new sounds — across all three games.
