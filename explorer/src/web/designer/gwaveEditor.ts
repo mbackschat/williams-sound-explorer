@@ -20,8 +20,12 @@
 import { GWAVE_FIELDS, getField, setField, STOCK_WAVE_NAMES, STOCK_WAVE_LENGTHS, type GWaveField } from "../../engine/gwaveEdit.ts";
 
 export interface GWaveEditorApi {
-  /** The panel root to insert into the DOM. */
-  el: HTMLElement;
+  /** The slider panel (SVTAB record editor) — column 1 in the GWAVE 3-column layout. */
+  slidersEl: HTMLElement;
+  /** The waveform-canvas panel (label + canvas + Shared-by + Reset) — column 2. */
+  waveformPanelEl: HTMLElement;
+  /** The pitch-pattern-canvas panel (label + canvas + Shared-by + Reset) — column 3. */
+  patternPanelEl: HTMLElement;
   /** Seed every slider from a 7-byte record. */
   setRecord(record: number[]): void;
   /** The current 7-byte record. */
@@ -66,8 +70,12 @@ export function buildGWaveEditor(
 ): GWaveEditorApi {
   let record: number[] = new Array(7).fill(0);
 
-  const el = document.createElement("div");
-  el.className = "param-sliders designer-fields designer-fields-gwave";
+  // The sliders, waveform canvas, and pitch canvas now live in separate
+  // DOM trees so the host (`designerMode.ts`) can place them in a 3-column
+  // layout (sliders | waveform | pitch).  See `.designer-edit-row-gwave`
+  // in `designer.css`.
+  const slidersEl = document.createElement("div");
+  slidersEl.className = "param-sliders designer-fields designer-fields-gwave";
 
   // ── Slider panel (Phase 5 step 1) ───────────────────────────────────────
   const rows = GWAVE_FIELDS.map((field) => {
@@ -97,7 +105,7 @@ export function buildGWaveEditor(
     });
 
     row.append(label, slider, value);
-    el.append(row);
+    slidersEl.append(row);
     return { field, slider, value };
   });
 
@@ -126,10 +134,11 @@ export function buildGWaveEditor(
 
   const canvas = document.createElement("canvas") as HTMLCanvasElement;
   canvas.className = "designer-wfcanvas";
-  canvas.width = 560;   // 2× CSS size (deviceScaleFactor 2 friendly)
+  // Internal resolution is sized for the *max* CSS width the canvas can grow
+  // to (~600 px) at 2× device pixel ratio.  CSS sets the display size to
+  // `width: 100%` so the canvas fills its grid cell; cells auto-scale.
+  canvas.width = 1200;
   canvas.height = 200;
-  canvas.style.width = "280px";
-  canvas.style.height = "100px";
 
   const sharedRow = document.createElement("div");
   sharedRow.className = "designer-wfcanvas-shared";
@@ -141,7 +150,7 @@ export function buildGWaveEditor(
   resetBtn.addEventListener("click", () => onWaveformReset(currentWaveIdx()));
 
   canvasHost.append(canvasLabel, canvas, sharedRow, resetBtn);
-  el.append(canvasHost);
+  // `canvasHost` is now `waveformPanelEl` (column 2 of the GWAVE edit row).
 
   function redrawCanvas(): void {
     const ctx = canvas.getContext("2d");
@@ -239,10 +248,8 @@ export function buildGWaveEditor(
 
   const patCanvas = document.createElement("canvas") as HTMLCanvasElement;
   patCanvas.className = "designer-patcanvas";
-  patCanvas.width = 560;
+  patCanvas.width = 1200;
   patCanvas.height = 200;
-  patCanvas.style.width = "280px";
-  patCanvas.style.height = "100px";
 
   const patShared = document.createElement("div");
   patShared.className = "designer-patcanvas-shared";
@@ -254,7 +261,7 @@ export function buildGWaveEditor(
   patResetBtn.addEventListener("click", () => onPatternReset(currentPatternOffset()));
 
   patHost.append(patLabel, patCanvas, patShared, patResetBtn);
-  el.append(patHost);
+  // `patHost` is now `patternPanelEl` (column 3 of the GWAVE edit row).
 
   function redrawPatCanvas(): void {
     const ctx = patCanvas.getContext("2d");
@@ -342,7 +349,9 @@ export function buildGWaveEditor(
   }
 
   return {
-    el,
+    slidersEl,
+    waveformPanelEl: canvasHost,
+    patternPanelEl: patHost,
     setRecord(rec: number[]): void {
       record = [...rec];
       refreshSliders();

@@ -124,6 +124,14 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const importInput = el("input", { type: "file", accept: "application/json,.json", className: "designer-import" });
   const importBtn = el("button", { textContent: "⬆ JSON", title: "Load a project from a JSON recipe file." });
   importBtn.addEventListener("click", () => importInput.click());
+  // "Open in Explore" lives in the header because it's a **mode handoff**
+  // (Design → Explore), not a transport control.  Semantically it sits next
+  // to Save/JSON, and it's never below the fold there.
+  const openInExploreBtn = el("button", {
+    className: "designer-open-explore",
+    textContent: "▶ Open in Explore",
+    title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
+  });
 
   const header = el("div", { className: "designer-header" }, [
     el("h2", { textContent: "🎛 Sound Designer — Custom ROM" }),
@@ -134,6 +142,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       nameInput, saveBtn, newBtn,
       el("span", { className: "designer-bar-label", textContent: "Open:" }), projectSelect,
       exportBtn, importBtn, importInput,
+      el("span", { className: "sep" }),
+      openInExploreBtn,
     ]),
   ]);
 
@@ -195,20 +205,33 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       refreshPatternCanvas();
     },
   );
-  const editorHost = el("div", { className: "designer-editor-host" });
-  // Both editors live in the DOM concurrently; only the matching one is shown
-  // for the selected slot.  This keeps slider state stable across selections
-  // of the same kind.
-  editorHost.append(variEditor.el, gwaveEditor.el);
+  // The sliders column contains *both* editors' slider panels (VARI + GWAVE);
+  // only one is visible at a time depending on the selected slot's kind.
+  // Waveform/pitch canvases sit in their own grid columns to the right.
+  const slidersCol = el("div", { className: "designer-edit-sliders-col" });
+  slidersCol.append(variEditor.el, gwaveEditor.slidersEl);
   variEditor.el.style.display = "";
-  gwaveEditor.el.style.display = "none";
+  gwaveEditor.slidersEl.style.display = "none";
+  gwaveEditor.waveformPanelEl.style.display = "none";
+  gwaveEditor.patternPanelEl.style.display = "none";
 
   /** Editor label that switches with the selected slot's kind. */
   const editorLabel = el("div", { className: "designer-edit-label", textContent: "Parameter record (VVECT — VARI)" });
 
+  // The 3-column grid for the editor body.  CSS sizes the columns differently
+  // per slot kind: `vari` shows only the sliders column; `gwave` shows
+  // sliders | waveform | pitch (with canvas columns sized to grow up to ~600 px
+  // each so future v-future "new waveforms" / long PATLENs stay drawable).
+  const editRow = el("div", { className: "designer-edit-row" });
+  editRow.append(slidersCol, gwaveEditor.waveformPanelEl, gwaveEditor.patternPanelEl);
+
   function showEditorFor(kind: "vari" | "gwave"): void {
     variEditor.el.style.display = kind === "vari" ? "" : "none";
-    gwaveEditor.el.style.display = kind === "gwave" ? "" : "none";
+    gwaveEditor.slidersEl.style.display = kind === "gwave" ? "" : "none";
+    gwaveEditor.waveformPanelEl.style.display = kind === "gwave" ? "" : "none";
+    gwaveEditor.patternPanelEl.style.display = kind === "gwave" ? "" : "none";
+    editRow.classList.toggle("designer-edit-row-vari", kind === "vari");
+    editRow.classList.toggle("designer-edit-row-gwave", kind === "gwave");
     editorLabel.textContent = kind === "vari"
       ? "Parameter record (VVECT — VARI)"
       : "Parameter record (SVTAB — GWAVE override)";
@@ -221,11 +244,6 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const srcStartBtn = el("button", { textContent: "Start", title: "Audition the sound's starting point (as copied/created)." });
   const sourceToggle = el("div", { className: "designer-source game-switcher", role: "radiogroup" }, [srcEditedBtn, srcStartBtn]);
   const diffBtn = el("button", { textContent: "⇄ Diff", title: "Overlay the starting point (grey) + divergence (red) behind the live trace." });
-  const openInExploreBtn = el("button", {
-    className: "designer-open-explore",
-    textContent: "▶ Open in Explore",
-    title: "Audition this sound in Explore mode — pause/step/scrub the live worklet on your custom ROM, with every Explore visualisation pointed at it.",
-  });
   const volSlider = el("input", { type: "range", min: "0", max: "1", step: "0.01", value: String(volume), className: "designer-vol" });
   loopBtn.setAttribute("aria-pressed", "false");
   diffBtn.setAttribute("aria-pressed", "false");
@@ -303,32 +321,37 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // scope area, and the line should be visible regardless of which slot is
   // selected.  See F2 fix.
   const statusLine = el("div", { className: "designer-status" });
+  // The full-width audition scope strip sits beneath the 3-column edit row.
+  // The scope is a *static* offline render with a playhead, so a thin strip
+  // (~120 px tall, full width) is more efficient than the old half-screen
+  // right column.
+  const auditionStrip = el("div", { className: "designer-audition-strip" }, [
+    el("div", { className: "designer-edit-label", textContent: "Audition" }),
+    scope,
+  ]);
+
   const editPanel = el("div", { className: "designer-edit" }, [
-    el("div", { className: "designer-edit-cols" }, [
-      el("div", { className: "designer-edit-left" }, [
-        editorLabel,
-        editorHost,
-        el("div", { className: "designer-audition-row" }, [
-          playBtn, pauseBtn, loopBtn,
-          el("span", { className: "sep" }),
-          el("span", { className: "designer-bar-label", textContent: "Source" }), sourceToggle,
-        ]),
-        el("div", { className: "designer-audition-row" }, [
-          diffBtn, el("span", { className: "sep" }),
-          el("span", { className: "designer-bar-label", textContent: "Vol" }), volSlider,
-          el("span", { className: "sep" }),
-          openInExploreBtn,
-        ]),
-      ]),
-      el("div", { className: "designer-edit-right" }, [
-        el("div", { className: "designer-edit-label", textContent: "Audition" }),
-        scope,
-      ]),
-    ]),
+    editorLabel,
+    editRow,
+    auditionStrip,
+  ]);
+
+  // Sticky transport bar — single row of Play / Pause / Loop / Source / Diff
+  // / Vol, glued to the bottom of the viewport when the editor exceeds the
+  // window height.  "Open in Explore" is NOT here — it lives in the header
+  // because it's a mode handoff, not a transport action.
+  const transport = el("div", { className: "designer-transport" }, [
+    playBtn, pauseBtn, loopBtn,
+    el("span", { className: "sep" }),
+    el("span", { className: "designer-bar-label", textContent: "Source" }), sourceToggle,
+    el("span", { className: "sep" }),
+    diffBtn,
+    el("span", { className: "sep" }),
+    el("span", { className: "designer-bar-label", textContent: "Vol" }), volSlider,
   ]);
 
   const lockedMsg = el("div", { className: "designer-locked" });
-  root.append(header, statusLine, itemsSection, itemList, editPanel, lockedMsg);
+  root.append(header, statusLine, itemsSection, itemList, editPanel, transport, lockedMsg);
 
   // ── Behaviour ──────────────────────────────────────────────────────────
 
@@ -340,7 +363,10 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     gwaveOverrideSelect.disabled = !on;
     itemsSection.style.display = on ? "" : "none";
     itemList.style.display = on ? "" : "none";
-    editPanel.style.display = on && selected >= 0 ? "" : "none";
+    const slotOk = on && selected >= 0;
+    editPanel.style.display = slotOk ? "" : "none";
+    transport.style.display = slotOk ? "" : "none";
+    openInExploreBtn.disabled = !slotOk;
     lockedMsg.style.display = on ? "none" : "";
   }
 

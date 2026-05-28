@@ -162,7 +162,7 @@ Adds a **click-to-draw waveform canvas** below the SVTAB sliders. The canvas sho
 
 ## GWAVE editor — Phase 5 step 3 (shipped)
 
-Adds a second click-to-draw canvas below the waveform canvas: the **pitch-pattern canvas**. It shows the resolved bytes at the slot's current `(PATOFF, PATLEN)` — the project's override if any, else the base ROM's bytes — and emits `onPatternDraw(offset, bytes)` per stroke. The host writes those into `project.patternOverrides[offset]` and rebuilds the custom ROM.
+Adds a **pitch-pattern canvas** as a third sibling to the SVTAB sliders and the waveform canvas (3-column grid: sliders | waveform | pitch — see § *Phase 5 layout redesign* below). It shows the resolved bytes at the slot's current `(PATOFF, PATLEN)` — the project's override if any, else the base ROM's bytes — and emits `onPatternDraw(offset, bytes)` per stroke. The host writes those into `project.patternOverrides[offset]` and rebuilds the custom ROM.
 
 **Sharing semantics surfaced in the UI:** patterns are *byte-addressed*, not index-addressed — SVTAB byte-6 (`PATOFF`) is a raw GFRTAB offset and byte-5 (`PATLEN`) the read length, so two commands' pattern ranges may overlap. The canvas's *"Shared by:"* line is driven by `patternUsers(baseRom, game, offset, length)` and lists every editable command whose range overlaps the slot's (excluding the slot's own `targetCmd`). A *"Reset to stock"* button clears the project's override at that `PATOFF`. When `PATLEN = 0` (no pitch sweep) the canvas renders an empty-state hint.
 
@@ -179,6 +179,18 @@ Adds a second click-to-draw canvas below the waveform canvas: the **pitch-patter
 **Why these byte edits don't break pointers (step 3):**
 - `PATLEN` (SVTAB byte 5) is **not** modified by this step — kernel reads still consume exactly the bytes the user drew.
 - Patterns can be edited at *any* `(offset, length)` valid in GFRTAB, but the bytes are written *at the existing offset*. No relocation; the dispatcher and SVTAB pointers are untouched.
+
+## Phase 5 layout redesign (shipped 2026-05-28)
+
+The original Designer layout dedicated half the screen to a tall audition scope and stacked the SVTAB sliders / waveform canvas / pitch canvas vertically — pushing the transport row below the viewport fold on a 1080-tall window, so `▶ Open in Explore` needed a scroll to reach. The redesign:
+
+- **`▶ Open in Explore` moved to the header bar** (next to the JSON buttons). Semantically it's a *mode handoff*, not a transport control; visually it's now always in view.
+- **3-column edit row for GWAVE**: sliders | waveform canvas | pitch canvas, sized so each canvas column can grow up to ~600 px (gives ~2.4 px/cell at the worst v-future case of a 255-byte waveform — still drawable). VARI slots show only the sliders column.
+- **Audition scope is now a thin full-width strip** (120 px tall) below the edit row, replacing the half-screen tall right column. The trace is a static offline render anyway — a strip is plenty.
+- **Sticky single-row transport** at the bottom of `#designer-root` (`position: sticky; bottom: 0;`): Play · Pause · Loop · Source · Diff · Vol, glued to the viewport bottom when the editor exceeds window height.
+- **`gwaveEditor.ts` API split**: `slidersEl` / `waveformPanelEl` / `patternPanelEl` instead of a single combined `el`, so the host (`designerMode.ts`) can place the three panels independently in the grid. Internal canvas resolution bumped to 1200×200 for crisp rendering at the larger CSS widths.
+
+Result on a 1920×1080 viewport: the entire editor — header + items + 3-column edit row + audition strip + transport — fits with no scroll. Tests + capture entries are unchanged (the manifest entries assert *behaviour*, not pixel layout); `designer-gwave-overview.png` and `designer-gwave-audition-explore.png` were regenerated.
 
 ## Fast-follows (not yet built)
 
