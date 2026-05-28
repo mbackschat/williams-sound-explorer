@@ -27,6 +27,7 @@ import {
 } from "../src/engine/gwaveEdit.ts";
 import { VVECT_BASE } from "../src/engine/variEdit.ts";
 import { readLfsrRecord, patchLfsrRecord } from "../src/engine/lfsrEdit.ts";
+import { readFnoiseRecord, patchFnoiseRecord } from "../src/engine/fnoiseEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -535,5 +536,53 @@ describe("LFSR slots (Phase 7)", () => {
     // VARI mask was widened for code $20.
     const maskOff = (() => { for (let i = 0; i <= base.length - 3; i++) if (base[i] === 0x43 && base[i + 1] === 0x84 && base[i + 2] === 0x1F) return i + 2; return -1; })();
     expect(built[maskOff]).toBe(0x3F);
+  });
+});
+
+describe("FNOISE slots (Phase 8)", () => {
+  it("rejects a non-editable FNOISE command (BG1 on Defender) + duplicates + malformed", () => {
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "fnoise", cmd: 0x0F, record: [0] }])).toThrow(/editable/i);
+    expect(() => buildCustomRom(synth("defender"), "defender", [
+      { kind: "fnoise", cmd: 0x16, record: [3] }, { kind: "fnoise", cmd: 0x16, record: [3] },
+    ])).toThrow(/duplicate/i);
+    // THRUST on Defender has 1 field; 4 is wrong.
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "fnoise", cmd: 0x16, record: [1, 2, 3, 4] }])).toThrow(/value/i);
+  });
+
+  it("Robotron HBOMB ($3E) is editable; Defender has no FNTAB so it isn't", () => {
+    if (haveRom("robotron")) {
+      const base = loadRom("robotron");
+      const built = buildCustomRom(base, "robotron", [{ kind: "fnoise", cmd: 0x3E, record: [0, 0, 0, 0x20, 0x0200] }]);
+      expect(readFnoiseRecord(built, "robotron", 0x3E)).toEqual([0, 0, 0, 0x20, 0x0200]);
+    }
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "fnoise", cmd: 0x3E, record: [0] }])).toThrow(/editable/i);
+  });
+
+  const fnoiseCases: { game: GameKind; cmd: number; rec: number[] }[] = [
+    { game: "defender", cmd: 0x17, rec: [0, 0, 0x20, 0x0100] },
+    { game: "robotron", cmd: 0x17, rec: [0, 0x10, 0, 0x40, 0x0200] },
+  ];
+  for (const { game, cmd, rec } of fnoiseCases) {
+    it(`an FNOISE slot's command plays its edited record on the real ${game} ROM`, () => {
+      if (!haveRom(game)) return;
+      const base = loadRom(game);
+      const truth = dacValues(patchFnoiseRecord(base, game, cmd, rec), game, cmd);
+      const built = buildCustomRom(base, game, [{ kind: "fnoise", cmd, record: rec }]);
+      expect(eqSeq(dacValues(built, game, cmd), truth)).toBe(true);
+      expect(eqSeq(dacValues(built, game, cmd), dacValues(base, game, cmd))).toBe(false);
+    });
+  }
+
+  it("mixes with VARI + GWAVE + LFSR slots in one build (Defender)", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const saw = readVariRecord(base, "defender", 0x1D);
+    const built = buildCustomRom(base, "defender", [
+      { kind: "vari", code: 0x20, record: saw },
+      { kind: "gwave", cmd: 0x01, record: readGWaveRecord(base, "defender", 0x01) },
+      { kind: "lfsr", cmd: 0x14, record: [0x10, 0x02, 0x0040, 0x80] },
+      { kind: "fnoise", cmd: 0x17, record: [0, 0, 0x10, 0x0080] },
+    ]);
+    expect(readFnoiseRecord(built, "defender", 0x17)).toEqual([0, 0, 0x10, 0x0080]);
   });
 });

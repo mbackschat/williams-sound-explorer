@@ -4,9 +4,9 @@
 
 ## What it is
 
-A **separate top-level mode** (Explore ↔ Design toggle in the header) for **forking a game's sound bank**: opens with every editable command pre-populated, edit any sound's parameter record with labelled sliders, audition, A/B against its starting point, and save. Three engines are editable today (**VARI** + **GWAVE** + **LFSR**); each sound's runnable image is reconstituted from the user's base ROM (`buildCustomRom`) and runs through the real emulator unchanged. The saved artefact is either a sparse JSON recipe (deltas only — zero copyrighted ROM bytes) or a full `.bin` ROM image for MAME / a real cabinet (round-trips back via `↑ .bin`).
+A **separate top-level mode** (Explore ↔ Design toggle in the header) for **forking a game's sound bank**: opens with every editable command pre-populated, edit any sound's parameter record with labelled sliders, audition, A/B against its starting point, and save. Four engines are editable today (**VARI** + **GWAVE** + **LFSR** + **FNOISE**); each sound's runnable image is reconstituted from the user's base ROM (`buildCustomRom`) and runs through the real emulator unchanged. The saved artefact is either a sparse JSON recipe (deltas only — zero copyrighted ROM bytes) or a full `.bin` ROM image for MAME / a real cabinet (round-trips back via `↑ .bin`).
 
-**Scope:** engines = **VARI** + **GWAVE** + **LFSR**; engine bases = Defender / Stargate (VARI + GWAVE + LFSR) and Robotron (GWAVE + LFSR — VARI dispatch is non-linear, planned as v-future). Live worklet pause/step/scrub on a custom ROM ships via the **Open in Explore** handoff (the custom ROM is pushed into Explore's existing worklet; see [Audition handoff](#open-in-explore--live-worklet-audition-via-explore) below). **FNOISE + RADIO editors** are planned next (Phases 8 + 9 in `plans/designer-mode.md` — research done for FNOISE; RADIO needs a spike). SCREAM, HYPER, and ORGAN-pitch stay out of scope (no preset record in the ROM — would need an in-browser 6800 assembler).
+**Scope:** engines = **VARI** + **GWAVE** + **LFSR** + **FNOISE**; engine bases = Defender / Stargate (VARI + GWAVE + LFSR + FNOISE) and Robotron (GWAVE + LFSR + FNOISE — VARI dispatch is non-linear, planned as v-future). Live worklet pause/step/scrub on a custom ROM ships via the **Open in Explore** handoff (the custom ROM is pushed into Explore's existing worklet; see [Audition handoff](#open-in-explore--live-worklet-audition-via-explore) below). The **RADIO editor** is planned next (Phase 9 in `plans/designer-mode.md` — needs a spike). SCREAM, HYPER, and ORGAN-pitch stay out of scope (no preset record in the ROM — would need an in-browser 6800 assembler).
 
 **History:** v1 shipped first as *override-in-place* (edit a base game's existing VARI commands, marked ●). The user-chosen direction superseded it with the own-item-list model above; legacy v1 projects auto-convert on load (`designerStore.ts`).
 
@@ -27,12 +27,13 @@ A **separate top-level mode** (Explore ↔ Design toggle in the header) for **fo
 Headless (DOM-free, in the `tsconfig.core.json` gate):
 - `explorer/src/engine/variEdit.ts` — the pure ROM-patch core: `VVECT_BASE`, `VVECT_STRIDE`, `VARI_FIELDS`, `variCommandsFor`, `readVariRecord`, `patchVariRecord`, `getField`/`setField`, `VariRecipe`, `applyRecipe`.
 - `explorer/src/engine/lfsrEdit.ts` — the LFSR patch core: `LFSR_CALLER_BASE` (per-game caller addresses), `LFSR_FIELDS` (per-command virtual-record layouts — LITE 2 fields, APPEAR/LAUNCH 3, TURBO 4 incl. 16-bit NFRQ1), `lfsrCommandsFor`, `lfsrFieldsFor`, `readLfsrRecord`, `patchLfsrRecord`. Parameters are immediate operands in caller code, not a table — see § *LFSR editor* below. (Tests: `tests/lfsrEdit.test.ts`.)
+- `explorer/src/engine/fnoiseEdit.ts` — the FNOISE patch core, **split by game**: `FNTAB_BASE`/`FNTAB_STRIDE` (Robotron's 6-byte data table at `$F785`) vs. caller-immediate offsets (Defender/Stargate); `fnoiseCommandsFor`, `fnoiseFieldsFor` (per-command logical fields — DSFLG / LOFRQ / FDFLG / FMAX / SAMPC-16bit), `readFnoiseRecord`, `patchFnoiseRecord`. See § *FNOISE editor* below. (Tests: `tests/fnoiseEdit.test.ts`.)
 - `explorer/src/engine/customRom.ts` — **v-next** custom-ROM image builder: `buildCustomRom(baseRom, game, slots)` + `maxSlots`/`VARI_CMD_BASE`. Given VARI slots `{ code, record }`, emits a runnable image (widen the command mask if any code > `$1F`; extend `VVECT` in place; `row = code − $1D`). Defender/Stargate only. GWAVE + LFSR slots are patched in place on every game. (Tests: `tests/customRom.test.ts`.)
 
 Browser (`explorer/src/web/`):
 - `designer/designerMode.ts` — `mountDesigner(root, ctx)`: the orchestrator (engine-base picker, the **item list** with +New / +Copy-from-any-game / rename / remove, editor on the selected sound, audition via `buildCustomRom`, transport with Edited/Start A/B + Diff, save/open/export/import). Imports `designer.css`.
 - `designer/variEditor.ts` — `buildVariEditor(onChange)`: the 8-field slider panel (reuses the explore `.param-row` markup/CSS).
-- `designer/lfsrEditor.ts` — `buildLfsrEditor(onChange)`: a per-command slider set rebuilt via `setFields` when the selected sound changes (LFSR exposes a *different* field roster per sound), then seeded via `setRecord`. Sliders-only, no canvases.
+- `designer/fieldSliders.ts` — `buildFieldSliderEditor(onChange)`: a generic per-command slider panel rebuilt via `setFields` when the selected sound changes (the field roster differs per sound), then seeded via `setRecord`. Sliders-only, no canvases. **Shared by both the LFSR and FNOISE editors** (their field descriptors are structurally identical).
 - `designer/audition.ts` — offline render + playback transport: `renderSound`, `playSamples(samples, vol, loop)`, `pauseResume`/`stopPlayback`/`setLoop`, `playbackState`/`playbackProgress`/`onPlaybackState`, `drawWaveform`/`drawDiff`/`drawPlayhead`/`durationMs`.
 - `designer/designerStore.ts` — `CustomProject` IndexedDB CRUD (`listProjects`/`getProject`/`saveProject`/`deleteProject`) + pure `exportJson`/`importJson` (validated), and **legacy v1 recipe conversion** on load. Dedicated DB `williams-sound-designer` (decoupled from `romStore`).
 - `designer/designer.css` — scoped styling (lazy-loaded with the module).
@@ -98,10 +99,11 @@ ROM array offset = `(VVECT_BASE + row*9) − (0x10000 − rom.length)` (ROM occu
 - `explorer/tests/variEdit.test.ts` (21) — VVECT addresses vs the label-map JSON; read/patch round-trips; `getField`/`setField` big-endian SWPDT; `applyRecipe` idempotent + order-independent; a golden assertion reading SAW's real bytes from the dev Defender ROM.
 - `explorer/tests/gwaveEdit.test.ts` (35) — SVTAB + GWVTAB addresses vs the label-map JSON; nybble-packed `getField`/`setField`; read/patch round-trips for SVTAB *and* waveform bytes; `waveformUsers` against the real Defender ROM (every reported user has the right WAVE# nybble; no command listed under more than one idx); golden assertion reading HBDV's real bytes.
 - `explorer/tests/lfsrEdit.test.ts` (19) — caller addresses vs the label-map JSON (LITE / TURBO / APPEAR / LAUNCH per game); per-command field-layout shape (LITE 2 / APPEAR 3 / TURBO 4 with 16-bit NFRQ1); read/patch round-trips on synthetic + real ROMs; wrong-length + out-of-range + non-editable-command guards; golden assertions reading the real LFSR operands from the dev Defender + Robotron ROMs.
-- `explorer/tests/customRom.test.ts` (~27) — validation guards (hermetic) + behavioural proof on the real ROMs that each slot's command renders its record (VARI mask-widen path, GWAVE SVTAB-in-place path, LFSR caller-immediate path, mixed builds), plus waveform/pattern overrides + the ROM-space budget. Compares **DAC value sequences** (record-determined, command-code-independent).
-- `explorer/tests/designerStore.test.ts` (~22) — `CustomProject` JSON round-trip + validation: VARI / GWAVE / LFSR slots (round-trip + per-engine-base rules + duplicate-target rejection + non-editable / wrong-length rejection), v1 + v2 on-disk migrations, and `waveformOverrides` / `patternOverrides` / `addedWaveforms`.
-- `explorer/tests/projectFromBin.test.ts` (16) — `.bin` → project reconstruction across every detection path incl. LFSR overrides (TURBO on Defender, LAUNCH on Robotron, unedited-command absence) + a kitchen-sink round-trip.
-- Full suite: **579 tests**; `npm run typecheck` passes both the full project and the DOM-free core gate (`variEdit.ts`/`gwaveEdit.ts`/`lfsrEdit.ts`/`customRom.ts` stay headless).
+- `explorer/tests/fnoiseEdit.test.ts` (18) — FNTAB base + inline caller addresses vs the label-map JSON; per-game command sets (Robotron 4 table-backed; D/S THRUST+CANNON inline, BG1 omitted); read/patch round-trips (FNTAB rows + caller immediates, 16-bit SAMPC); a **cross-game equivalence** assertion (D/S CANNON's logical record == Robotron CANNON's shared FNTAB fields); golden reads from the real ROMs.
+- `explorer/tests/customRom.test.ts` (~31) — validation guards (hermetic) + behavioural proof on the real ROMs that each slot's command renders its record (VARI mask-widen path, GWAVE SVTAB-in-place path, LFSR + FNOISE caller-immediate / FNTAB paths, mixed builds), plus waveform/pattern overrides + the ROM-space budget. Compares **DAC value sequences** (record-determined, command-code-independent).
+- `explorer/tests/designerStore.test.ts` (~26) — `CustomProject` JSON round-trip + validation: VARI / GWAVE / LFSR / FNOISE slots (round-trip + per-engine-base rules + duplicate-target rejection + non-editable / wrong-length rejection), v1 + v2 on-disk migrations, and `waveformOverrides` / `patternOverrides` / `addedWaveforms`.
+- `explorer/tests/projectFromBin.test.ts` (19) — `.bin` → project reconstruction across every detection path incl. LFSR + FNOISE overrides (CANNON on Defender, HBOMB on Robotron, unedited-command absence) + a kitchen-sink round-trip.
+- Full suite: **609 tests**; `npm run typecheck` passes both the full project and the DOM-free core gate (`variEdit.ts`/`gwaveEdit.ts`/`lfsrEdit.ts`/`fnoiseEdit.ts`/`customRom.ts` stay headless).
 - Browser-flow regression coverage lives in the Playwright capture manifests (`explorer/e2e/capturesDesigner.ts`); see `docs/web-capture.md`. Transient flow smokes go to `explorer/e2e/smokes.ts` per the CLAUDE.md convention.
 
 ## Open in Explore — live-worklet audition via Explore
@@ -329,7 +331,7 @@ Caller base addresses (from the label-map JSON): LITE `$F88C` / `$F55A`, TURBO `
 - `engine/lfsrEdit.ts` — `LFSR_CALLER_BASE`, `LFSR_FIELDS` (per-command layouts), `lfsrCommandsFor`, `lfsrFieldsFor`, `readLfsrRecord`, `patchLfsrRecord`. Headless, in the `tsconfig.core.json` gate.
 - `engine/customRom.ts` — `CustomSlot` gains `LfsrSlot = { kind: "lfsr", cmd, record }`; `buildCustomRom` validates + patches LFSR operands in place (no mask widen, no relocation). `computeBudget` ignores LFSR slots (they don't touch the VVECT/GWVTAB free region).
 - `engine/projectFromBin.ts` — a new LFSR detection pass: per editable command, diff the bin's virtual record vs base → emit an `lfsr` slot for any command whose operands changed. Keeps `.bin` upload full-fidelity.
-- `web/designer/lfsrEditor.ts` — `buildLfsrEditor(onChange)`: a slider panel rebuilt per command via `setFields` (since the field roster differs per sound), seeded via `setRecord`. No canvases.
+- `web/designer/fieldSliders.ts` — `buildFieldSliderEditor(onChange)`: a slider panel rebuilt per command via `setFields` (since the field roster differs per sound), seeded via `setRecord`. No canvases. (Originally shipped as `lfsrEditor.ts`; generalised in Phase 8 so FNOISE reuses it.)
 - `web/designer/designerMode.ts` — the populated item list now carries the LFSR family as override-in-place rows (teal `$XX LFSR` items); the per-slot editor swap + item rendering + A/B "Start" render + the engine-switch guard all learned the third kind. `setEngine` blocks switching away from Robotron with an *edited* LAUNCH ($39) since the code is Robotron-only.
 - `web/designer/designerStore.ts` — `CustomProject.slots` is now a `VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot` union; LFSR slots carry `{ kind: "lfsr", name, record, start, targetCmd }`. JSON round-trip + validation (per-command field count + range, duplicate-target rejection, per-game editability); v1/v2 on-disk shapes migrate unchanged.
 - `web/designer/designer.css` — `.designer-item-lfsr` teal accent (distinct from VARI yellow / GWAVE purple).
@@ -338,14 +340,41 @@ Caller base addresses (from the label-map JSON): LITE `$F88C` / `$F55A`, TURBO `
 
 **Tests:** `lfsrEdit.test.ts` (19) + LFSR additions to `customRom.test.ts` (build path — render-level proof a slot's command plays its edited record byte-for-byte identically to a directly-patched ROM, mixed VARI+GWAVE+LFSR, LAUNCH Robotron-only), `designerStore.test.ts` (round-trip + validation), `projectFromBin.test.ts` (LFSR detection). **+34 tests**, **579 total**. Capture entry `designer-lfsr-overview` selects the populated `$14 LFSR TURBO` row and verifies its 4-field slider set + offline audition render.
 
-## Planned engines — FNOISE (Phase 8) + RADIO (Phase 9)
+## FNOISE editor — Phase 8 (shipped)
 
-The Designer edits 3 of Williams's data-driven engines: VARI + GWAVE + LFSR. The next two:
+The fourth editable engine: **FNOISE** (filtered noise / slope-limited DAC walk) — BG1, THRUST, CANNON, and Robotron's HBOMB. FNOISE slots **override an existing command in place**, but the storage has a **split personality across games** (the result of Robotron's source being a later, cleaner rewrite — its `CANTB` record is literally commented "DEFENDER SND #$17"):
 
-- **FNOISE** (Phase 8 — BG1 / THRUST / CANNON / HBOMB) — **split personality across games.** Robotron has a proper **6-byte `FNTAB` data table** at `$F785` (clean indexed authoring, identical shape to VARI's `VVECT`); Defender / Stargate have the same parameters but inline in caller code (same shape as LFSR). One headless module branches by game; the UI exposes the same 6 logical fields regardless. Research done (`research/findings_designer_feasibility.md` § FNOISE).
+- **Robotron** stores each sound's parameters in a clean 6-byte `FNTAB` record at `$F785` (stride 6) — fully data-driven, like VARI's `VVECT`: BG1→row 0, THRUST→row 1, CANNON→row 2, HBOMB→row 3.
+- **Defender / Stargate** bake the same parameters into the caller routine's immediate operands (the LFSR shape), and **only partially** — verified against the real ROMs:
+
+| Sound | Code | Defender/Stargate (inline) | Robotron (FNTAB) |
+|---|---|---|---|
+| BG1 | `$0F` | **not editable** — DSFLG is a `CLRA`, no immediate (omitted on D/S) | full 5-field row |
+| THRUST | `$16` | **FMAX only** (`$F91C`+4); DSFLG is a `CLRA` | full 5-field row |
+| CANNON | `$17` | **full** — DSFLG@+1, SAMPC@+5 (16-bit BE), FDFLG@+8, FMAX@+10 (`$F923`) | full 5-field row |
+| HBOMB | `$3E` | — (Robotron-only) | full 5-field row |
+
+Why BG1 is omitted on D/S: making its `CLRA` (a 1-byte opcode) editable would mean turning it into a 2-byte `LDAA #imm` — an instruction restructure that needs an assembler we don't ship. (The Studio edits it only because it hand-ported the routine to JS.) So Phase 8 took the **maximum-honest-Defender-coverage** scope: Robotron full (all 4 sounds), Defender/Stargate CANNON (full) + THRUST (FMAX).
+
+**Logical fields** (canonical order): DSFLG (distortion 0/1), LOFRQ (initial lower-frequency latch — Robotron only), FDFLG (frequency-decay 0/1), FMAX (initial max slope per walk step), SAMPC (16-bit BE sample count between LFSR redraws). D/S inline records expose only the subset their caller actually sets.
+
+**Module map (additions):**
+- `engine/fnoiseEdit.ts` — `FNTAB_BASE`/`FNTAB_STRIDE` + per-(game, command) field layouts; `fnoiseCommandsFor` (with a `recordKind: "table" | "inline"` tag), `fnoiseFieldsFor`, `readFnoiseRecord`, `patchFnoiseRecord`. A unified `FnoiseField.byteOffset` is interpreted relative to the command's base address — the FNTAB row on Robotron, the caller routine on D/S — which is the only thing that differs by game.
+- `engine/customRom.ts` — `CustomSlot` gains `FnoiseSlot = { kind: "fnoise", cmd, record }`; `buildCustomRom` validates + patches in place (FNTAB row or caller immediates). No table relocation, no dispatcher patch.
+- `engine/projectFromBin.ts` — an FNOISE detection pass: per editable command, diff the bin's virtual record vs base → emit a `fnoise` slot for any that changed. Keeps `.bin` upload full-fidelity.
+- `web/designer/designerMode.ts`/`designerStore.ts`/`designer.css` — populated item list carries FNOISE override rows (orange `$XX FNOISE`); the per-slot editor swap (reusing the shared `fieldSliders.ts`), item rendering, A/B "Start" render, store union + validation, and the engine-switch guard all learned the fourth kind. `setEngine` blocks switching away from Robotron with an *edited* BG1 ($0F) or HBOMB ($3E), which are Robotron-only.
+
+**Cross-game equivalence** (a regression gate): a test asserts Defender CANNON's logical record `[DSFLG, FDFLG, FMAX, SAMPC]` equals the corresponding fields of Robotron's CANNON FNTAB record — confirming the two storage paths describe the same sound.
+
+**Tests:** `fnoiseEdit.test.ts` (18) + FNOISE additions to `customRom.test.ts` (build-path render proof + mixed VARI+GWAVE+LFSR+FNOISE + HBOMB-Robotron-only), `designerStore.test.ts` (round-trip + validation + 4-kind mix), `projectFromBin.test.ts` (FNOISE detection). **+30 tests**, **609 total**. Capture `designer-fnoise-overview` selects the populated `$17 FNOISE CANNON` row and verifies its 4-field inline editor + offline audition render.
+
+## Planned engine — RADIO (Phase 9)
+
+The Designer edits 4 of Williams's data-driven engines: VARI + GWAVE + LFSR + FNOISE. The last one:
+
 - **RADIO** (Phase 9 — `$18`) — a 16-byte wavetable phase-accumulator. Click-to-draw wavetable canvas + a couple of caller-immediate sliders. Needs a ~1 h feasibility spike (RADSND base address per game + caller-immediate offsets) before coding.
 
-After Phases 8 + 9, WSED's editor coverage matches the Defender Sound Studio's (5 data-driven engines: GWAVE / VARI / LFSR / FNOISE / RADIO), while spanning 3 games and running the actual ROMs rather than a hand-port. SCREAM / HYPER / ORGAN-pitch remain out-of-scope by design (need an assembler we deliberately don't ship).
+After Phase 9, WSED's editor coverage matches the Defender Sound Studio's (5 data-driven engines: GWAVE / VARI / LFSR / FNOISE / RADIO), while spanning 3 games and running the actual ROMs rather than a hand-port. SCREAM / HYPER / ORGAN-pitch remain out-of-scope by design (need an assembler we deliberately don't ship).
 
 ## Fast-follows (not yet built)
 

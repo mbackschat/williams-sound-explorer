@@ -15,6 +15,7 @@ import { buildCustomRom, VARI_CMD_BASE, type CustomSlot } from "../src/engine/cu
 import { readVariRecord } from "../src/engine/variEdit.ts";
 import { readGWaveRecord, readWaveform } from "../src/engine/gwaveEdit.ts";
 import { readLfsrRecord } from "../src/engine/lfsrEdit.ts";
+import { readFnoiseRecord } from "../src/engine/fnoiseEdit.ts";
 import { importBinAsProject, ROM_SIZE } from "../src/engine/projectFromBin.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -283,5 +284,43 @@ describe("importBinAsProject — LFSR overrides (Phase 7)", () => {
     const lfsr = project.slots.filter((s) => s.kind === "lfsr");
     expect(lfsr).toHaveLength(1);
     expect((lfsr[0] as { targetCmd: number }).targetCmd).toBe(0x11);
+  });
+});
+
+describe("importBinAsProject — FNOISE overrides (Phase 8)", () => {
+  it("Defender CANNON ($17) inline edit round-trips", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const stock = readFnoiseRecord(base, "defender", 0x17); // [1,1,255,1000]
+    const edited = [0, 0, 0x20, 0x0100];
+    const bin = buildCustomRom(base, "defender", [{ kind: "fnoise", cmd: 0x17, record: edited }]);
+    const project = importBinAsProject(bin, base, "defender");
+    const got = project.slots.find((s) => s.kind === "fnoise");
+    expect(got).toBeDefined();
+    if (got!.kind !== "fnoise") throw new Error("expected fnoise");
+    expect(got!.targetCmd).toBe(0x17);
+    expect(got!.record).toEqual(edited);
+    expect(got!.start).toEqual(stock);
+  });
+
+  it("Robotron HBOMB ($3E) FNTAB edit round-trips", () => {
+    if (!haveRom("robotron")) return;
+    const base = loadRom("robotron");
+    const edited = [0, 0, 0, 0x20, 0x0200];
+    const bin = buildCustomRom(base, "robotron", [{ kind: "fnoise", cmd: 0x3E, record: edited }]);
+    const project = importBinAsProject(bin, base, "robotron");
+    const got = project.slots.find((s) => s.kind === "fnoise" && s.targetCmd === 0x3E);
+    expect(got).toBeDefined();
+    expect(got!.record).toEqual(edited);
+  });
+
+  it("an unedited FNOISE command does not produce a slot", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const bin = buildCustomRom(base, "defender", [{ kind: "fnoise", cmd: 0x16, record: [0x09] }]);
+    const project = importBinAsProject(bin, base, "defender");
+    const fnoise = project.slots.filter((s) => s.kind === "fnoise");
+    expect(fnoise).toHaveLength(1);
+    expect((fnoise[0] as { targetCmd: number }).targetCmd).toBe(0x16);
   });
 });

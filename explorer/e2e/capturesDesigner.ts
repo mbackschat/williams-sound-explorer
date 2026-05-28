@@ -102,6 +102,24 @@ export const entries: Entry[] = [
     shot: { clip: "#designer-root", file: img("designer-lfsr-overview") },
   },
 
+  // FNOISE editor (Phase 8) — the populated list carries THRUST + CANNON as
+  // override-in-place rows on Defender (BG1 omitted — no patchable immediate;
+  // Robotron adds BG1 + HBOMB via its FNTAB table). Selecting CANNON ($17)
+  // shows its 4-field inline record (DSFLG, FDFLG, FMAX, SAMPC) + an
+  // offline-rendered audition trace. Exercises the D/S inline build path.
+  {
+    id: "designer-fnoise-overview",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { click: ".designer-item[data-cmd='17'][data-kind='fnoise']" }, // pre-populated $17 CANNON row
+      { waitMs: 800 },
+    ],
+    assert: [{ canvasNonBlank: ".designer-scope" }],
+    shot: { clip: "#designer-root", file: img("designer-fnoise-overview") },
+  },
+
   // GWAVE Open-in-Explore handoff: same starting state, then Open in Explore.
   // The custom ROM patches SVTAB[$05] with the user's edited bytes; firing
   // $05 in Explore plays the override (not stock BBSV).  Verifies the F3

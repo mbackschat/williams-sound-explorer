@@ -16,6 +16,10 @@
  *    (`targetCmd` ∈ $11 LITE / $14 TURBO / $15 APPEAR; $39 LAUNCH on
  *    Robotron), defined by a *virtual* record — a per-command list of field
  *    values written to caller-code immediates. Any game (in-place patch).
+ *  - **FNOISE slot** (Phase 8): an *override* of an existing FNOISE command
+ *    (`targetCmd` ∈ $16 THRUST / $17 CANNON; + $0F BG1 / $3E HBOMB on
+ *    Robotron), defined by a *virtual* record — the 6-byte FNTAB row on
+ *    Robotron, or the caller-code immediates on Defender/Stargate.
  *
  * The project carries **no copyrighted ROM bytes** — only parameter values —
  * and the runnable image is reconstituted from the user's base ROM via
@@ -33,6 +37,7 @@ import type { GameKind } from "../../board/soundboard.ts";
 import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
 import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS, gfrtabMaxEnd } from "../../engine/gwaveEdit.ts";
 import { LFSR_CALLER_BASE, lfsrFieldsFor } from "../../engine/lfsrEdit.ts";
+import { fnoiseCommandsFor, fnoiseFieldsFor } from "../../engine/fnoiseEdit.ts";
 import { maxSlots } from "../../engine/customRom.ts";
 
 /**
@@ -83,7 +88,23 @@ export interface LfsrCustomSlot {
   targetCmd: number;
 }
 
-export type CustomSlot = VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot;
+export interface FnoiseCustomSlot {
+  kind: "fnoise";
+  /** User-facing name. */
+  name: string;
+  /** Current virtual record — one value per field (see `fnoiseFieldsFor`), in field order. */
+  record: number[];
+  /** The record at creation/copy time — the "Start" reference for A/B. */
+  start: number[];
+  /**
+   * The base game's FNOISE command code this slot *overrides* ($16 THRUST /
+   * $17 CANNON on every game; + $0F BG1 / $3E HBOMB on Robotron). Firing it in
+   * Explore plays the user's edited parameters.
+   */
+  targetCmd: number;
+}
+
+export type CustomSlot = VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot | FnoiseCustomSlot;
 
 export interface CustomProject {
   name: string;
@@ -208,9 +229,9 @@ function tagV2Slot(raw: unknown): CustomSlot {
       targetCmd: Number(s.targetCmd ?? 0),
     };
   }
-  if (s.kind === "lfsr") {
+  if (s.kind === "lfsr" || s.kind === "fnoise") {
     return {
-      kind: "lfsr",
+      kind: s.kind,
       name: String(s.name ?? ""),
       record: (s.record as number[]) ?? [],
       start: ((s.start as number[]) ?? (s.record as number[])) ?? [],
@@ -288,7 +309,7 @@ export function importJson(text: string): CustomProject {
   const slots: CustomSlot[] = o.slots.map((s, i) => {
     const so = s as Record<string, unknown>;
     if (typeof so.name !== "string") throw new Error(`Sound ${i + 1}: missing name.`);
-    const kind = so.kind === "gwave" ? "gwave" : so.kind === "lfsr" ? "lfsr" : "vari"; // v2 slots without kind default to VARI
+    const kind = so.kind === "gwave" ? "gwave" : so.kind === "lfsr" ? "lfsr" : so.kind === "fnoise" ? "fnoise" : "vari"; // v2 slots without kind default to VARI
 
     if (kind === "vari") {
       if (!VARI_BASES.has(engineBase)) {
@@ -314,6 +335,20 @@ export function importJson(text: string): CustomProject {
       return { kind: "lfsr", name: so.name, record: so.record, start, targetCmd };
     }
 
+    if (kind === "fnoise") {
+      const targetCmd = Number(so.targetCmd);
+      if (!Number.isInteger(targetCmd) || !fnoiseCommandsFor(engineBase).some((c) => c.cmd === targetCmd)) {
+        throw new Error(`Sound "${so.name}": FNOISE override target $${(targetCmd >>> 0).toString(16).toUpperCase()} is not an editable FNOISE command on ${engineBase}.`);
+      }
+      const fields = fnoiseFieldsFor(engineBase, targetCmd);
+      const isFnoiseRecord = (v: unknown): v is number[] =>
+        Array.isArray(v) && v.length === fields.length
+        && v.every((x, k) => Number.isInteger(x) && x >= fields[k]!.min && x <= fields[k]!.max);
+      if (!isFnoiseRecord(so.record)) throw new Error(`Sound "${so.name}": FNOISE record must be ${fields.length} value(s) in range.`);
+      const start = isFnoiseRecord(so.start) ? so.start : so.record;
+      return { kind: "fnoise", name: so.name, record: so.record, start, targetCmd };
+    }
+
     // GWAVE slot
     if (!isGwaveRecord(so.record)) throw new Error(`Sound "${so.name}": GWAVE record must be ${SVTAB_STRIDE} bytes (0..255).`);
     const targetCmd = Number(so.targetCmd);
@@ -330,6 +365,7 @@ export function importJson(text: string): CustomProject {
   // override one record per code).
   const gwaveTargets = new Set<number>();
   const lfsrTargets = new Set<number>();
+  const fnoiseTargets = new Set<number>();
   for (const s of slots) {
     if (s.kind === "gwave") {
       if (gwaveTargets.has(s.targetCmd)) throw new Error(`Duplicate GWAVE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
@@ -337,6 +373,9 @@ export function importJson(text: string): CustomProject {
     } else if (s.kind === "lfsr") {
       if (lfsrTargets.has(s.targetCmd)) throw new Error(`Duplicate LFSR override for $${s.targetCmd.toString(16).toUpperCase()}.`);
       lfsrTargets.add(s.targetCmd);
+    } else if (s.kind === "fnoise") {
+      if (fnoiseTargets.has(s.targetCmd)) throw new Error(`Duplicate FNOISE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
+      fnoiseTargets.add(s.targetCmd);
     }
   }
 

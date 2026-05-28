@@ -9,14 +9,14 @@
 - **Docs index**: [`docs/00_INDEX.md`](docs/00_INDEX.md) — fast-lookup tables, "where do I find X?", project state
 - **Currently-built code reference**: [`docs/explorer_implementation.md`](docs/explorer_implementation.md) — read this first when resuming a session
 - **Designer manual**: [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md) — for humans using Design mode (the companion to `MANUAL.md`)
-- **Sound Designer mode (internals)**: [`docs/designer_implementation.md`](docs/designer_implementation.md) (impl state); roadmap + decision log in [`plans/designer-mode.md`](plans/designer-mode.md) — the separate Design mode for editing VARI + GWAVE + LFSR sounds (FNOISE + RADIO editors planned)
+- **Sound Designer mode (internals)**: [`docs/designer_implementation.md`](docs/designer_implementation.md) (impl state); roadmap + decision log in [`plans/designer-mode.md`](plans/designer-mode.md) — the separate Design mode for editing VARI + GWAVE + LFSR + FNOISE sounds (RADIO editor planned)
 
 ## On-demand references (load when you need them)
 
 | If you need… | Read |
 |---|---|
 | What's actually built in `explorer/` (module map, design decisions, APIs) | `docs/explorer_implementation.md` |
-| Sound Designer mode (VARI + GWAVE + LFSR editors, .bin roundtrip): module map, decisions, record references, recipe schema | `docs/designer_implementation.md` |
+| Sound Designer mode (VARI + GWAVE + LFSR + FNOISE editors, .bin roundtrip): module map, decisions, record references, recipe schema | `docs/designer_implementation.md` |
 | Why authoring works without an assembler ("a sound is *data*, not code") | private submodule — `research/findings_designer_feasibility.md` |
 | Real-time AudioWorklet pipeline + message protocol (Phase 2.1) | `docs/explorer_implementation.md` §Real-time pipeline |
 | Disassembler + semantic Step→DAC/IRQ + glossary (Step 2.2 extras) | `docs/explorer_implementation.md` §Debugger primitives |
@@ -56,7 +56,7 @@ williams-sound-explorer/
 
 **Phases 1–6 done; all 12 UX patterns shipped.** The explorer emulates the 6802 sound CPU, plays every command, and visualises all six engines (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with slow-motion, scrub, and per-engine views. (Build + verification internals are kept in the private `research/CLAUDE_research.md`.)
 
-There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): fork the game's sound bank — opens with every editable command pre-loaded, edit any **VARI**, **GWAVE**, or **LFSR** sound's parameter record, audition/A/B, save as a JSON recipe (no ROM bytes) or download a runnable custom `.bin` for MAME / a real cabinet, upload it back to keep editing. **FNOISE + RADIO** editors are planned next (Phases 8 + 9). Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
+There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): fork the game's sound bank — opens with every editable command pre-loaded, edit any **VARI**, **GWAVE**, **LFSR**, or **FNOISE** sound's parameter record, audition/A/B, save as a JSON recipe (no ROM bytes) or download a runnable custom `.bin` for MAME / a real cabinet, upload it back to keep editing. The **RADIO** editor is planned next (Phase 9). Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
 
 **`docs/explorer_implementation.md` is the source of truth for implementation state** — module map, per-engine viz, phase + test status, known caveats. Read it first when resuming a session. The roadmap (6 phases, 18 steps, risk register) lives in the plan file linked above. This file is durable orientation only and does **not** track a per-feature changelog — that's git history + the implementation doc (see the CLAUDE.md convention below).
 

@@ -21,7 +21,7 @@
 | 6.1 | **"Fork-the-game" pre-populated item list** — *New Project* opens with every editable command pre-loaded; stock-vs-edited dot indicator; sparse on disk | ✅ shipped 2026-05-28 |
 | 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | ✅ shipped 2026-05-28 (v1 full fidelity) |
 | 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH) — third engine, parameter patches in caller immediates | ✅ shipped 2026-05-28 (headless + buildCustomRom + Designer UI + .bin roundtrip) |
-| 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | 📋 planned (research done — see § Phase 8) |
+| 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | ✅ shipped 2026-05-28 (Robotron full; D/S CANNON full + THRUST FMAX; BG1 omitted on D/S) |
 | 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | 📋 planned (needs spike — see § Phase 9) |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
@@ -193,7 +193,7 @@ This is the architectural inversion of how Phase 6 would have been done with the
 
 The third engine: the LFSR noise family that produces **LITE** (lightning), **APPEAR** (enemy-appear descent), **TURBO** (turbo burst), and Robotron's **LAUNCH**. Same architectural pattern as VARI + GWAVE — override-in-place editor — but with one structural twist: **parameters are immediate operands in caller code, not in a parameter table**.
 
-**Shipped as planned below.** Operand offsets were verified against the real ROMs (uniform across games; only caller base addresses differ): LITE 2 fields (DFREQ@+1, CYCNT@+5), APPEAR/LAUNCH 3 (DFREQ@+1, LFREQ@+5, CYCNT@+7), TURBO 4 (CYCNT/NFFLG@+1, DECAY@+7, NFRQ1@+9 16-bit BE, NAMP@+12). Built across `engine/lfsrEdit.ts` (headless) → `engine/customRom.ts` `kind:"lfsr"` + `engine/projectFromBin.ts` LFSR detection → `web/designer/lfsrEditor.ts` + `designerMode.ts`/`designerStore.ts` wiring. **+34 tests (579 total)**; capture `designer-lfsr-overview`. Per-engine impl details in `docs/designer_implementation.md` § *LFSR editor — Phase 7 (shipped)*.
+**Shipped as planned below.** Operand offsets were verified against the real ROMs (uniform across games; only caller base addresses differ): LITE 2 fields (DFREQ@+1, CYCNT@+5), APPEAR/LAUNCH 3 (DFREQ@+1, LFREQ@+5, CYCNT@+7), TURBO 4 (CYCNT/NFFLG@+1, DECAY@+7, NFRQ1@+9 16-bit BE, NAMP@+12). Built across `engine/lfsrEdit.ts` (headless) → `engine/customRom.ts` `kind:"lfsr"` + `engine/projectFromBin.ts` LFSR detection → `web/designer/fieldSliders.ts` (shared slider editor) + `designerMode.ts`/`designerStore.ts` wiring. **+34 tests (579 total)**; capture `designer-lfsr-overview`. Per-engine impl details in `docs/designer_implementation.md` § *LFSR editor — Phase 7 (shipped)*.
 
 ### Foundations (verified — see `research/findings_designer_feasibility.md` § LFSR)
 
@@ -225,7 +225,7 @@ The third engine: the LFSR noise family that produces **LITE** (lightning), **AP
    - Add `kind: "lfsr"` to `CustomSlot`. Build flow: locate caller, write each field's bytes at its operand offset. No table relocation, no mask widening (LFSR codes are in the JMPTBL middle band, already wired).
    - Tests: round-trip on the real ROMs; ensure the unedited path is byte-identical to the base.
 
-3. **Designer UI** (`explorer/src/web/designer/lfsrEditor.ts` + wiring in `designerMode.ts`):
+3. **Designer UI** (`explorer/src/web/designer/fieldSliders.ts` — the shared per-command slider editor — + wiring in `designerMode.ts`):
    - Per-sound slider panel (each sound has a *different* set of fields — the editor renders only the fields its caller actually sets).
    - Pre-populate the item list with `$11 LFSR LITE` / `$14 LFSR TURBO` / `$15 LFSR APPEAR` (+ Robotron's `$39 LAUNCH`); same stock/edited dot indicator as Phase 6.1.
    - Audition / Open-in-Explore / ↓ .bin / ↑ .bin all work transparently — the build path is the only place that branches by kind.
@@ -245,7 +245,10 @@ The third engine: the LFSR noise family that produces **LITE** (lightning), **AP
 
 ---
 
-## Phase 8 — FNOISE editor (planned)
+## Phase 8 — FNOISE editor (✅ shipped 2026-05-28)
+
+> **Shipped with a scope refinement from the plan below.** ROM verification showed the Defender/Stargate inline path is more partial than first documented: BG1's DSFLG is a `CLRA` (no patchable immediate), so BG1 is **omitted on D/S**; THRUST exposes only FMAX; CANNON is fully editable. Robotron's FNTAB path is full for all 4 sounds. Net scope = max honest Defender coverage. The LFSR slider editor was generalised into the shared `web/designer/fieldSliders.ts`. **+30 tests (609 total)**; capture `designer-fnoise-overview`. Per-engine impl + the verified offset table in `docs/designer_implementation.md` § *FNOISE editor — Phase 8 (shipped)*.
+
 
 The fourth engine: filtered noise (slope-limited DAC walk). Sounds: **BG1** (background drone), **THRUST**, **CANNON**, plus Robotron's **HBOMB**. **The interesting part — this engine has split authorability across games:**
 
@@ -312,18 +315,18 @@ Both paths land at the same kernel (`FNOISE` `$F930` Defender/Stargate, `$F7B3` 
 
 The Defender Sound Studio's 9 UI tabs include **6 editable tabs** that cover **5 engines** in WSED's taxonomy — the Studio splits LFSR across three tabs (Square noise / Player shoot / Sweeps' wavetable variant) where WSED groups them under one LFSR editor.
 
-| Engine | Studio tab(s) | WSED today | After Phase 8 | After Phase 9 |
-|---|---|---|---|---|
-| GWAVE | G-wave | ✅ | ✅ | ✅ |
-| VARI | Pulses | ✅ | ✅ | ✅ |
-| LFSR | Square noise + Player shoot (same kernel) | ✅ (Phase 7) | ✅ | ✅ |
-| FNOISE | Smooth noise | ❌ | 📋 Phase 8 | ✅ |
-| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ | ❌ — still a gap | 📋 **Phase 9** |
-| SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
-| HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ | ❌ |
-| ORGAN pitch | n/a | ❌ — self-modifying code | ❌ | ❌ |
+| Engine | Studio tab(s) | WSED today | After Phase 9 |
+|---|---|---|---|
+| GWAVE | G-wave | ✅ | ✅ |
+| VARI | Pulses | ✅ | ✅ |
+| LFSR | Square noise + Player shoot (same kernel) | ✅ (Phase 7) | ✅ |
+| FNOISE | Smooth noise | ✅ (Phase 8) | ✅ |
+| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ — still a gap | 📋 **Phase 9** |
+| SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ |
+| HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ |
+| ORGAN pitch | n/a | ❌ — self-modifying code | ❌ |
 
-**Per-engine score:** Studio 5, WSED today **3** → after Phase 8 = 4 → after Phase 9 = **5 (parity on Defender)**.
+**Per-engine score:** Studio 5, WSED today **4** → after Phase 9 = **5 (parity on Defender)**.
 
 WSED's edge throughout: spans **3 games**, runs the **actual ROMs** on a cycle-accurate emulator (Studio is Defender-only and a hand-port), and pairs Design with a separate Explore mode + a `.bin` roundtrip the Studio doesn't have.
 

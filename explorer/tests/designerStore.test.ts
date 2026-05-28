@@ -182,6 +182,56 @@ describe("exportJson / importJson — LFSR slots (Phase 7)", () => {
   });
 });
 
+describe("exportJson / importJson — FNOISE slots (Phase 8)", () => {
+  // CANNON ($17) on Defender = 4 fields; Robotron CANNON = 5 (incl LOFRQ).
+  const fp: CustomProject = {
+    name: "noise", engineBase: "defender",
+    slots: [{ kind: "fnoise", name: "CANNON", record: [1, 1, 255, 1000], start: [1, 1, 255, 1000], targetCmd: 0x17 }],
+    createdAt: 1, updatedAt: 2,
+  };
+
+  it("round-trips a Defender FNOISE project (CANNON, 4 fields)", () => {
+    const back = importJson(exportJson(fp));
+    expect(back.slots[0]!.kind).toBe("fnoise");
+    expect(back.slots[0]!.record).toEqual([1, 1, 255, 1000]);
+    expect((back.slots[0] as { targetCmd: number }).targetCmd).toBe(0x17);
+  });
+
+  it("accepts BG1 ($0F) + HBOMB ($3E) on Robotron but not on Defender", () => {
+    const robo: CustomProject = { ...fp, engineBase: "robotron", slots: [
+      { kind: "fnoise", name: "HBOMB", record: [1, 1, 1, 0x40, 0x1000], start: [1, 1, 1, 0x40, 0x1000], targetCmd: 0x3E },
+    ] };
+    expect(importJson(exportJson(robo)).slots[0]!.name).toBe("HBOMB");
+    const bad: CustomProject = { ...fp, slots: [{ kind: "fnoise", name: "BG1", record: [0], start: [0], targetCmd: 0x0F }] };
+    expect(() => importJson(JSON.stringify(bad))).toThrow(/editable FNOISE command/i);
+  });
+
+  it("rejects a wrong-length FNOISE record + duplicate targets", () => {
+    // Defender CANNON needs 4 values.
+    expect(() => importJson(JSON.stringify({ ...fp, slots: [{ kind: "fnoise", name: "x", record: [1, 2], start: [1, 2], targetCmd: 0x17 }] }))).toThrow(/value/i);
+    const dup: CustomProject = { ...fp, slots: [
+      { kind: "fnoise", name: "a", record: [1, 1, 255, 1000], start: [1, 1, 255, 1000], targetCmd: 0x17 },
+      { kind: "fnoise", name: "b", record: [1, 1, 255, 1000], start: [1, 1, 255, 1000], targetCmd: 0x17 },
+    ] };
+    expect(() => importJson(JSON.stringify(dup))).toThrow(/duplicate FNOISE override/i);
+  });
+
+  it("mixes all four engine kinds in one project", () => {
+    const mixed: CustomProject = {
+      name: "all", engineBase: "defender",
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x01 },
+        { kind: "lfsr", name: "l", record: [9, 9, 9], start: [9, 9, 9], targetCmd: 0x15 },
+        { kind: "fnoise", name: "f", record: [3], start: [3], targetCmd: 0x16 },
+      ],
+      createdAt: 0, updatedAt: 0,
+    };
+    const back = importJson(exportJson(mixed));
+    expect(back.slots.map((s) => s.kind)).toEqual(["vari", "gwave", "lfsr", "fnoise"]);
+  });
+});
+
 describe("legacy v1 recipe migration (override-in-place)", () => {
   it("converts { baseGame, edits } to named VARI slots", () => {
     const legacy = JSON.stringify({ name: "old", baseGame: "defender", edits: { 29: SAW } }); // $1D = SAW

@@ -32,6 +32,12 @@
  *   immediate operands (LITE / TURBO / APPEAR on every game; LAUNCH on
  *   Robotron).  No table, no dispatcher patch — the record is a per-command
  *   list of logical field values (see `engine/lfsrEdit.ts`).
+ *
+ * - **FNOISE slot** — `{ kind: "fnoise", cmd, record }`.  Overrides an existing
+ *   FNOISE command **in place**: the 6-byte `FNTAB` record on Robotron (all 4
+ *   sounds), or the caller's immediate operands on Defender/Stargate (CANNON
+ *   full, THRUST FMAX-only; BG1 omitted — no patchable immediate).  Per-command
+ *   logical field list (see `engine/fnoiseEdit.ts`).
  */
 import type { GameKind } from "../board/soundboard.ts";
 import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
@@ -42,6 +48,7 @@ import {
   GWVTAB_BASE, LDX_GWVTAB_LOC, buildExtendedGwvtab,
 } from "./gwaveEdit.ts";
 import { lfsrFieldsFor, patchLfsrRecord, LFSR_CALLER_BASE } from "./lfsrEdit.ts";
+import { fnoiseFieldsFor, patchFnoiseRecord, fnoiseCommandsFor } from "./fnoiseEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
 export const VARI_CMD_BASE = 0x1D;
@@ -90,7 +97,15 @@ export interface LfsrSlot {
   record: number[];
 }
 
-export type CustomSlot = VariSlot | GwaveSlot | LfsrSlot;
+export interface FnoiseSlot {
+  kind: "fnoise";
+  /** Override target — an existing FNOISE command ($16 THRUST / $17 CANNON; + $0F BG1 / $3E HBOMB on Robotron). */
+  cmd: number;
+  /** Virtual record: one value per field (see `fnoiseFieldsFor`), in field order. */
+  record: number[];
+}
+
+export type CustomSlot = VariSlot | GwaveSlot | LfsrSlot | FnoiseSlot;
 
 /** Max number of VARI slots a custom ROM can hold on this base (throws if unsupported). */
 export function maxSlots(game: GameKind): number {
@@ -232,6 +247,25 @@ function validateLfsrSlot(s: LfsrSlot, game: GameKind, seen: Set<number>): void 
   }
 }
 
+/** Validate one FNOISE override against the per-game editable list + field layout. */
+function validateFnoiseSlot(s: FnoiseSlot, game: GameKind, seen: Set<number>): void {
+  if (!fnoiseCommandsFor(game).some((c) => c.cmd === s.cmd)) {
+    throw new Error(`FNOISE override $${s.cmd.toString(16).toUpperCase()} is not an editable FNOISE command on ${game}`);
+  }
+  if (seen.has(s.cmd)) throw new Error(`duplicate FNOISE override $${s.cmd.toString(16).toUpperCase()}`);
+  seen.add(s.cmd);
+  const fields = fnoiseFieldsFor(game, s.cmd);
+  if (s.record.length !== fields.length) {
+    throw new Error(`FNOISE record for $${s.cmd.toString(16).toUpperCase()} must be exactly ${fields.length} value(s), got ${s.record.length}`);
+  }
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i]!, v = s.record[i]!;
+    if (!Number.isInteger(v) || v < f.min || v > f.max) {
+      throw new Error(`FNOISE ${f.label} value ${v} out of range ${f.min}..${f.max}`);
+    }
+  }
+}
+
 /**
  * Optional build extras alongside the per-sound slot list.  Carries:
  *
@@ -296,13 +330,16 @@ export function buildCustomRom(
   const variSlots: VariSlot[] = [];
   const gwaveSlots: GwaveSlot[] = [];
   const lfsrSlots: LfsrSlot[] = [];
+  const fnoiseSlots: FnoiseSlot[] = [];
   const seenVari = new Set<number>();
   const seenGwave = new Set<number>();
   const seenLfsr = new Set<number>();
+  const seenFnoise = new Set<number>();
   for (const s of slots) {
     if (s.kind === "vari")       { validateVariSlot(s, game, seenVari); variSlots.push(s); }
     else if (s.kind === "gwave") { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
-    else                         { validateLfsrSlot(s, game, seenLfsr); lfsrSlots.push(s); }
+    else if (s.kind === "lfsr")  { validateLfsrSlot(s, game, seenLfsr); lfsrSlots.push(s); }
+    else                         { validateFnoiseSlot(s, game, seenFnoise); fnoiseSlots.push(s); }
   }
   for (const k of waveformKeys) {
     const idx = Number(k);
@@ -377,6 +414,11 @@ export function buildCustomRom(
   // ── LFSR: rewrite caller-routine immediate operands in place ─────────────
   for (const s of lfsrSlots) {
     out = patchLfsrRecord(out, game, s.cmd, s.record);
+  }
+
+  // ── FNOISE: patch the FNTAB record (Robotron) or caller immediates (D/S) ─
+  for (const s of fnoiseSlots) {
+    out = patchFnoiseRecord(out, game, s.cmd, s.record);
   }
 
   // ── GWAVE waveform bytes: in-place patch OR relocated GWVTAB ─────────────
