@@ -2,21 +2,41 @@
  * Browser-local store for Designer projects (IndexedDB), plus JSON
  * export/import.
  *
- * A project is a `VariRecipe` (`engine/variEdit.ts`): a base game + per-command
- * VVECT edits.  It carries **no copyrighted ROM bytes** — only parameter
- * values — so the runnable image is reconstituted from the user's base ROM at
- * load time.  This is the only saveable artefact in the explorer.
+ * A project (`CustomProject`) is a **custom ROM with its own item list**: an
+ * engine base (which game's VARI engine to run on) + an ordered list of named
+ * sounds, each a 9-byte VVECT record. It carries **no copyrighted ROM bytes** —
+ * only parameter values — and the runnable image is reconstituted from the
+ * user's base ROM via `buildCustomRom`. This is the only saveable artefact.
  *
- * A dedicated database (separate from `romStore`'s) keeps the schema decoupled
- * so neither module has to coordinate version bumps with the other.  Projects
- * are keyed by `name` — saving a project with an existing name overwrites it.
+ * Projects are keyed by `name`; saving over an existing name overwrites it.
+ * Legacy v1 projects (`{ baseGame, edits }`) are converted on load.
  */
 import type { GameKind } from "../../board/soundboard.ts";
-import { variCommandsFor, VVECT_STRIDE, type VariRecipe } from "../../engine/variEdit.ts";
+import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
+import { maxSlots } from "../../engine/customRom.ts";
+
+/** Custom ROMs run on a VARI engine that can take new slots: Defender or Stargate. */
+export const ENGINE_BASES: readonly GameKind[] = ["defender", "stargate"];
+
+export interface CustomSlot {
+  /** User-facing name (the item list shows these). */
+  name: string;
+  /** Current 9-byte VVECT record. */
+  record: number[];
+  /** The record at creation/copy time — the "Start" reference for A/B. */
+  start: number[];
+}
+
+export interface CustomProject {
+  name: string;
+  engineBase: GameKind;
+  slots: CustomSlot[];
+  createdAt: number;
+  updatedAt: number;
+}
 
 const DB_NAME = "williams-sound-designer";
 const STORE = "projects";
-const BASE_GAMES: readonly GameKind[] = ["defender", "stargate", "robotron"];
 
 let dbPromise: Promise<IDBDatabase> | undefined;
 
@@ -26,9 +46,7 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: "name" });
-      }
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "name" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error("IndexedDB open failed"));
@@ -48,71 +66,88 @@ function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequ
   );
 }
 
-export async function listProjects(): Promise<VariRecipe[]> {
-  const all = await tx<VariRecipe[]>("readonly", (s) => s.getAll() as IDBRequest<VariRecipe[]>);
-  return all.sort((a, b) => b.updatedAt - a.updatedAt);
+export async function listProjects(): Promise<CustomProject[]> {
+  const all = await tx<unknown[]>("readonly", (s) => s.getAll() as IDBRequest<unknown[]>);
+  return all.map(coerceProject).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export async function getProject(name: string): Promise<VariRecipe | undefined> {
-  const rec = await tx<VariRecipe | undefined>("readonly", (s) => s.get(name) as IDBRequest<VariRecipe | undefined>);
-  return rec ?? undefined;
+export async function getProject(name: string): Promise<CustomProject | undefined> {
+  const rec = await tx<unknown>("readonly", (s) => s.get(name) as IDBRequest<unknown>);
+  return rec == null ? undefined : coerceProject(rec);
 }
 
-export async function saveProject(recipe: VariRecipe): Promise<void> {
-  await tx("readwrite", (s) => s.put(recipe));
+export async function saveProject(p: CustomProject): Promise<void> {
+  await tx("readwrite", (s) => s.put(p));
 }
 
 export async function deleteProject(name: string): Promise<void> {
   await tx("readwrite", (s) => s.delete(name));
 }
 
+// ─── Coercion: accept current shape or convert a legacy v1 recipe ──────────
+
+const isByteRecord = (v: unknown): v is number[] =>
+  Array.isArray(v) && v.length === VVECT_STRIDE && v.every((b) => Number.isInteger(b) && b >= 0 && b <= 0xFF);
+
+/** Convert a legacy v1 recipe `{ baseGame, edits }` to a `CustomProject`. */
+function fromLegacy(o: Record<string, unknown>): CustomProject {
+  const baseGame = o.baseGame as GameKind;
+  const names = new Map(variCommandsFor(baseGame).map((c) => [c.cmd, c.name]));
+  const slots: CustomSlot[] = Object.entries(o.edits as Record<string, number[]>)
+    .map(([cmd, record]) => ({ name: names.get(Number(cmd)) ?? `$${cmd}`, record, start: record }));
+  const now = Date.now();
+  return {
+    name: typeof o.name === "string" ? o.name : "untitled",
+    engineBase: ENGINE_BASES.includes(baseGame) ? baseGame : "defender",
+    slots,
+    createdAt: typeof o.createdAt === "number" ? o.createdAt : now,
+    updatedAt: typeof o.updatedAt === "number" ? o.updatedAt : now,
+  };
+}
+
+function coerceProject(raw: unknown): CustomProject {
+  const o = raw as Record<string, unknown>;
+  if ("edits" in o && !("slots" in o)) return fromLegacy(o); // legacy v1 recipe
+  return o as unknown as CustomProject;
+}
+
 // ─── JSON export / import (pure — no IndexedDB) ────────────────────────────
 
-/** Serialise a project to pretty JSON for download / sharing. */
-export function exportJson(recipe: VariRecipe): string {
-  return JSON.stringify(recipe, null, 2);
+export function exportJson(p: CustomProject): string {
+  return JSON.stringify(p, null, 2);
 }
 
-function isByteRecord(v: unknown): v is number[] {
-  return Array.isArray(v) && v.length === VVECT_STRIDE
-    && v.every((b) => Number.isInteger(b) && b >= 0 && b <= 0xFF);
-}
-
-/**
- * Parse + validate a project from JSON.  Throws a human-readable error on any
- * malformed field so import failures are actionable rather than silent.
- */
-export function importJson(text: string): VariRecipe {
+/** Parse + validate a project from JSON (also accepts a legacy v1 recipe). */
+export function importJson(text: string): CustomProject {
   let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    throw new Error("Not valid JSON.");
-  }
+  try { raw = JSON.parse(text); } catch { throw new Error("Not valid JSON."); }
   if (typeof raw !== "object" || raw === null) throw new Error("Expected a JSON object.");
   const o = raw as Record<string, unknown>;
 
-  if (typeof o.name !== "string" || o.name.trim() === "") throw new Error("Missing project name.");
-  if (!BASE_GAMES.includes(o.baseGame as GameKind)) {
-    throw new Error(`Unknown base game "${String(o.baseGame)}".`);
+  if ("edits" in o && !("slots" in o)) {
+    if (!ENGINE_BASES.includes(o.baseGame as GameKind)) throw new Error(`Legacy project's base game "${String(o.baseGame)}" can't be a custom-ROM engine base.`);
+    return { ...fromLegacy(o), updatedAt: Date.now() };
   }
-  const baseGame = o.baseGame as GameKind;
-  if (typeof o.edits !== "object" || o.edits === null) throw new Error("Missing edits.");
 
-  const validCmds = new Set(variCommandsFor(baseGame).map((c) => c.cmd));
-  const edits: Record<number, number[]> = {};
-  for (const [k, v] of Object.entries(o.edits as Record<string, unknown>)) {
-    const cmd = Number(k);
-    if (!validCmds.has(cmd)) throw new Error(`$${k} is not an editable VARI command on ${baseGame}.`);
-    if (!isByteRecord(v)) throw new Error(`Edit for $${k} must be ${VVECT_STRIDE} bytes (0..255).`);
-    edits[cmd] = v;
-  }
+  if (typeof o.name !== "string" || o.name.trim() === "") throw new Error("Missing project name.");
+  if (!ENGINE_BASES.includes(o.engineBase as GameKind)) throw new Error(`Engine base must be Defender or Stargate (got "${String(o.engineBase)}").`);
+  const engineBase = o.engineBase as GameKind;
+  if (!Array.isArray(o.slots)) throw new Error("Missing slots.");
+  if (o.slots.length > maxSlots(engineBase)) throw new Error(`Too many sounds (${o.slots.length} > ${maxSlots(engineBase)} for ${engineBase}).`);
+
+  const slots: CustomSlot[] = o.slots.map((s, i) => {
+    const so = s as Record<string, unknown>;
+    if (typeof so.name !== "string") throw new Error(`Sound ${i + 1}: missing name.`);
+    if (!isByteRecord(so.record)) throw new Error(`Sound "${so.name}": record must be ${VVECT_STRIDE} bytes (0..255).`);
+    const start = isByteRecord(so.start) ? so.start : so.record;
+    return { name: so.name, record: so.record, start };
+  });
 
   const now = Date.now();
   return {
     name: o.name,
-    baseGame,
-    edits,
+    engineBase,
+    slots,
     createdAt: typeof o.createdAt === "number" ? o.createdAt : now,
     updatedAt: now,
   };

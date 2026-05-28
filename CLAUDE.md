@@ -55,7 +55,7 @@ williams-sound-explorer/
 
 **Phases 1–6 done; all 12 UX patterns shipped.** The explorer emulates the 6802 sound CPU, plays every command, and visualises all six engines (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with slow-motion, scrub, and per-engine views. (Build + verification internals are kept in the private `research/CLAUDE_research.md`.)
 
-There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): author your own **VARI** sounds by editing a command's parameter record, audition, diff, and save as a JSON recipe. Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
+There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): build your own **custom ROM** of **VARI** sounds — pick an engine base, copy any game's VARI sound or add new ones into your own item list, edit, audition/A/B, and save as a JSON recipe. Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
 
 **`docs/explorer_implementation.md` is the source of truth for implementation state** — module map, per-engine viz, phase + test status, known caveats. Read it first when resuming a session. The roadmap (6 phases, 18 steps, risk register) lives in the plan file linked above. This file is durable orientation only and does **not** track a per-feature changelog — that's git history + the implementation doc (see the CLAUDE.md convention below).
 

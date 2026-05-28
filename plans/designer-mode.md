@@ -13,9 +13,9 @@
 | — | Custom-ROM **model** discussion ("where are my items?") | ✅ decided (v1 = override-in-place; true Custom ROM = v-next) |
 | — | Dispatcher **spike** (can we add new VARI command slots?) | ✅ done — one-byte unlock proven |
 | 3a | **Custom-ROM image builder** (`engine/customRom.ts`, headless) | ✅ built & tested |
-| 3b | **Custom-ROM Designer UI** (own item list: copy-from-any-game + new) | 📐 designed, **not built** |
+| 3b | **Custom-ROM Designer UI** (own item list: copy-from-any-game + new) | ✅ built & verified |
 
-Phases 1–2 + the convention note are committed on `main`; Phase 3a (the image builder) and these doc updates are uncommitted in the working tree.
+Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
 ## Foundations (the two facts everything rests on)
 
@@ -90,7 +90,7 @@ Delivers the user's vision: a Custom ROM with its own named item list, sounds co
 
 **Build order:**
 1. ✅ **Done — image build** (`engine/customRom.ts`, headless, TDD): `buildCustomRom(baseRom, game, slots)` emits a runnable image — widen the command mask only when a slot code exceeds `$1F`, then extend `VVECT` **in place** (the 2 KB ROMs are too densely packed to relocate — longest free run is 5 bytes), `row = code − $1D`. Capacity (extend over RADIO/ORGAN, stop before `GWVTAB`): **23** rows Defender, **30** Stargate; Defender/Stargate only (Robotron's dispatch is non-linear). 9 tests assert each slot's command renders its record on the real ROMs. The earlier "relocate + `VARILD` repoint" idea proved unnecessary.
-2. 📐 **Next — Designer UI for the own-item-list:** add-sound (copy from any game's VARI catalogue, or new), per-slot name + command assignment, the item list as the project's own contents, save/export. Audition/diff/transport reuse Phases 1–2. Built on `buildCustomRom`.
+2. ✅ **Done — Designer UI for the own-item-list:** engine-base picker (Defender/Stargate), the item list (+New, +Copy-from-any-game, rename, remove; auto command codes `$1D`+), edit the selected sound, audition/A/B (Edited vs Start) + Diff via `buildCustomRom`, save/open/export/import. New `CustomProject` shape (`designerStore.ts`) with legacy v1 auto-conversion. Audition/transport reuse Phases 1–2.
 
 **Recipe shape (v-next):** grows from `{ baseGame, edits }` to a slot list (`{ engineBase, slots: [{ code, name, record }] }`); still JSON, still zero ROM bytes.
 
