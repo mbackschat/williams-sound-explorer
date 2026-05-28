@@ -3,7 +3,7 @@
 > How to build your own custom sound ROM in the explorer's **Design** mode (the companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/designer_implementation.md`](docs/designer_implementation.md).
 
 <p align="center">
-  <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode with Defender SAW copied into the item list — engine picker, the slot row, the 8-slider VVECT parameter panel on the left, the audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom">
+  <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode with Defender SAW copied into the item list — engine picker, the slot row, the 8-slider VVECT parameter panel on the left, the audition scope on the right, and the Play/Pause/Loop/Source/Diff transport just below the item list">
 </p>
 
 ## What it is
@@ -82,7 +82,7 @@ ROMs are added on the Explore onboarding screen.
    For the **RADIO** slot the panel is a hybrid: one **FREQ** slider plus a **16-cell click-to-draw wavetable canvas** (blue). RADIO is a wavetable phase-accumulator — it reads a 16-byte table (`RADSND`) at a climbing rate to make a rising whistled whoosh. **FREQ** sets the initial frequency and how fast the pitch climbs (lower = lower + slower; higher = brighter + faster); the **canvas** is the 16-byte waveform the accumulator reads (drag to redraw, each x-cell = one sample, y = 0..255). Both are patched in place — the table stays at its fixed address, so nothing else moves. There's just the one RADIO command (`$18`) per game.
 
    At the right end of the editor's label row sits a **↻ Reset record** button — clicking it reverts the slider values (and, for RADIO, the wavetable) to the slot's starting bytes (what was loaded when you opened the project; this is the same reference the **Source: Start** transport toggle plays). It's greyed out until you actually edit, and works for all five editors (VARI, GWAVE, LFSR, FNOISE, RADIO). The waveform and pitch-pattern canvases (GWAVE only) have their own **Reset to stock** buttons — *those* clear per-canvas overrides; **↻ Reset record** only touches the parameter record (sliders).
-5. **Audition** — a thin scope strip below the editor renders the offline-rendered DAC trace; the **transport** bar below it (which sticks to the bottom of the viewport, so it's always reachable even on shorter windows) carries:
+5. **Audition** — the **transport** bar sits directly below the item list (just above the parameter editor), so playback is right next to where you pick a sound; a thin scope strip at the bottom of the editor renders the offline DAC trace. The transport carries:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.
    - **Source: ⟨Edited │ Start⟩** A/Bs your edits against the sound's starting point (its record when copied/created); flip it mid-playback to compare by ear.
@@ -97,7 +97,7 @@ ROMs are added on the Explore onboarding screen.
 
 ## Auditioning in Explore (pause, step, scrub)
 
-The in-Design transport plays your sound as a single offline render — fine for a quick listen, but the scope only shows the rendered float buffer. For the *live* experience — pause, single-step, scrub, the spectrogram, the DAC byte-tape, the RAM heatmap, the swimlane, all reading your custom sound — click **▶ Open in Explore** (the purple button at the right end of the sticky transport bar).
+The in-Design transport plays your sound as a single offline render — fine for a quick listen, but the scope only shows the rendered float buffer. For the *live* experience — pause, single-step, scrub, the spectrogram, the DAC byte-tape, the RAM heatmap, the swimlane, all reading your custom sound — click **▶ Open in Explore** (the purple button at the right end of the transport bar).
 
 What happens: the app builds your custom ROM image, pushes it into Explore's worklet, fires the selected slot, and flips you back to Explore. The game switcher gains a new **✎ Custom: ⟨project name⟩** entry (in purple, to set it apart from the three stock ROMs) — that's the marker that you're auditioning a *custom* image rather than the original Williams ROM. Click any base game button to drop back to that stock ROM; click the **Custom** entry to come back to your audition (it rebuilds from your *current* Design-mode project, so edits made in between are picked up).
 
@@ -107,7 +107,7 @@ What happens: the app builds your custom ROM image, pushes it into Explore's wor
 
 ## Keyboard shortcuts
 
-Design has its own minimal keymap so Explore's bindings don't interfere while you're authoring — pressing <kbd>Space</kbd> here triggers Design's Play, not Explore's Fire.
+Design has its own minimal keymap so Explore's bindings don't interfere while you're authoring — pressing <kbd>Space</kbd> here triggers Design's Play, not Explore's Fire. As in Explore, the **Play** and **Pause** buttons show their key in the hover tooltip, so you don't need to memorise them.
 
 | Key | Action |
 |---|---|

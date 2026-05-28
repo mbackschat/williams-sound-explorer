@@ -38,7 +38,11 @@ export const entries: Entry[] = [
       { select: [".designer-copy", "0"] }, // first source (Defender SAW)
       { waitMs: 600 }, // offline render → scope draws
     ],
-    assert: [{ canvasNonBlank: ".designer-scope" }],
+    assert: [
+      { canvasNonBlank: ".designer-scope" },
+      // Keybinding discoverability: the Designer Play button names its key.
+      { attrContains: [".designer-play", "title", "[Space]"] },
+    ],
     shot: { clip: "#designer-root", file: img("designer-overview") },
   },
 

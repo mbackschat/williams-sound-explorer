@@ -10,6 +10,7 @@ import type { AppContext } from "../appContext.ts";
 import { keyAction, KEY_HELP, type KeyAction } from "./keymap.ts";
 
 export function initKeyboard(ctx: AppContext): void {
+  annotateShortcutTooltips();
   window.addEventListener("keydown", (e) => {
     // Design mode owns its own shortcut surface (see web/designer/designerMode.ts).
     // While Explore is hidden behind the mode toggle, none of its key bindings
@@ -23,6 +24,40 @@ export function initKeyboard(ctx: AppContext): void {
     e.preventDefault();
     dispatch(action, ctx);
   });
+}
+
+/**
+ * Append each control's keyboard shortcut to its `title` so the binding is
+ * discoverable on hover — the user shouldn't have to know (or open the `?`
+ * overlay to learn) which key drives which button.  Keyed off the same `els`
+ * controls `dispatch` targets, so the tooltip can't drift from the binding.
+ * Idempotent (guards against double-append) and tolerant of absent elements.
+ */
+function appendKey(el: Element | null | undefined, key: string): void {
+  if (!el) return;
+  const cur = el.getAttribute("title") ?? "";
+  const tag = `[${key}]`;
+  if (cur.includes(tag)) return; // already annotated
+  el.setAttribute("title", cur ? `${cur}  ${tag}` : tag);
+}
+
+function annotateShortcutTooltips(): void {
+  appendKey(els.fire, "Space");
+  appendKey(els.pause, "P");
+  appendKey(els.step, "→ when paused");
+  appendKey(els.stepDac, "D");
+  appendKey(els.stepIrq, "I");
+  appendKey(els.scrubStart, "S");
+  appendKey(els.scrubLive, "S");
+  appendKey(els.scrubLoop, "L");
+  appendKey(els.scrubReset, "R");
+  appendKey(els.hideHelpToggle, "H");
+  appendKey(els.volume, "↑ / ↓");
+  appendKey(els.cmd, "focus with /");
+  appendKey(els.gameSwitcher, "cycle with G");
+  // Speed presets 1–4 (1× / ¼× / ¹⁄₁₀× / ¹⁄₁₀₀×).
+  const presets = document.querySelectorAll<HTMLButtonElement>(".preset[data-speed]");
+  ["1", "2", "3", "4"].forEach((k, i) => appendKey(presets[i], k));
 }
 
 /** True when the top-level mode toggle is in Design (designer-root visible). */

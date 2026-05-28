@@ -25,7 +25,12 @@ export const entries: Entry[] = [
     // ~700 ms; the worklet goes silent, hence flat, once it ends).
     steps: [{ speed: "1" }, { fireChip: "11" }, { waitMs: 150 }],
     readyWhen: { recorded: true },
-    assert: [{ cmdInfoContains: "LITE" }, { canvasNonBlank: "#earCanvas" }],
+    assert: [
+      { cmdInfoContains: "LITE" },
+      { canvasNonBlank: "#earCanvas" },
+      // Keybinding discoverability: the Fire button's tooltip names its key.
+      { attrContains: ["#fire", "title", "[Space]"] },
+    ],
     shot: { clip: panel("earCanvas"), file: img("tut-01-first-sound") },
   },
 

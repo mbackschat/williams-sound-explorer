@@ -188,6 +188,7 @@ Detailed source-line indices into the sound routines are maintained with the pri
 
 Other optional polish items:
 
+- **Keybinding discoverability — show the shortcut in the button's tooltip.** Every button with a keyboard equivalent (Explore transport + Designer transport) should name its key in the `title` (e.g. *"Fire the command (Space)"*, *"Pause / Resume (P)"*). Don't expect the user to know the keys — make them discoverable on hover. Single source of truth: the keymaps in `web/ui/keymap.ts` (Explore) + the Design-mode keydown handler in `designerMode.ts`. (Added 2026-05-29.)
 - Quiz tier expansion — Tier 2 ("which freeze toggle silences this?") + Tier 3 ("A/B diff: what differs?").  Reuses Pattern 3 toggle metadata + Pattern 6 A/B engine.
 - Source-line tightening in some explainer cards (a few cite approximate addresses; labelmap lookups can re-pin them).
 - Bulk reference audio re-render (corpus is stale-ish since the ROM rebuild).

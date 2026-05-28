@@ -201,6 +201,8 @@ The original Designer layout dedicated half the screen to a tall audition scope 
 
 Result on a 1920×1080 viewport: the entire editor — header + items + 3-column edit row + audition strip + transport — fits with no scroll. Tests + capture entries are unchanged (the manifest entries assert *behaviour*, not pixel layout); `designer-gwave-overview.png` and `designer-gwave-audition-explore.png` were regenerated.
 
+**Update (2026-05-29):** the transport bar was later moved out of its sticky-bottom position to **directly below the item list** (above the parameter editor) — playback now sits next to sound selection, with the editor + scope following below. It's a normal-flow row (`.designer-transport`, no `position: sticky`), bordered top + bottom. (Same change set capped the item list at **7 rows per column**, `grid-template-rows: repeat(7, auto)`.)
+
 ## Phase 5b — Adding new waveforms (shipped 2026-05-28)
 
 Beyond the 7 stock waveforms, a project can carry up to **9 user-added waveforms** (idx 7..15 — the rest of the WAVE# nybble's range). When `addedWaveforms` is non-empty the builder **relocates the whole GWVTAB** into the free RADIO/ORGAN region of the ROM and **repoints `LDX #GWVTAB`** to that fresh address — a single 2-byte operand patch per game. Stock-idx overrides (Step 2) are folded into the relocated table so the in-place patch path doesn't double-write.

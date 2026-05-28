@@ -51,8 +51,8 @@
        .designer-edit-row-vari  → sliders only (single column)
        .designer-edit-row-gwave → sliders | waveform | pitch (3 columns)
    - .designer-audition-strip is a full-width thin scope strip below the row.
-   - The transport bar lives outside .designer-edit, sticky at the viewport
-     bottom (see .designer-transport below).
+   - The transport bar lives outside .designer-edit, directly below the item
+     list / above this editor (see .designer-transport below).
    Sizing the canvas columns up to 600 px each leaves room for v-future "new
    waveforms" (up to 255 bytes / wave) and long PATLENs without becoming
    cramped — at 600 px / 255 bytes that's ~2.4 px per cell, still drawable. */
@@ -123,22 +123,18 @@
 /* Audition scope strip — full-width band below the edit row. */
 .designer-audition-strip { margin-top: 1rem; }
 
-/* Sticky transport bar (Phase 5 redesign): single row of Play / Pause /
-   Loop / Source / Diff / Vol, glued to the viewport bottom when the editor
-   content overflows. "Open in Explore" is NOT here — it lives in the header
-   bar because it's a mode handoff, not a transport action. */
+/* Transport bar: single row of Play / Pause / Loop / Source / Diff / Vol /
+   Open in Explore. Sits directly below the item list (above the parameter
+   editor), so playback controls are adjacent to sound selection. */
 .designer-transport {
-  position: sticky; bottom: 0; z-index: 5;
-  margin-top: 0.9rem; padding: 0.6rem 0.4rem;
+  margin: 0.5rem 0 0.2rem; padding: 0.5rem 0.4rem;
   background: #0c0e12;
   border-top: 1px solid #2a2f37;
-  /* Slight backdrop gradient so content scrolling past the transport fades
-     in behind it instead of bumping abruptly. */
-  background-image: linear-gradient(to top, #0c0e12 85%, rgba(12, 14, 18, 0.7));
+  border-bottom: 1px solid #2a2f37;
 }
 .designer-vol { width: 6rem; }
 
-/* Transport button styling — all controls in the sticky bottom bar. */
+/* Transport button styling — all controls in the transport bar. */
 .designer-transport > button {
   background: #1a1d24; border: 1px solid #353a44; border-radius: 4px;
   color: #d1d4dc; font: inherit; padding: 0.35rem 0.7rem; cursor: pointer;
@@ -171,7 +167,8 @@
 .designer-items-head { margin-top: 0.8rem; }
 .designer-items {
   display: grid;
-  grid-template-rows: repeat(8, auto);
+  /* Max 7 items per column; overflow flows into a new column to the right. */
+  grid-template-rows: repeat(7, auto);
   grid-auto-flow: column;
   /* Williams names max out at 6 chars (`CLDWNV`, `FOSHIT`, `QUASAR`, `MOSQTO`),
      and the auto-added VARI default `My $XX` is also 6.  But the **Copy VARI**

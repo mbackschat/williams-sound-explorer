@@ -37,6 +37,7 @@ export type Assert =
   | { textContains: [sel: string, sub: string] }
   | { cmdInfoContains: string } //      shorthand for #cmdInfo textContains
   | { hasClass: [sel: string, cls: string] }
+  | { attrContains: [sel: string, attr: string, sub: string] } // element's attribute (e.g. title) contains substring
   | { disabled: string } //             element's `disabled` property is true (button/input)
   | { markerCountAtLeast: number } //   #scrubMarkers child count
   | { canvasNonBlank: string }; //      element is not a uniform fill (range of a colour channel)

@@ -91,6 +91,11 @@ async function checkAssert(page: Page, a: Assert): Promise<string | null> {
     const has = await page.locator(sel).evaluate((el, c) => el.classList.contains(c), cls);
     return has ? null : `${sel} missing class "${cls}"`;
   }
+  if ("attrContains" in a) {
+    const [sel, attr, sub] = a.attrContains;
+    const val = await page.locator(sel).first().evaluate((el, at) => el.getAttribute(at) ?? "", attr);
+    return val.includes(sub) ? null : `${sel} [${attr}]="${val}" does not contain "${sub}"`;
+  }
   if ("disabled" in a) {
     // Buttons/inputs only — reads the live `disabled` property, not the
     // attribute (jsdom-style attribute reads can lie for properties set via

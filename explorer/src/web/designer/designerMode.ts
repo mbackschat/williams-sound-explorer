@@ -188,7 +188,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   });
   importBinBtn.addEventListener("click", () => importBinInput.click());
   // "Open in Explore" is created with the transport controls below; it
-  // re-joins them as the rightmost button in the sticky transport row
+  // re-joins them as the rightmost button in the transport row
   // (it sat in the header briefly during the Phase 5 redesign; user
   // feedback was to put it back with Play/Pause where it visually
   // belongs as an audition action).
@@ -485,8 +485,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     status(`Reverted ${slot.name || "(unnamed)"} to its starting record.`, "ok");
   });
 
-  const playBtn = el("button", { className: "designer-play", textContent: "▶ Play", title: "Play the selected sound from the top." });
-  const pauseBtn = el("button", { textContent: "⏸ Pause", title: "Pause / resume playback.", disabled: true });
+  const playBtn = el("button", { className: "designer-play", textContent: "▶ Play", title: "Play the selected sound from the top.  [Space]" });
+  const pauseBtn = el("button", { textContent: "⏸ Pause", title: "Pause / resume playback.  [P]", disabled: true });
   const loopBtn = el("button", { textContent: "🔁 Loop", title: "Repeat continuously — edits update the loop live." });
   const srcEditedBtn = el("button", { className: "active", textContent: "Edited", title: "Audition your edited sound." });
   const srcStartBtn = el("button", { textContent: "Start", title: "Audition the sound's starting point (as copied/created)." });
@@ -584,9 +584,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     auditionStrip,
   ]);
 
-  // Sticky transport bar — single row of Play / Pause / Loop / Source / Diff
-  // / Vol / Open in Explore, glued to the bottom of the viewport when the
-  // editor exceeds the window height.  Open in Explore sits at the right
+  // Transport bar — single row of Play / Pause / Loop / Source / Diff / Vol /
+  // Open in Explore, placed directly below the item list (above the editor) so
+  // playback sits next to sound selection.  Open in Explore sits at the right
   // end of the row, visually separated by a sep so it reads as a distinct
   // audition-handoff action.
   const transport = el("div", { className: "designer-transport" }, [
@@ -602,7 +602,10 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   ]);
 
   const lockedMsg = el("div", { className: "designer-locked" });
-  root.append(header, statusLine, itemsSection, itemList, editPanel, transport, lockedMsg);
+  // Transport sits directly below the item list (above the editor): you pick a
+  // sound, then Play/Pause/audition it right there, and the parameter editor +
+  // scope follow below. (Was a sticky bottom bar in the Phase 5 layout.)
+  root.append(header, statusLine, itemsSection, itemList, transport, editPanel, lockedMsg);
 
   // ── Behaviour ──────────────────────────────────────────────────────────
 

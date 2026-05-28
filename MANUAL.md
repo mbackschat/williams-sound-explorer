@@ -88,7 +88,7 @@ A **"Hide help"** button sits in the header (next to the game switcher).  Toggle
 
 ### Keyboard shortcuts
 
-Global shortcuts (ignored while you're typing in the hex box or a dropdown — press <kbd>?</kbd> any time for this list as an on-screen overlay). **These bindings are Explore-only** — switch to Design and a smaller, Design-specific keymap takes over (see [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md) §*Keyboard shortcuts*), so <kbd>Space</kbd> won't fire an Explore command while you're authoring.
+Global shortcuts (ignored while you're typing in the hex box or a dropdown — press <kbd>?</kbd> any time for this list as an on-screen overlay). You don't have to memorise them: **every button with a shortcut shows its key in the hover tooltip** (e.g. *Fire … [Space]*), so you can discover the binding right where you'd click. **These bindings are Explore-only** — switch to Design and a smaller, Design-specific keymap takes over (see [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md) §*Keyboard shortcuts*), so <kbd>Space</kbd> won't fire an Explore command while you're authoring.
 
 | Key | Action |
 |---|---|
