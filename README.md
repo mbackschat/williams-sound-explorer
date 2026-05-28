@@ -73,7 +73,7 @@ The assemble-from-source toolchain is included, but the **Williams sound source 
 Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for forking a game's sound bank: opens with the game's editable sounds pre-loaded, edit any **VARI**, **GWAVE**, **LFSR**, **FNOISE**, or **RADIO** sound's parameter record with sliders (and a wavetable canvas for GWAVE/RADIO), audition + A/B, and save as a JSON recipe (no ROM bytes) — *or* download a runnable custom **`.bin`** to load in MAME / a real cabinet, and upload it back to keep editing. Hit **▶ Open in Explore** to push your custom ROM into Explore's live worklet — pause/step/scrub on your own sound, with every Explore visualisation pointed at it. See [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
 <p align="center">
-  <img alt="Design mode with Defender SAW copied into the item list, the 8-slider VVECT parameter panel on the left, audition scope on the right, and the Play/Pause/Loop/Source/Diff transport at the bottom" src="docs/img/manual/designer-overview.png" width="820">
+  <img alt="Design mode (Custom ROM): the game's sound bank pre-loaded as a multi-column item list, the Play/Pause/Loop/Source/Diff/Open-in-Explore transport directly below it, then the VVECT parameter sliders and a full-width audition scope" src="docs/img/manual/designer-overview.png" width="820">
 </p>
 
 ## How it compares

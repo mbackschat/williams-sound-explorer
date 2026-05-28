@@ -3,7 +3,7 @@
 > How to build your own custom sound ROM in the explorer's **Design** mode (the companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/designer_implementation.md`](docs/designer_implementation.md).
 
 <p align="center">
-  <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode with Defender SAW copied into the item list — engine picker, the slot row, the 8-slider VVECT parameter panel on the left, the audition scope on the right, and the Play/Pause/Loop/Source/Diff transport just below the item list">
+  <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode (Custom ROM): the engine picker + header, the game's sound bank as a multi-column item list, the Play/Pause/Loop/Source/Diff transport directly below it, then the VVECT parameter sliders and a full-width audition scope">
 </p>
 
 ## What it is
