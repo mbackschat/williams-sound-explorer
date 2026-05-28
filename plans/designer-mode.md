@@ -2,7 +2,7 @@
 
 > Single source of truth for the **Sound Designer mode** work — v1 (shipped), the audition-transport refinements (shipped), the Custom-ROM design discussion, the dispatcher spike, and the v-next roadmap. Consolidates and supersedes the transient harness plan `~/.claude/plans/logical-weaving-axolotl.md`.
 >
-> Companions: **`docs/designer_implementation.md`** (curated impl state), **`docs/designer_guide.md`** (user how-to), **`research/findings_designer_feasibility.md`** (raw ROM-level findings). This file is the *plan/decision log*; those are the living references.
+> Companions: **`docs/designer_implementation.md`** (curated impl state), **`MANUAL_DESIGNER.md`** (top-level user manual), **`research/findings_designer_feasibility.md`** (raw ROM-level findings). This file is the *plan/decision log*; those are the living references.
 
 ## Status at a glance (2026-05-28)
 
@@ -100,13 +100,13 @@ Delivers the user's vision: a Custom ROM with its own named item list, sounds co
 
 **Other fast-follows:** live-worklet audition (pause/step/scrub on the custom ROM); a MANUAL/README screenshot via the `e2e/` capture harness; GWAVE editor (editable waveform/period-curve canvases — revisit msarnoff's `WavetableWithSlider` live then).
 
-**Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `docs/designer_guide.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
+**Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `MANUAL_DESIGNER.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
 
 ---
 
 ## References
 
 - Code: `explorer/src/engine/variEdit.ts`, `explorer/src/web/designer/*`, `explorer/src/web/ui/modeToggle.ts`.
-- Docs: `docs/designer_implementation.md`, `docs/designer_guide.md`, `docs/00_INDEX.md` (project state).
+- Docs: `docs/designer_implementation.md`, `MANUAL_DESIGNER.md` (user manual), `docs/00_INDEX.md` (project state).
 - Research (private): `research/findings_designer_feasibility.md`, `research/findings_{defender,robotron}_sound.md`.
 - Prior art: `docs/sound_studio_reference.md` (+ `research/findings_sound_studio.md`).

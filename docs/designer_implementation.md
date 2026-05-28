@@ -1,6 +1,6 @@
 # Designer mode — implementation state
 
-> Home for the **Sound Designer** mode's implementation (module map, decisions, the VARI/VVECT reference, recipe schema, tests). This plays the role `explorer_implementation.md` plays for the explorer; read it first when resuming Designer work. User-facing how-to lives in [`designer_guide.md`](designer_guide.md); the raw "why this is even possible" findings live in the private `research/findings_designer_feasibility.md`.
+> Home for the **Sound Designer** mode's implementation (module map, decisions, the VARI/VVECT reference, recipe schema, tests). This plays the role `explorer_implementation.md` plays for the explorer; read it first when resuming Designer work. User-facing how-to lives in [`MANUAL_DESIGNER.md`](../MANUAL_DESIGNER.md); the raw "why this is even possible" findings live in the private `research/findings_designer_feasibility.md`.
 
 ## What it is
 
@@ -100,7 +100,7 @@ ROM array offset = `(VVECT_BASE + row*9) − (0x10000 − rom.length)` (ROM occu
 - **GWAVE editor** — adds editable waveform (`GWVTAB`) + period-curve (`GFRTAB`) byte tables; the point to revisit msarnoff's `WavetableWithSlider` interaction live.
 - **Robotron as engine base** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band.
 - **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
-- A MANUAL/README screenshot via the `e2e/` capture harness, plus the feature/approach comparison vs. msarnoff's Sound Studio (in `designer_guide.md` + a README summary — see `plans/designer-mode.md`).
+- A MANUAL/README screenshot via the `e2e/` capture harness, plus the feature/approach comparison vs. msarnoff's Sound Studio (in `MANUAL_DESIGNER.md` + a README summary — see `plans/designer-mode.md`).
 
 ## The true Custom ROM (shipped) — how it works
 

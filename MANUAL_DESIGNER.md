@@ -1,6 +1,6 @@
-# Sound Designer mode — user guide
+# Williams Sound Designer — Manual
 
-> How to build your own custom sound ROM in the explorer's **Design** mode. For *how it's built*, see [`designer_implementation.md`](designer_implementation.md).
+> How to build your own custom sound ROM in the explorer's **Design** mode (the companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/designer_implementation.md`](docs/designer_implementation.md).
 
 ## What it is
 
@@ -48,7 +48,7 @@ You need a **Defender or Stargate ROM** loaded — your custom ROM runs on one o
 
 ## How it compares to the original "Sound Designer"
 
-The closest prior art is msarnoff's **Defender Sound Studio** (zapspace.net, 2020) — see [`sound_studio_reference.md`](sound_studio_reference.md). It pioneered the idea of *tweak a Williams sound's parameters in the browser and hear it*, and we deliberately reuse two of its good ideas: **labelled parameter controls with in-place tooltips**, and **JSON preset import/export**. Where this mode differs:
+The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.net/defender_sound/)** (2020) — see [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md). It pioneered the idea of *tweak a Williams sound's parameters in the browser and hear it*, and we deliberately reuse two of its good ideas: **labelled parameter controls with in-place tooltips**, and **JSON preset import/export**. Where this mode differs:
 
 | | Defender Sound Studio (2020) | Design mode here |
 |---|---|---|
@@ -64,4 +64,4 @@ In short: the Studio *tweaks* one game's existing sounds with a JS re-implementa
 
 ## Limits
 
-VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes), use Robotron as the engine base, or pause/step the live CPU on a custom sound — those are planned follow-ups (see [`designer_implementation.md`](designer_implementation.md)).
+VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes), use Robotron as the engine base, or pause/step the live CPU on a custom sound — those are planned follow-ups (see [`docs/designer_implementation.md`](docs/designer_implementation.md)).

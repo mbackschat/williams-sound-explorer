@@ -112,7 +112,7 @@ Context-specific (when an element has focus):
 
 ### Designer mode (a separate mode)
 
-The **Explore | Design ✎** switch at the top of the page flips between this read-only explorer and a separate **Sound Designer** mode. Design mode lets you build your **own custom ROM** of **VARI** sounds the way a Williams designer would: pick an engine base (Defender/Stargate), then assemble your own list — copy any game's VARI sound (SAW / FOSHIT / QUASAR, MOSQTO from Robotron) or add a new one, edit each one's parameter record with sliders, audition + A/B, and save it as a shareable JSON recipe. Switching to Design doesn't change anything in Explore. Full walkthrough: [`docs/designer_guide.md`](docs/designer_guide.md).
+The **Explore | Design ✎** switch in the header flips between this read-only explorer and a separate **Sound Designer** mode, for building your own custom sound ROM. Switching to Design doesn't change anything in Explore. It has its own manual: **[`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md)**.
 
 ---
 
