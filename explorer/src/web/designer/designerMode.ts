@@ -20,6 +20,7 @@ import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
 import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH, reclampWaveformIdxAfterRemoval } from "../../engine/gwaveEdit.ts";
 import { lfsrCommandsFor, lfsrFieldsFor, readLfsrRecord, LFSR_CALLER_BASE } from "../../engine/lfsrEdit.ts";
 import { fnoiseCommandsFor, fnoiseFieldsFor, readFnoiseRecord } from "../../engine/fnoiseEdit.ts";
+import { radioCommandsFor, readRadioRecord } from "../../engine/radioEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import { importBinAsProject, ROM_SIZE } from "../../engine/projectFromBin.ts";
 import {
@@ -29,6 +30,7 @@ import {
 import { buildVariEditor, type VariEditorApi } from "./variEditor.ts";
 import { buildGWaveEditor, type GWaveEditorApi } from "./gwaveEditor.ts";
 import { buildFieldSliderEditor, type FieldSliderEditorApi } from "./fieldSliders.ts";
+import { buildRadioEditor, type RadioEditorApi } from "./radioEditor.ts";
 import {
   renderSound, playSamples, drawWaveform, drawDiff, drawPlayhead, durationMs,
   onPlaybackState, pauseResume, stopPlayback, setLoop, playbackState, playbackProgress,
@@ -71,7 +73,9 @@ function toRomSlots(slots: CustomSlot[]): RomCustomSlot[] {
         ? { kind: "gwave", cmd: s.targetCmd, record: s.record }
         : s.kind === "lfsr"
           ? { kind: "lfsr", cmd: s.targetCmd, record: s.record }
-          : { kind: "fnoise", cmd: s.targetCmd, record: s.record },
+          : s.kind === "fnoise"
+            ? { kind: "fnoise", cmd: s.targetCmd, record: s.record }
+            : { kind: "radio", cmd: s.targetCmd, record: s.record },
   );
 }
 
@@ -100,8 +104,8 @@ function recordsEqualStatic(a: number[] | undefined, b: number[] | undefined): b
 function isStockSlot(slots: CustomSlot[], i: number, game: GameKind): boolean {
   const slot = slots[i]!;
   if (!recordsEqualStatic(slot.record, slot.start)) return false;
-  if (slot.kind === "gwave" || slot.kind === "lfsr" || slot.kind === "fnoise") {
-    // Cheap: any populated GWAVE/LFSR/FNOISE override slot.  All are
+  if (slot.kind === "gwave" || slot.kind === "lfsr" || slot.kind === "fnoise" || slot.kind === "radio") {
+    // Cheap: any populated GWAVE/LFSR/FNOISE/RADIO override slot.  All are
     // pre-populated override-in-place rows (never user-added), so an unedited
     // one is stock.
     return true; // populate only inserts editable codes; user can't add others
@@ -383,17 +387,23 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // of field values; only one slot is shown at a time so one panel suffices).
   const fieldEditor: FieldSliderEditorApi = buildFieldSliderEditor(onEditorChange);
 
+  // RADIO editor — a FREQ slider + a 16-cell wavetable canvas. Its record is
+  // `[freq, ...16 bytes]`; it owns its own canvas, so it lives in the sliders
+  // column and is shown only for RADIO slots.
+  const radioEditor: RadioEditorApi = buildRadioEditor(onEditorChange);
+
   // The sliders column contains all the editors' slider panels (VARI / GWAVE /
-  // field-slider for LFSR+FNOISE); only one is visible at a time depending on
-  // the selected slot's kind.  Waveform/pitch canvases sit in their own grid
-  // columns to the right (GWAVE only).
+  // field-slider for LFSR+FNOISE / RADIO); only one is visible at a time
+  // depending on the selected slot's kind.  GWAVE's waveform/pitch canvases sit
+  // in their own grid columns to the right.
   const slidersCol = el("div", { className: "designer-edit-sliders-col" });
-  slidersCol.append(variEditor.el, gwaveEditor.slidersEl, fieldEditor.el);
+  slidersCol.append(variEditor.el, gwaveEditor.slidersEl, fieldEditor.el, radioEditor.el);
   variEditor.el.style.display = "";
   gwaveEditor.slidersEl.style.display = "none";
   gwaveEditor.waveformPanelEl.style.display = "none";
   gwaveEditor.patternPanelEl.style.display = "none";
   fieldEditor.el.style.display = "none";
+  radioEditor.el.style.display = "none";
 
   /**
    * Editor label row — switches with the selected slot's kind and carries a
@@ -427,7 +437,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     gwaveEditor.waveformPanelEl.style.display = kind === "gwave" ? "" : "none";
     gwaveEditor.patternPanelEl.style.display = kind === "gwave" ? "" : "none";
     fieldEditor.el.style.display = fieldKind ? "" : "none";
-    // VARI + LFSR + FNOISE are sliders-only (single column); GWAVE adds canvases.
+    radioEditor.el.style.display = kind === "radio" ? "" : "none";
+    // VARI + LFSR + FNOISE + RADIO are single-column; GWAVE adds side canvases.
     editRow.classList.toggle("designer-edit-row-vari", kind !== "gwave");
     editRow.classList.toggle("designer-edit-row-gwave", kind === "gwave");
     editorLabelText.textContent = kind === "vari"
@@ -436,7 +447,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
         ? "Parameter record (SVTAB — GWAVE override)"
         : kind === "lfsr"
           ? "Parameter record (caller immediates — LFSR override)"
-          : "Parameter record (FNTAB / caller immediates — FNOISE override)";
+          : kind === "fnoise"
+            ? "Parameter record (FNTAB / caller immediates — FNOISE override)"
+            : "Parameter record (FREQ + RADSND wavetable — RADIO override)";
   }
 
   /** Same length + every byte equal — used to gate the "↻ Reset record" button. */
@@ -462,7 +475,10 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     slot.record = [...slot.start];
     // LFSR/FNOISE slider sets are per-command — reseed values (fields are
     // already set from selectSlot, since the same slot is still selected).
-    const ed = slot.kind === "vari" ? variEditor : slot.kind === "gwave" ? gwaveEditor : fieldEditor;
+    const ed = slot.kind === "vari" ? variEditor
+      : slot.kind === "gwave" ? gwaveEditor
+      : slot.kind === "radio" ? radioEditor
+      : fieldEditor;
     ed.setRecord(slot.record);
     if (slot.kind === "gwave") { refreshWaveformCanvas(); refreshPatternCanvas(); }
     onEditorChange(slot.record);
@@ -644,7 +660,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       const name = el("input", { className: "designer-item-name", value: slot.name }) as HTMLInputElement;
       name.addEventListener("click", (e) => e.stopPropagation());
       name.addEventListener("input", () => { slot.name = name.value; touch(); });
-      const engineName = slot.kind === "vari" ? "VARI" : slot.kind === "gwave" ? "GWAVE" : slot.kind === "lfsr" ? "LFSR" : "FNOISE";
+      const engineName = slot.kind === "vari" ? "VARI" : slot.kind === "gwave" ? "GWAVE" : slot.kind === "lfsr" ? "LFSR" : slot.kind === "fnoise" ? "FNOISE" : "RADIO";
       const codeText = `$${slotCmd(project.slots, i).toString(16).toUpperCase().padStart(2, "0")} ${engineName}`;
       const code = el("span", { className: "designer-item-code", textContent: codeText });
       code.title = slot.kind === "vari"
@@ -653,7 +669,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
           ? (stock ? "Stock GWAVE sound — edit the sliders to make it yours." : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`)
           : slot.kind === "lfsr"
             ? (stock ? "Stock LFSR sound — edit the sliders to make it yours." : `Overrides the base game's LFSR command $${slot.targetCmd.toString(16).toUpperCase()} in place.`)
-            : (stock ? "Stock FNOISE sound — edit the sliders to make it yours." : `Overrides the base game's FNOISE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`);
+            : slot.kind === "fnoise"
+              ? (stock ? "Stock FNOISE sound — edit the sliders to make it yours." : `Overrides the base game's FNOISE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`)
+              : (stock ? "Stock RADIO sound — edit the FREQ slider + wavetable to make it yours." : `Overrides the base game's RADIO command $${slot.targetCmd.toString(16).toUpperCase()} (FREQ + RADSND LUT) in place.`);
       // Dot indicator: dim grey for stock, green for edited.  Sits before the
       // name input so the user reads "● $05 GWAVE BBSV" at a glance.
       const dot = el("span", { className: "designer-item-dot", title: stock ? "Stock — unchanged from the base ROM." : "Edited — diverges from the base ROM." });
@@ -735,6 +753,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
           : fnoiseFieldsFor(project.engineBase, slot.targetCmd);
         fieldEditor.setFields(fields);
         fieldEditor.setRecord(slot.record);
+      } else if (slot.kind === "radio") {
+        radioEditor.setRecord(slot.record);
       } else {
         (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
         if (slot.kind === "gwave") { refreshGwaveEditorLimits(); refreshWaveformCanvas(); refreshPatternCanvas(); }
@@ -911,8 +931,13 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "lfsr", cmd: slot.targetCmd, record: slot.start }]);
       return renderSound(project.engineBase, rom, slot.targetCmd);
     }
-    // FNOISE: same override-in-place shape (FNTAB row or caller immediates).
-    const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "fnoise", cmd: slot.targetCmd, record: slot.start }]);
+    if (slot.kind === "fnoise") {
+      // FNOISE: override-in-place shape (FNTAB row or caller immediates).
+      const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "fnoise", cmd: slot.targetCmd, record: slot.start }]);
+      return renderSound(project.engineBase, rom, slot.targetCmd);
+    }
+    // RADIO: override the FREQ immediate + RADSND LUT with the `start` record.
+    const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "radio", cmd: slot.targetCmd, record: slot.start }]);
     return renderSound(project.engineBase, rom, slot.targetCmd);
   }
 
@@ -1059,11 +1084,13 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     const gwaveExisting = new Map<number, CustomSlot>();
     const lfsrExisting = new Map<number, CustomSlot>();
     const fnoiseExisting = new Map<number, CustomSlot>();
+    const radioExisting = new Map<number, CustomSlot>();
     const variExisting: CustomSlot[] = [];
     for (const s of p.slots) {
       if (s.kind === "gwave") gwaveExisting.set(s.targetCmd, s);
       else if (s.kind === "lfsr") lfsrExisting.set(s.targetCmd, s);
       else if (s.kind === "fnoise") fnoiseExisting.set(s.targetCmd, s);
+      else if (s.kind === "radio") radioExisting.set(s.targetCmd, s);
       else variExisting.push(s);
     }
     const out: CustomSlot[] = [];
@@ -1090,6 +1117,13 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       if (ex) { out.push(ex); continue; }
       const record = readFnoiseRecord(rom, game, c.cmd);
       out.push({ kind: "fnoise", name: c.name, record, start: [...record], targetCmd: c.cmd });
+    }
+    // RADIO stock entry — a single $18 command on every game (FREQ + 16-byte LUT).
+    for (const c of radioCommandsFor(game)) {
+      const ex = radioExisting.get(c.cmd);
+      if (ex) { out.push(ex); continue; }
+      const record = readRadioRecord(rom, game);
+      out.push({ kind: "radio", name: c.name, record, start: [...record], targetCmd: c.cmd });
     }
     if (supportsVari(game)) {
       const stockVari = variCommandsFor(game).filter((c) => c.row <= 2);

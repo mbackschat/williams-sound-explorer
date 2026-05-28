@@ -10,7 +10,7 @@
 
 A Williams arcade sound isn't a sample or an FM patch — it's a tiny **parameter record** that a shared synthesis engine reads. The VARI engine, for instance, turns just **nine bytes** into a swept variable-duty square wave (that's the whole of SAW, FOSHIT, QUASAR…). Design mode lets you do what Sam Dicker did when building a new Williams game: **fork the game's sound bank**, modify any of its sounds (or add new ones), and save the result as a custom ROM.
 
-This covers the **VARI**, **GWAVE**, **LFSR**, and **FNOISE** engines. VARI slots are *new sounds* added at command codes `$1D`+ (the engine's dispatcher has spare bits we widen); GWAVE / LFSR / FNOISE slots *override* an existing command's parameters in place (their dispatchers are hardcoded — no spare codes — so the model differs). LFSR is the noise family: **LITE** (lightning, `$11`), **TURBO** (turbo burst, `$14`), **APPEAR** (enemy-appear descent, `$15`), and Robotron's **LAUNCH** (`$39`). FNOISE is filtered noise: **THRUST** (`$16`), **CANNON** (`$17`), and on Robotron also **BG1** (`$0F`) + **HBOMB** (`$3E`).
+This covers **all five of Williams's data-driven engines** — **VARI**, **GWAVE**, **LFSR**, **FNOISE**, and **RADIO** (per-engine parity with the Defender Sound Studio). VARI slots are *new sounds* added at command codes `$1D`+ (the engine's dispatcher has spare bits we widen); GWAVE / LFSR / FNOISE / RADIO slots *override* an existing command's parameters in place (their dispatchers are hardcoded — no spare codes — so the model differs). LFSR is the noise family: **LITE** (lightning, `$11`), **TURBO** (turbo burst, `$14`), **APPEAR** (enemy-appear descent, `$15`), and Robotron's **LAUNCH** (`$39`). FNOISE is filtered noise: **THRUST** (`$16`), **CANNON** (`$17`), and on Robotron also **BG1** (`$0F`) + **HBOMB** (`$3E`). RADIO (`$18`) is a wavetable whoosh — the "credit accepted" / hyperspace sweep.
 
 ## Getting in
 
@@ -22,13 +22,14 @@ You need at least one of the game ROMs loaded:
 - For **GWAVE** overrides (replacing an existing GWAVE command's record), any of the three games — Defender, Stargate, or Robotron.
 - For **LFSR** overrides (LITE / TURBO / APPEAR; + LAUNCH on Robotron), any of the three games.
 - For **FNOISE** overrides, any of the three games — THRUST + CANNON everywhere; BG1 + HBOMB only on Robotron (Defender/Stargate bake those into code with no editable parameter).
+- For the **RADIO** override (`$18`), any of the three games.
 
 ROMs are added on the Explore onboarding screen.
 
 ## The workflow
 
 1. **Engine** — pick **Defender**, **Stargate**, or **Robotron**: which game's engine code your custom ROM runs on. VARI slots only work on Defender / Stargate (Robotron's VARI dispatch is non-linear); GWAVE slots work on every base. A record copied from any game plays the same — the engine is identical across games.
-2. **The list opens with the game's sound bank already loaded.** *New Project → Defender* pre-populates the item list with every editable command — 13 GWAVE rows (`$01 HBDV` … `$0D ED17`), 3 LFSR rows (`$11 LITE` / `$14 TURBO` / `$15 APPEAR`), 2 FNOISE rows (`$16 THRUST` / `$17 CANNON`), and 3 VARI rows (`$1D SAW` / `$1E FOSHIT` / `$1F QUASAR`), 21 in total. Stargate is the same; Robotron has 13 GWAVE + 4 LFSR (incl. `$39 LAUNCH`) + 4 FNOISE (incl. `$0F BG1` + `$3E HBOMB`) and no VARI — also 21. Each row carries a **● dot indicator** before its code:
+2. **The list opens with the game's sound bank already loaded.** *New Project → Defender* pre-populates the item list with every editable command — 13 GWAVE rows (`$01 HBDV` … `$0D ED17`), 3 LFSR rows (`$11 LITE` / `$14 TURBO` / `$15 APPEAR`), 2 FNOISE rows (`$16 THRUST` / `$17 CANNON`), 1 RADIO row (`$18 RADIO`), and 3 VARI rows (`$1D SAW` / `$1E FOSHIT` / `$1F QUASAR`), 22 in total. Stargate is the same; Robotron has 13 GWAVE + 4 LFSR (incl. `$39 LAUNCH`) + 4 FNOISE (incl. `$0F BG1` + `$3E HBOMB`) + 1 RADIO and no VARI — also 22. Each row carries a **● dot indicator** before its code:
    - **Grey dot** + dimmed name = **stock** (unchanged from the base ROM).
    - **Green dot** + bright name = **edited** (you've changed its bytes; ↻ Reset record brings it back to stock).
    The header reads *"Your sounds (N edited / M total)"* so you see at a glance how many of the game's commands you've touched. Click any row to edit it.
@@ -36,7 +37,7 @@ ROMs are added on the Explore onboarding screen.
    - **+ New VARI** adds a sound (seeded from the base game's SAW as a starting point), capped at the engine's VVECT capacity: **23** on Defender, **30** on Stargate.
    - **Copy VARI:** adds a sound copied from any loaded game's VARI catalogue — `SAW` / `FOSHIT` / `QUASAR` (Defender/Stargate), `MOSQTO` (Robotron).
    - User-added rows get an **✕** to remove them; stock rows can't be removed (a reload would re-add them anyway — use ↻ Reset record on the editor instead).
-   - VARI rows show yellow `$XX VARI`; GWAVE rows show purple `$XX GWAVE`; LFSR rows show teal `$XX LFSR`; FNOISE rows show orange `$XX FNOISE`.
+   - VARI rows show yellow `$XX VARI`; GWAVE rows show purple `$XX GWAVE`; LFSR rows show teal `$XX LFSR`; FNOISE rows show orange `$XX FNOISE`; RADIO shows blue `$18 RADIO`.
 4. **Edit the parameter record** — drag the sliders. For VARI slots:
    - **LOPER / HIPER** — the low- and high-cycle periods; together they set the duty cycle and pitch.
    - **LODT / HIDT** — how fast each period sweeps (signed).
@@ -78,7 +79,9 @@ ROMs are added on the Explore onboarding screen.
 
    CANNON is shared verbatim between Defender and Robotron, so editing it on either base changes the same logical record.
 
-   At the right end of the editor's label row sits a **↻ Reset record** button — clicking it reverts the slider values to the slot's starting bytes (what was copied/created when the slot was added; this is the same reference the **Source: Start** transport toggle plays). It's greyed out until you actually edit, and works for all four editors (VARI, GWAVE, LFSR, FNOISE). The waveform and pitch-pattern canvases (GWAVE only) have their own **Reset to stock** buttons — *those* clear per-canvas overrides; **↻ Reset record** only touches the parameter record (sliders).
+   For the **RADIO** slot the panel is a hybrid: one **FREQ** slider plus a **16-cell click-to-draw wavetable canvas** (blue). RADIO is a wavetable phase-accumulator — it reads a 16-byte table (`RADSND`) at a climbing rate to make a rising whistled whoosh. **FREQ** sets the initial frequency and how fast the pitch climbs (lower = lower + slower; higher = brighter + faster); the **canvas** is the 16-byte waveform the accumulator reads (drag to redraw, each x-cell = one sample, y = 0..255). Both are patched in place — the table stays at its fixed address, so nothing else moves. There's just the one RADIO command (`$18`) per game.
+
+   At the right end of the editor's label row sits a **↻ Reset record** button — clicking it reverts the slider values (and, for RADIO, the wavetable) to the slot's starting bytes (what was loaded when you opened the project; this is the same reference the **Source: Start** transport toggle plays). It's greyed out until you actually edit, and works for all five editors (VARI, GWAVE, LFSR, FNOISE, RADIO). The waveform and pitch-pattern canvases (GWAVE only) have their own **Reset to stock** buttons — *those* clear per-canvas overrides; **↻ Reset record** only touches the parameter record (sliders).
 5. **Audition** — a thin scope strip below the editor renders the offline-rendered DAC trace; the **transport** bar below it (which sticks to the bottom of the viewport, so it's always reachable even on shorter windows) carries:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.
@@ -138,17 +141,17 @@ The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.n
 
 The Studio has 9 UI tabs of which **6 are editable** (the other 3 — *Insert credit* / *Humanoid fall* / a parameterless variant — are "just hit play" because the ROM has no preset record there; same blocker for WSED). Mapping the Studio's 6 editable tabs to WSED's engine taxonomy yields **5 distinct engines** — the Studio splits LFSR coverage across three tabs (*Square noise* + *Player shoot* + the wavetable side of *Sweeps*) that WSED groups under one editor.
 
-| Engine | Studio tab(s) | WSED today | After Phase 9 |
-|---|---|---|---|
-| **GWAVE** | G-wave | ✅ | ✅ |
-| **VARI** | Pulses | ✅ | ✅ |
-| **LFSR** | Square noise + Player shoot (same kernel) | ✅ (Phase 7) | ✅ |
-| **FNOISE** | Smooth noise | ✅ (Phase 8) | ✅ |
-| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ — gap | 📋 **Phase 9** |
-| SCREAM / HYPER | (parameterless tabs — same blocker as WSED) | ❌ — needs assembler | ❌ |
-| ORGAN pitch | n/a (Music tab is a separate sequencer) | ❌ — self-modifying code | ❌ |
+| Engine | Studio tab(s) | WSED |
+|---|---|---|
+| **GWAVE** | G-wave | ✅ |
+| **VARI** | Pulses | ✅ |
+| **LFSR** | Square noise + Player shoot (same kernel) | ✅ |
+| **FNOISE** | Smooth noise | ✅ |
+| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ✅ |
+| SCREAM / HYPER | (parameterless tabs — same blocker as WSED) | ❌ — needs assembler |
+| ORGAN pitch | n/a (Music tab is a separate sequencer) | ❌ — self-modifying code |
 
-**Per-engine score:** Studio 5, WSED today **4** → after Phase 9 = **5 (parity on Defender)**. On Defender/Stargate, FNOISE's **BG1** is the one sound WSED can't edit as data (no preset immediate); the Studio reaches it only by hand-porting the routine to JS.
+**Per-engine score:** Studio 5, WSED **5 — per-engine parity on Defender**, across three games and the actual ROMs. On Defender/Stargate, FNOISE's **BG1** is the one sound WSED can't edit as data (no preset immediate); the Studio reaches it only by hand-porting the routine to JS.
 
 The two engines neither tool can edit (SCREAM / HYPER) are blocked by the same architectural reality: their routines have **no preset record in the ROM** — Williams hardcoded the parameters into the kernel itself. Without an in-browser 6800 assembler (which WSED deliberately doesn't ship), neither tool can change them.
 
@@ -158,4 +161,4 @@ The Studio *tweaks* one game's existing sounds with a JS re-implementation. WSED
 
 ## Limits
 
-The Designer covers **VARI**, **GWAVE**, **LFSR**, and **FNOISE** today. The **RADIO** editor is planned next (Phase 9 — see `plans/designer-mode.md`); after it ships, Defender's per-engine editor coverage reaches parity with msarnoff's Defender Sound Studio. **SCREAM, HYPER, and ORGAN pitch** aren't authorable as data without an in-browser 6800 assembler — they have no preset record in the ROM, so no tool can edit them without porting/assembly. **Robotron as a VARI engine base** is also a future item (its dispatcher is non-linear). For pause/step/scrub on a custom sound, use **Open in Explore** above.
+The Designer covers **all five data-driven engines** — VARI, GWAVE, LFSR, FNOISE, and RADIO — which is per-engine parity with msarnoff's Defender Sound Studio on Defender. **SCREAM, HYPER, and ORGAN pitch** aren't authorable as data without an in-browser 6800 assembler — they have no preset record in the ROM, so no tool can edit them without porting/assembly. **Robotron as a VARI engine base** is also a future item (its dispatcher is non-linear). For pause/step/scrub on a custom sound, use **Open in Explore** above.

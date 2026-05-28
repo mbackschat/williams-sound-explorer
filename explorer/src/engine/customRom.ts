@@ -38,6 +38,10 @@
  *   sounds), or the caller's immediate operands on Defender/Stargate (CANNON
  *   full, THRUST FMAX-only; BG1 omitted — no patchable immediate).  Per-command
  *   logical field list (see `engine/fnoiseEdit.ts`).
+ *
+ * - **RADIO slot** — `{ kind: "radio", cmd, record }`.  Overrides the single
+ *   $18 RADIO command **in place**: the FREQ immediate + the 16-byte RADSND
+ *   LUT.  `record = [freq, ...16 LUT bytes]` (see `engine/radioEdit.ts`).
  */
 import type { GameKind } from "../board/soundboard.ts";
 import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
@@ -49,6 +53,7 @@ import {
 } from "./gwaveEdit.ts";
 import { lfsrFieldsFor, patchLfsrRecord, LFSR_CALLER_BASE } from "./lfsrEdit.ts";
 import { fnoiseFieldsFor, patchFnoiseRecord, fnoiseCommandsFor } from "./fnoiseEdit.ts";
+import { patchRadioRecord, radioCommandsFor, RADIO_RECORD_LEN } from "./radioEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
 export const VARI_CMD_BASE = 0x1D;
@@ -105,7 +110,15 @@ export interface FnoiseSlot {
   record: number[];
 }
 
-export type CustomSlot = VariSlot | GwaveSlot | LfsrSlot | FnoiseSlot;
+export interface RadioSlot {
+  kind: "radio";
+  /** Always $18 (the single RADIO command). */
+  cmd: number;
+  /** `[freq, ...16 LUT bytes]` (see `radioEdit.ts`). */
+  record: number[];
+}
+
+export type CustomSlot = VariSlot | GwaveSlot | LfsrSlot | FnoiseSlot | RadioSlot;
 
 /** Max number of VARI slots a custom ROM can hold on this base (throws if unsupported). */
 export function maxSlots(game: GameKind): number {
@@ -266,6 +279,24 @@ function validateFnoiseSlot(s: FnoiseSlot, game: GameKind, seen: Set<number>): v
   }
 }
 
+/** Validate one RADIO override (single $18 command; record = freq + 16 LUT bytes). */
+function validateRadioSlot(s: RadioSlot, game: GameKind, seen: Set<number>): void {
+  if (!radioCommandsFor(game).some((c) => c.cmd === s.cmd)) {
+    throw new Error(`RADIO override $${s.cmd.toString(16).toUpperCase()} is not an editable RADIO command on ${game}`);
+  }
+  if (seen.has(s.cmd)) throw new Error(`duplicate RADIO override $${s.cmd.toString(16).toUpperCase()}`);
+  seen.add(s.cmd);
+  if (s.record.length !== RADIO_RECORD_LEN) {
+    throw new Error(`RADIO record must be exactly ${RADIO_RECORD_LEN} values (freq + 16 LUT bytes), got ${s.record.length}`);
+  }
+  const freq = s.record[0]!;
+  if (!Number.isInteger(freq) || freq < 0 || freq > 0xFFFF) throw new Error(`RADIO FREQ ${freq} out of range 0..65535`);
+  for (let i = 1; i < s.record.length; i++) {
+    const b = s.record[i]!;
+    if (!Number.isInteger(b) || b < 0 || b > 0xFF) throw new Error(`RADIO LUT byte out of range (0..255): ${b}`);
+  }
+}
+
 /**
  * Optional build extras alongside the per-sound slot list.  Carries:
  *
@@ -331,15 +362,18 @@ export function buildCustomRom(
   const gwaveSlots: GwaveSlot[] = [];
   const lfsrSlots: LfsrSlot[] = [];
   const fnoiseSlots: FnoiseSlot[] = [];
+  const radioSlots: RadioSlot[] = [];
   const seenVari = new Set<number>();
   const seenGwave = new Set<number>();
   const seenLfsr = new Set<number>();
   const seenFnoise = new Set<number>();
+  const seenRadio = new Set<number>();
   for (const s of slots) {
-    if (s.kind === "vari")       { validateVariSlot(s, game, seenVari); variSlots.push(s); }
-    else if (s.kind === "gwave") { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
-    else if (s.kind === "lfsr")  { validateLfsrSlot(s, game, seenLfsr); lfsrSlots.push(s); }
-    else                         { validateFnoiseSlot(s, game, seenFnoise); fnoiseSlots.push(s); }
+    if (s.kind === "vari")        { validateVariSlot(s, game, seenVari); variSlots.push(s); }
+    else if (s.kind === "gwave")  { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
+    else if (s.kind === "lfsr")   { validateLfsrSlot(s, game, seenLfsr); lfsrSlots.push(s); }
+    else if (s.kind === "fnoise") { validateFnoiseSlot(s, game, seenFnoise); fnoiseSlots.push(s); }
+    else                          { validateRadioSlot(s, game, seenRadio); radioSlots.push(s); }
   }
   for (const k of waveformKeys) {
     const idx = Number(k);
@@ -419,6 +453,11 @@ export function buildCustomRom(
   // ── FNOISE: patch the FNTAB record (Robotron) or caller immediates (D/S) ─
   for (const s of fnoiseSlots) {
     out = patchFnoiseRecord(out, game, s.cmd, s.record);
+  }
+
+  // ── RADIO: patch the FREQ immediate + the 16-byte RADSND LUT in place ────
+  for (const s of radioSlots) {
+    out = patchRadioRecord(out, game, s.record);
   }
 
   // ── GWAVE waveform bytes: in-place patch OR relocated GWVTAB ─────────────

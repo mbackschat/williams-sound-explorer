@@ -232,6 +232,48 @@ describe("exportJson / importJson — FNOISE slots (Phase 8)", () => {
   });
 });
 
+describe("exportJson / importJson — RADIO slots (Phase 9)", () => {
+  const LUT = [0x8C, 0x5B, 0xB6, 0x40, 0xBF, 0x49, 0xA4, 0x73, 0x73, 0xA4, 0x49, 0xBF, 0x40, 0xB6, 0x5B, 0x8C];
+  const rp: CustomProject = {
+    name: "whoosh", engineBase: "defender",
+    slots: [{ kind: "radio", name: "RADIO", record: [0x0064, ...LUT], start: [0x0064, ...LUT], targetCmd: 0x18 }],
+    createdAt: 1, updatedAt: 2,
+  };
+
+  it("round-trips a RADIO project (freq + 16 LUT bytes) on every game", () => {
+    for (const game of ["defender", "stargate", "robotron"] as const) {
+      const back = importJson(exportJson({ ...rp, engineBase: game }));
+      expect(back.slots[0]!.kind).toBe("radio");
+      expect(back.slots[0]!.record).toEqual([0x0064, ...LUT]);
+      expect((back.slots[0] as { targetCmd: number }).targetCmd).toBe(0x18);
+    }
+  });
+
+  it("rejects a wrong-length / out-of-range RADIO record + duplicate + bad target", () => {
+    expect(() => importJson(JSON.stringify({ ...rp, slots: [{ kind: "radio", name: "x", record: [0x64, ...LUT.slice(0, 15)], start: [0x64, ...LUT.slice(0, 15)], targetCmd: 0x18 }] }))).toThrow(/freq|LUT|record/i);
+    expect(() => importJson(JSON.stringify({ ...rp, slots: [{ kind: "radio", name: "x", record: [0x10000, ...LUT], start: [0x10000, ...LUT], targetCmd: 0x18 }] }))).toThrow(/freq|65535|record/i);
+    expect(() => importJson(JSON.stringify({ ...rp, slots: [{ kind: "radio", name: "x", record: [0x64, ...LUT], start: [0x64, ...LUT], targetCmd: 0x19 }] }))).toThrow(/editable RADIO command/i);
+    const dup: CustomProject = { ...rp, slots: [rp.slots[0]!, rp.slots[0]!] };
+    expect(() => importJson(JSON.stringify(dup))).toThrow(/duplicate RADIO override/i);
+  });
+
+  it("mixes all five engine kinds in one project", () => {
+    const mixed: CustomProject = {
+      name: "everything", engineBase: "defender",
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x01 },
+        { kind: "lfsr", name: "l", record: [9, 9, 9], start: [9, 9, 9], targetCmd: 0x15 },
+        { kind: "fnoise", name: "f", record: [3], start: [3], targetCmd: 0x16 },
+        { kind: "radio", name: "r", record: [0x0064, ...LUT], start: [0x0064, ...LUT], targetCmd: 0x18 },
+      ],
+      createdAt: 0, updatedAt: 0,
+    };
+    const back = importJson(exportJson(mixed));
+    expect(back.slots.map((s) => s.kind)).toEqual(["vari", "gwave", "lfsr", "fnoise", "radio"]);
+  });
+});
+
 describe("legacy v1 recipe migration (override-in-place)", () => {
   it("converts { baseGame, edits } to named VARI slots", () => {
     const legacy = JSON.stringify({ name: "old", baseGame: "defender", edits: { 29: SAW } }); // $1D = SAW

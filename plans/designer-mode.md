@@ -22,7 +22,7 @@
 | 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | ✅ shipped 2026-05-28 (v1 full fidelity) |
 | 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH) — third engine, parameter patches in caller immediates | ✅ shipped 2026-05-28 (headless + buildCustomRom + Designer UI + .bin roundtrip) |
 | 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | ✅ shipped 2026-05-28 (Robotron full; D/S CANNON full + THRUST FMAX; BG1 omitted on D/S) |
-| 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | 📋 planned (needs spike — see § Phase 9) |
+| 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | ✅ shipped 2026-05-29 (spike + FREQ slider + 16-cell wavetable canvas; **full Defender per-engine parity**) |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
@@ -315,24 +315,26 @@ Both paths land at the same kernel (`FNOISE` `$F930` Defender/Stargate, `$F7B3` 
 
 The Defender Sound Studio's 9 UI tabs include **6 editable tabs** that cover **5 engines** in WSED's taxonomy — the Studio splits LFSR across three tabs (Square noise / Player shoot / Sweeps' wavetable variant) where WSED groups them under one LFSR editor.
 
-| Engine | Studio tab(s) | WSED today | After Phase 9 |
-|---|---|---|---|
-| GWAVE | G-wave | ✅ | ✅ |
-| VARI | Pulses | ✅ | ✅ |
-| LFSR | Square noise + Player shoot (same kernel) | ✅ (Phase 7) | ✅ |
-| FNOISE | Smooth noise | ✅ (Phase 8) | ✅ |
-| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ❌ — still a gap | 📋 **Phase 9** |
-| SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ |
-| HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler | ❌ |
-| ORGAN pitch | n/a | ❌ — self-modifying code | ❌ |
+| Engine | Studio tab(s) | WSED |
+|---|---|---|
+| GWAVE | G-wave | ✅ |
+| VARI | Pulses | ✅ |
+| LFSR | Square noise + Player shoot (same kernel) | ✅ (Phase 7) |
+| FNOISE | Smooth noise | ✅ (Phase 8) |
+| **RADIO** ($18) | **Sweeps** (2 fields + 16-cell wavetable canvas) | ✅ (Phase 9) |
+| SCREAM | (parameterless tab — same blocker for both) | ❌ — needs assembler |
+| HYPER | (parameterless tab — same blocker for both) | ❌ — needs assembler |
+| ORGAN pitch | n/a | ❌ — self-modifying code |
 
-**Per-engine score:** Studio 5, WSED today **4** → after Phase 9 = **5 (parity on Defender)**.
+**Per-engine score:** Studio 5, WSED **5 (parity on Defender, all five data-driven engines shipped)**.
 
 WSED's edge throughout: spans **3 games**, runs the **actual ROMs** on a cycle-accurate emulator (Studio is Defender-only and a hand-port), and pairs Design with a separate Explore mode + a `.bin` roundtrip the Studio doesn't have.
 
 ---
 
-## Phase 9 — RADIO editor (planned, needs feasibility spike)
+## Phase 9 — RADIO editor (✅ shipped 2026-05-29)
+
+> **Shipped — closes full Defender per-engine parity.** The spike confirmed the editable surface is the 16-byte `RADSND` LUT + one FREQ 16-bit immediate (`LDX #imm` at `RADIO_BASE+5`, uniform across games); findings written to `research/findings_designer_feasibility.md` § RADIO. Built across `engine/radioEdit.ts` → `kind:"radio"` in `customRom.ts` + `projectFromBin.ts` detection → a hybrid `web/designer/radioEditor.ts` (FREQ slider + 16-cell wavetable canvas). **+20 tests (629 total)**; capture `designer-radio-overview`. Per-engine impl + the verified address table in `docs/designer_implementation.md` § *RADIO editor — Phase 9 (shipped)*. The pre-spike plan below is preserved for the record.
 
 The fifth and final engine in the data-driven set. Closes the per-engine Defender-parity gap with the Sound Studio's *Sweeps* tab.
 

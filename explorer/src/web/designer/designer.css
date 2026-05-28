@@ -212,6 +212,11 @@
 /* FNOISE override slots get an orange accent. */
 .designer-item-fnoise.active { border-color: #ff9e64; background: #2a221a; }
 .designer-item-fnoise .designer-item-code { color: #ff9e64; }
+/* RADIO override slots get a blue accent. */
+.designer-item-radio.active { border-color: #7aa2f7; background: #1a2030; }
+.designer-item-radio .designer-item-code { color: #7aa2f7; }
+/* RADIO uses the single-column (vari) edit row but still shows a canvas. */
+.designer-edit-row-vari .designer-radio .designer-wfcanvas-host { margin-top: 0.5rem; }
 /* "$XX GWAVE" / "$XX VARI" is exactly 9 mono chars at 0.72rem.  4.5rem (72 px)
    fits without padding waste — was 5.5rem (88 px), which gave a ~16 px gutter
    that bloated each cell. */

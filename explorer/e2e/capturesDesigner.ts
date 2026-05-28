@@ -120,6 +120,23 @@ export const entries: Entry[] = [
     shot: { clip: "#designer-root", file: img("designer-fnoise-overview") },
   },
 
+  // RADIO editor (Phase 9) — the single $18 RADIO row is in the populated list
+  // on every game. Selecting it shows the hybrid editor: a FREQ slider + a
+  // 16-cell click-to-draw wavetable canvas, with an offline-rendered audition
+  // trace. Exercises the in-place FREQ-immediate + RADSND-LUT build path.
+  {
+    id: "designer-radio-overview",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { click: ".designer-item[data-cmd='18'][data-kind='radio']" }, // pre-populated $18 RADIO row
+      { waitMs: 800 },
+    ],
+    assert: [{ canvasNonBlank: ".designer-scope" }],
+    shot: { clip: "#designer-root", file: img("designer-radio-overview") },
+  },
+
   // GWAVE Open-in-Explore handoff: same starting state, then Open in Explore.
   // The custom ROM patches SVTAB[$05] with the user's edited bytes; firing
   // $05 in Explore plays the override (not stock BBSV).  Verifies the F3

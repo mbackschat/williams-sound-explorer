@@ -20,6 +20,9 @@
  *    (`targetCmd` ∈ $16 THRUST / $17 CANNON; + $0F BG1 / $3E HBOMB on
  *    Robotron), defined by a *virtual* record — the 6-byte FNTAB row on
  *    Robotron, or the caller-code immediates on Defender/Stargate.
+ *  - **RADIO slot** (Phase 9): an *override* of the single $18 RADIO command,
+ *    defined by `[freq, ...16 RADSND LUT bytes]` — the FREQ immediate + the
+ *    16-byte wavetable, patched in place. Any game.
  *
  * The project carries **no copyrighted ROM bytes** — only parameter values —
  * and the runnable image is reconstituted from the user's base ROM via
@@ -38,6 +41,7 @@ import { VVECT_STRIDE, variCommandsFor } from "../../engine/variEdit.ts";
 import { SVTAB_STRIDE, gwaveCommandsFor, STOCK_WAVE_LENGTHS, gfrtabMaxEnd } from "../../engine/gwaveEdit.ts";
 import { LFSR_CALLER_BASE, lfsrFieldsFor } from "../../engine/lfsrEdit.ts";
 import { fnoiseCommandsFor, fnoiseFieldsFor } from "../../engine/fnoiseEdit.ts";
+import { radioCommandsFor, RADIO_RECORD_LEN } from "../../engine/radioEdit.ts";
 import { maxSlots } from "../../engine/customRom.ts";
 
 /**
@@ -104,7 +108,19 @@ export interface FnoiseCustomSlot {
   targetCmd: number;
 }
 
-export type CustomSlot = VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot | FnoiseCustomSlot;
+export interface RadioCustomSlot {
+  kind: "radio";
+  /** User-facing name. */
+  name: string;
+  /** Current record — `[freq, ...16 RADSND LUT bytes]` (length 17). */
+  record: number[];
+  /** The record at creation time — the "Start" reference for A/B. */
+  start: number[];
+  /** The base game's RADIO command code being overridden — always $18. */
+  targetCmd: number;
+}
+
+export type CustomSlot = VariCustomSlot | GwaveCustomSlot | LfsrCustomSlot | FnoiseCustomSlot | RadioCustomSlot;
 
 export interface CustomProject {
   name: string;
@@ -229,7 +245,7 @@ function tagV2Slot(raw: unknown): CustomSlot {
       targetCmd: Number(s.targetCmd ?? 0),
     };
   }
-  if (s.kind === "lfsr" || s.kind === "fnoise") {
+  if (s.kind === "lfsr" || s.kind === "fnoise" || s.kind === "radio") {
     return {
       kind: s.kind,
       name: String(s.name ?? ""),
@@ -309,7 +325,7 @@ export function importJson(text: string): CustomProject {
   const slots: CustomSlot[] = o.slots.map((s, i) => {
     const so = s as Record<string, unknown>;
     if (typeof so.name !== "string") throw new Error(`Sound ${i + 1}: missing name.`);
-    const kind = so.kind === "gwave" ? "gwave" : so.kind === "lfsr" ? "lfsr" : so.kind === "fnoise" ? "fnoise" : "vari"; // v2 slots without kind default to VARI
+    const kind = so.kind === "gwave" ? "gwave" : so.kind === "lfsr" ? "lfsr" : so.kind === "fnoise" ? "fnoise" : so.kind === "radio" ? "radio" : "vari"; // v2 slots without kind default to VARI
 
     if (kind === "vari") {
       if (!VARI_BASES.has(engineBase)) {
@@ -349,6 +365,20 @@ export function importJson(text: string): CustomProject {
       return { kind: "fnoise", name: so.name, record: so.record, start, targetCmd };
     }
 
+    if (kind === "radio") {
+      const targetCmd = Number(so.targetCmd);
+      if (!Number.isInteger(targetCmd) || !radioCommandsFor(engineBase).some((c) => c.cmd === targetCmd)) {
+        throw new Error(`Sound "${so.name}": RADIO override target $${(targetCmd >>> 0).toString(16).toUpperCase()} is not an editable RADIO command on ${engineBase}.`);
+      }
+      const isRadioRecord = (v: unknown): v is number[] =>
+        Array.isArray(v) && v.length === RADIO_RECORD_LEN
+        && Number.isInteger(v[0]) && v[0]! >= 0 && v[0]! <= 0xFFFF
+        && v.slice(1).every((x) => Number.isInteger(x) && x >= 0 && x <= 0xFF);
+      if (!isRadioRecord(so.record)) throw new Error(`Sound "${so.name}": RADIO record must be a freq (0..65535) + 16 LUT bytes (0..255).`);
+      const start = isRadioRecord(so.start) ? so.start : so.record;
+      return { kind: "radio", name: so.name, record: so.record, start, targetCmd };
+    }
+
     // GWAVE slot
     if (!isGwaveRecord(so.record)) throw new Error(`Sound "${so.name}": GWAVE record must be ${SVTAB_STRIDE} bytes (0..255).`);
     const targetCmd = Number(so.targetCmd);
@@ -366,6 +396,7 @@ export function importJson(text: string): CustomProject {
   const gwaveTargets = new Set<number>();
   const lfsrTargets = new Set<number>();
   const fnoiseTargets = new Set<number>();
+  const radioTargets = new Set<number>();
   for (const s of slots) {
     if (s.kind === "gwave") {
       if (gwaveTargets.has(s.targetCmd)) throw new Error(`Duplicate GWAVE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
@@ -376,6 +407,9 @@ export function importJson(text: string): CustomProject {
     } else if (s.kind === "fnoise") {
       if (fnoiseTargets.has(s.targetCmd)) throw new Error(`Duplicate FNOISE override for $${s.targetCmd.toString(16).toUpperCase()}.`);
       fnoiseTargets.add(s.targetCmd);
+    } else if (s.kind === "radio") {
+      if (radioTargets.has(s.targetCmd)) throw new Error(`Duplicate RADIO override for $${s.targetCmd.toString(16).toUpperCase()}.`);
+      radioTargets.add(s.targetCmd);
     }
   }
 

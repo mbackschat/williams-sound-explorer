@@ -16,6 +16,7 @@ import { readVariRecord } from "../src/engine/variEdit.ts";
 import { readGWaveRecord, readWaveform } from "../src/engine/gwaveEdit.ts";
 import { readLfsrRecord } from "../src/engine/lfsrEdit.ts";
 import { readFnoiseRecord } from "../src/engine/fnoiseEdit.ts";
+import { readRadioRecord } from "../src/engine/radioEdit.ts";
 import { importBinAsProject, ROM_SIZE } from "../src/engine/projectFromBin.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -322,5 +323,32 @@ describe("importBinAsProject — FNOISE overrides (Phase 8)", () => {
     const fnoise = project.slots.filter((s) => s.kind === "fnoise");
     expect(fnoise).toHaveLength(1);
     expect((fnoise[0] as { targetCmd: number }).targetCmd).toBe(0x16);
+  });
+});
+
+describe("importBinAsProject — RADIO override (Phase 9)", () => {
+  const STOCK_LUT = [0x8C, 0x5B, 0xB6, 0x40, 0xBF, 0x49, 0xA4, 0x73, 0x73, 0xA4, 0x49, 0xBF, 0x40, 0xB6, 0x5B, 0x8C];
+
+  for (const game of ["defender", "robotron"] as GameKind[]) {
+    it(`RADIO ($18) FREQ + LUT edit round-trips on ${game}`, () => {
+      if (!haveRom(game)) return;
+      const base = loadRom(game);
+      const stock = readRadioRecord(base, game);
+      const edited = [0x0140, ...STOCK_LUT.map((b) => (b ^ 0x20) & 0xFF)];
+      const bin = buildCustomRom(base, game, [{ kind: "radio", cmd: 0x18, record: edited }]);
+      const project = importBinAsProject(bin, base, game);
+      const got = project.slots.find((s) => s.kind === "radio");
+      expect(got).toBeDefined();
+      if (got!.kind !== "radio") throw new Error("expected radio");
+      expect(got!.record).toEqual(edited);
+      expect(got!.start).toEqual(stock);
+    });
+  }
+
+  it("an unedited RADIO does not produce a slot", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const project = importBinAsProject(base, base, "defender");
+    expect(project.slots.filter((s) => s.kind === "radio")).toHaveLength(0);
   });
 });

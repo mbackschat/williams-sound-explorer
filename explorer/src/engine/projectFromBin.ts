@@ -11,6 +11,7 @@
  *  - **GWAVE row edits** ($01..$0D) — per-cmd SVTAB byte diff.
  *  - **LFSR overrides** ($11 / $14 / $15; $39 on Robotron) — per-cmd virtual-record diff over the caller-immediate operands.
  *  - **FNOISE overrides** (CANNON / THRUST; + BG1 / HBOMB on Robotron) — per-cmd virtual-record diff (FNTAB row on Robotron / caller immediates on D/S).
+ *  - **RADIO override** ($18) — FREQ immediate + 16-byte RADSND LUT diff.
  *  - **Stock VARI row edits** ($1D..$1F) — VVECT row 0..2 diff.
  *  - **User-added VARI** ($20+) — mask-widen byte at `$FCBD+2`; walk rows 3+ for bytes that diverge from the base ROM's RADIO/ORGAN data.
  *  - **Stock waveform overrides** (idx 0..6) — resolve `LDX #GWVTAB` operand → read effective GWVTAB → per-idx byte diff.
@@ -37,6 +38,7 @@ import {
 } from "./gwaveEdit.ts";
 import { lfsrCommandsFor, readLfsrRecord } from "./lfsrEdit.ts";
 import { fnoiseCommandsFor, readFnoiseRecord } from "./fnoiseEdit.ts";
+import { radioCommandsFor, readRadioRecord } from "./radioEdit.ts";
 import { VARI_CMD_BASE, maxSlots } from "./customRom.ts";
 
 /** The reconstructed shape — identical to `web/designer/designerStore.ts`'s `CustomProject`. */
@@ -52,7 +54,8 @@ export type ReconstructedSlot =
   | { kind: "vari"; name: string; record: number[]; start: number[] }
   | { kind: "gwave"; name: string; record: number[]; start: number[]; targetCmd: number }
   | { kind: "lfsr"; name: string; record: number[]; start: number[]; targetCmd: number }
-  | { kind: "fnoise"; name: string; record: number[]; start: number[]; targetCmd: number };
+  | { kind: "fnoise"; name: string; record: number[]; start: number[]; targetCmd: number }
+  | { kind: "radio"; name: string; record: number[]; start: number[]; targetCmd: number };
 
 /** Expected ROM byte count for each game — used for upload size validation. */
 export const ROM_SIZE: Record<GameKind, number> = {
@@ -176,6 +179,15 @@ export function importBinAsProject(
     const binRec = readFnoiseRecord(bin, game, c.cmd);
     if (!arraysEqual(baseRec, binRec)) {
       slots.push({ kind: "fnoise", name: c.name, record: binRec, start: baseRec, targetCmd: c.cmd });
+    }
+  }
+
+  // ── 1d) RADIO override ($18) — FREQ immediate + 16-byte RADSND LUT ───────
+  for (const c of radioCommandsFor(game)) {
+    const baseRec = readRadioRecord(baseRom, game);
+    const binRec = readRadioRecord(bin, game);
+    if (!arraysEqual(baseRec, binRec)) {
+      slots.push({ kind: "radio", name: c.name, record: binRec, start: baseRec, targetCmd: c.cmd });
     }
   }
 

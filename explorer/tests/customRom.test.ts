@@ -28,6 +28,7 @@ import {
 import { VVECT_BASE } from "../src/engine/variEdit.ts";
 import { readLfsrRecord, patchLfsrRecord } from "../src/engine/lfsrEdit.ts";
 import { readFnoiseRecord, patchFnoiseRecord } from "../src/engine/fnoiseEdit.ts";
+import { readRadioRecord, patchRadioRecord } from "../src/engine/radioEdit.ts";
 import { buildCustomRom, computeBudget, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -584,5 +585,43 @@ describe("FNOISE slots (Phase 8)", () => {
       { kind: "fnoise", cmd: 0x17, record: [0, 0, 0x10, 0x0080] },
     ]);
     expect(readFnoiseRecord(built, "defender", 0x17)).toEqual([0, 0, 0x10, 0x0080]);
+  });
+});
+
+describe("RADIO slots (Phase 9)", () => {
+  const STOCK_LUT = [0x8C, 0x5B, 0xB6, 0x40, 0xBF, 0x49, 0xA4, 0x73, 0x73, 0xA4, 0x49, 0xBF, 0x40, 0xB6, 0x5B, 0x8C];
+
+  it("rejects a non-$18 RADIO override + duplicates + malformed", () => {
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "radio", cmd: 0x19, record: [0x64, ...STOCK_LUT] }])).toThrow(/editable/i);
+    expect(() => buildCustomRom(synth("defender"), "defender", [
+      { kind: "radio", cmd: 0x18, record: [0x64, ...STOCK_LUT] }, { kind: "radio", cmd: 0x18, record: [0x64, ...STOCK_LUT] },
+    ])).toThrow(/duplicate/i);
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "radio", cmd: 0x18, record: [0x64] }])).toThrow(/17 values|values/i);
+    expect(() => buildCustomRom(synth("defender"), "defender", [{ kind: "radio", cmd: 0x18, record: [0x10000, ...STOCK_LUT] }])).toThrow(/range/i);
+  });
+
+  for (const game of ["defender", "robotron"] as GameKind[]) {
+    it(`a RADIO slot's $18 plays its edited FREQ + LUT on the real ${game} ROM`, () => {
+      if (!haveRom(game)) return;
+      const base = loadRom(game);
+      const edited = [0x0140, ...STOCK_LUT.map((b) => (b ^ 0x10) & 0xFF)];
+      const truth = dacValues(patchRadioRecord(base, game, edited), game, 0x18);
+      const built = buildCustomRom(base, game, [{ kind: "radio", cmd: 0x18, record: edited }]);
+      expect(eqSeq(dacValues(built, game, 0x18), truth)).toBe(true);
+      expect(eqSeq(dacValues(built, game, 0x18), dacValues(base, game, 0x18))).toBe(false);
+    });
+  }
+
+  it("mixes with VARI + GWAVE + LFSR + FNOISE in one build (Defender)", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const built = buildCustomRom(base, "defender", [
+      { kind: "vari", code: 0x20, record: readVariRecord(base, "defender", 0x1D) },
+      { kind: "gwave", cmd: 0x01, record: readGWaveRecord(base, "defender", 0x01) },
+      { kind: "lfsr", cmd: 0x14, record: [0x10, 0x02, 0x0040, 0x80] },
+      { kind: "fnoise", cmd: 0x17, record: [0, 0, 0x10, 0x0080] },
+      { kind: "radio", cmd: 0x18, record: [0x0200, ...STOCK_LUT] },
+    ]);
+    expect(readRadioRecord(built, "defender")).toEqual([0x0200, ...STOCK_LUT]);
   });
 });
