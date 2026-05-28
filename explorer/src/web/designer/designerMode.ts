@@ -230,23 +230,38 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       refreshPatternCanvas();
     },
     // "+ New waveform" handler (Phase 5 step 4): append a fresh user-added
-    // wave at idx (7 + addedCount), seeded with the current canvas bytes so
-    // the user starts editing from something audible.  Set the slot's
-    // WAVE# nybble to the new idx and refresh.  Capped at 9 (WAVE# nybble).
+    // wave at idx (7 + addedCount), seeded with a sine ramp so the user
+    // starts editing from something audible.  Switch the slot's WAVE# to
+    // it.  Capped at 9 (WAVE# nybble); also **pre-flight** the build so a
+    // wave that would overrun the free ROM region never gets added — the
+    // alternative was silent commit + a delayed "Won't fit" auto-replay
+    // error blamed on whatever the user clicked next.
     () => {
       const slot = project.slots[selected];
       if (!baseRom || !slot || slot.kind !== "gwave") return;
       project.addedWaveforms ??= [];
       if (project.addedWaveforms.length >= 9) { status("Added-waveform cap (9) reached — WAVE# is a 4-bit nybble.", "err"); return; }
-      // Seed bytes: a centred sine-ish ramp at DEFAULT_NEW_WAVE_LENGTH so
-      // the new waveform isn't silent on add.  User edits via the canvas.
       const seed: number[] = [];
       for (let i = 0; i < DEFAULT_NEW_WAVE_LENGTH; i++) {
         seed.push(Math.round(0x80 + 0x60 * Math.sin((i / DEFAULT_NEW_WAVE_LENGTH) * 2 * Math.PI)));
       }
+      // Pre-flight: try the build with the seed appended.  If buildCustomRom
+      // throws (over the free-region budget), surface the error here — and
+      // do NOT mutate the project — so the user gets a clear "this wave
+      // can't be added" message right now instead of a stale auto-replay
+      // error two clicks later.
+      try {
+        buildCustomRom(baseRom, project.engineBase, toRomSlots(project.slots), {
+          waveformOverrides: project.waveformOverrides,
+          patternOverrides: project.patternOverrides,
+          addedWaveforms: [...project.addedWaveforms, seed],
+        });
+      } catch (e) {
+        status(`Can't add waveform — ${e instanceof Error ? e.message : String(e)}`, "err");
+        return;
+      }
       project.addedWaveforms.push(seed);
       const newIdx = 6 + project.addedWaveforms.length; // idx 7 for the first add
-      // Switch the slot's WAVE# nybble to the new idx.
       const rec = [...slot.record];
       rec[1] = (rec[1]! & 0xF0) | (newIdx & 0x0F);
       slot.record = rec;

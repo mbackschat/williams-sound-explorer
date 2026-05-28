@@ -241,6 +241,17 @@ export function buildGWaveEditor(
       : " · user-added";
     canvasLabel.textContent = `Waveform — ${wfIdxAtPaint} ${name} (${bytes.length} bytes)${overrideMark}`;
     canvasLabel.dataset.overridden = isStock ? (isOverridden ? "1" : "0") : "1";
+    // Reset-to-stock only makes sense for stock idx that's been overridden;
+    // for user-added waves (idx ≥ 7) there is no "stock" to revert to, so
+    // the button stays disabled (was: enabled with a no-op handler that
+    // surfaced a confusing message after the user clicked it).
+    if (!isStock) {
+      resetBtn.disabled = true;
+      resetBtn.title = "User-added waveforms have no stock to revert to (remove the waveform via a future v-future control).";
+    } else {
+      resetBtn.disabled = !isOverridden;
+      resetBtn.title = "Revert this waveform's bytes to the base ROM's original (clears the project's override for this WAVE#). Only applies to stock waves 0..6.";
+    }
     // "Shared by" — every editable GWAVE command that points at this idx via
     // its SVTAB byte-1 low nybble.  The user's current edit affects all of
     // them, so the warning is the right place to say so.
