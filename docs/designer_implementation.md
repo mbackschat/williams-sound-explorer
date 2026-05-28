@@ -246,6 +246,33 @@ Status line reports "Removed user-added waveform idx N. K slots re-clamped." so 
 
 Together: **+12 tests**, 532 total. Capture entries `designer-gwave-remove-waveform` (Add → Remove → re-clamp) and `designer-vari-reset-record` (tweak → Reset → disabled).
 
+## Phase 6.1 — Pre-populated item list ("fork-the-game" UX) (shipped 2026-05-28)
+
+The Designer's empty-list onboarding suggested "build something new" when most users want to *fork the game's existing sound bank*, modify a few sounds, and take the result out. Phase 6.1 closes that gap as a UX change only — the storage architecture (sparse JSON recipe, zero copyrighted ROM bytes persisted) is unchanged.
+
+**On entry, the list is pre-populated.** *New Project → Defender* fills `project.slots` with every editable command from the engine base: 13 GWAVE rows (`$01..$0D`) + 3 VARI rows (`$1D..$1F`). Stargate matches; Robotron has 13 GWAVE rows (no VARI — non-linear dispatcher is still v-future). Each row tagged **stock** until you edit it (record === start) — visible as a grey dot + dimmed name; flips to **edited** (green dot + full-strength name) when its bytes diverge.
+
+**Sparse on disk.** The on-disk JSON / IndexedDB shape stays a delta: stock rows are dropped on save / export (`projectForPersist` filter); `populateProject` reconstructs them from the base ROM on open. A freshly-populated, untouched project saves as `slots: []` — identical to today's empty-project recipe.
+
+**Helpers added (in `designerMode.ts`, browser-side):**
+- `populateProject(p, baseRom)` — idempotent canonical-order rebuild. GWAVE block (sorted by `targetCmd` asc) first, then VARI stock rows 0..2, then user-added VARI rows 3+. Preserves existing slots; inserts missing stocks. Called from `loadEngineRom`, `newBtn` handler, and `setEngine` (after dropping the previous game's stocks).
+- `projectForPersist(p)` — returns a shallow copy with stock slots filtered out. Used by save + JSON export.
+- `isStockSlot(slots, i, game)` — `record === start` AND the slot sits at a stock identity position (any GWAVE in the editable set; VARI-index ≤ 2).
+- `recordsEqualStatic(a, b)` — byte-wise array equality (module-level helper; the in-`mountDesigner` `recordsEqual` is unchanged and still used by the **↻ Reset record** path).
+
+**UI changes:**
+- Item list rows carry `data-stock="1"` for stock rows + `data-cmd` (uppercase hex) + `data-kind` for stable e2e selectors.
+- Each row prefixed with a 8×8 px dot: grey `#4a5260` for stock, green `#a9dc76` for edited.
+- × Remove button hidden on stock rows (a re-populate would just re-add them; ↻ Reset record on the editor is the way to undo).
+- Item count reads `(N edited / M total)` — replaces the old `(VARI X/Y)` capacity readout, which was misleading when stocks were always present.
+- "Override GWAVE:" dropdown removed entirely — the populated list already contains every editable GWAVE row, so the dropdown's role (picking a code to override) collapses into "click the existing row".
+- `+ New VARI` now names new slots `My $XX` (using the auto-assigned code) so user-added rows read as user-authored next to the stock SAW / FOSHIT / QUASAR names.
+- On engine switch (Defender → Stargate / Robotron), stock slots are dropped before populate so the new game's bytes fill the rows fresh. Edited + user-added slots survive. The VARI-count guards (`setEngine`) now count only non-stock VARI so the existing pre-populated 3 don't block a switch.
+
+**Capture updates:** designer captures that used `.designer-gwave-override` now click the populated row via `.designer-item[data-cmd='XX'][data-kind='gwave']`.
+
+**Tests:** existing 532 tests stay green (no headless changes). The `recordsEqualStatic` / `isStockSlot` helpers are exercised through the e2e captures + the designer mode's render path.
+
 ## Fast-follows (not yet built)
 
 - **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.

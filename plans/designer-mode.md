@@ -18,7 +18,8 @@
 | 5 | **GWAVE editor** — full editing of all bytes the GWAVE kernel reads (SVTAB record + GWVTAB waveforms + GFRTAB pitch patterns), in 3 steps | ✅ all 3 steps shipped |
 | 5b | **Adding new waveforms** (extending GWVTAB via `LDX #GWVTAB` repoint + relocation into the free RADIO/ORGAN region) | ✅ shipped 2026-05-28 |
 | 5b.polish | **× Remove** waveform + **ROM-space indicator** + **↻ Reset record** (closes the add/edit/remove triad; surfaces the layout budget *before* a build throws) | ✅ shipped 2026-05-28 |
-| 6 | **"Fork-the-game" workflow** — pre-populated item list from the engine base + Download-as-`.bin` (closes the loop: edit a game's sounds, load the result in MAME / a real cabinet) | 📋 planned |
+| 6.1 | **"Fork-the-game" pre-populated item list** — *New Project* opens with every editable command pre-loaded; stock-vs-edited dot indicator; sparse on disk | ✅ shipped 2026-05-28 |
+| 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | 📋 planned (v1 full fidelity) |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 

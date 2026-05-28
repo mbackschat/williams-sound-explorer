@@ -67,6 +67,43 @@ function toRomSlots(slots: CustomSlot[]): RomCustomSlot[] {
   );
 }
 
+/** Bytewise equality on parameter records (same length, same bytes). */
+function recordsEqualStatic(a: number[] | undefined, b: number[] | undefined): boolean {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Phase 6.1: a slot is "stock" when it (a) sits at a canonical stock position
+ * in the populated item list AND (b) has not been edited (`record == start`).
+ * Stock slots are no-ops on the saved recipe (they'd patch the base ROM with
+ * its own bytes), so save/export drops them — the on-disk JSON stays sparse,
+ * just like before pre-population.
+ *
+ *  - **GWAVE stock**: the slot's `targetCmd` is in `gwaveCommandsFor(game)`
+ *    (i.e. $01..$0D — every editable GWAVE).  All GWAVE slots in the
+ *    populated list are stock candidates; only user edits flip them off.
+ *  - **VARI stock**: the slot is at VARI-index 0, 1, or 2 (codes $1D / $1E / $1F).
+ *    User-added VARI slots (index 3+ → codes $20+) are *never* stock — even
+ *    when their bytes equal a stock SAW seed, the act of adding them is
+ *    deliberate user intent that has to persist.
+ */
+function isStockSlot(slots: CustomSlot[], i: number, game: GameKind): boolean {
+  const slot = slots[i]!;
+  if (!recordsEqualStatic(slot.record, slot.start)) return false;
+  if (slot.kind === "gwave") {
+    // Cheap: any populated GWAVE slot whose targetCmd is editable on this game.
+    // (Today every game shares the same $01..$0D set, but the per-game lookup
+    // future-proofs us.)
+    return true; // populate only inserts editable codes; user can't add others
+  }
+  // VARI: count VARI slots before this position; first 3 are stock SAW/FOSHIT/QUASAR.
+  let variIdx = 0;
+  for (let k = 0; k < i; k++) if (slots[k]!.kind === "vari") variIdx++;
+  return variIdx <= 2 && VARI_BASES.has(game);
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, children: (Node | string)[] = [],
 ): HTMLElementTagNameMap[K] {
@@ -170,13 +207,16 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // editable codes for the engine base; greyed-out entries are already
   // overridden in this project.
   const gwaveOverrideSelect = el("select", { className: "designer-gwave-override", title: "Override an existing GWAVE command in place (its 7-byte SVTAB record becomes editable)." });
+  // Phase 6.1: the item list is now pre-populated with every editable
+  // command from the engine base, so "Override GWAVE:" is redundant — the
+  // user edits GWAVE by clicking the existing stock row.  Kept "+ New VARI"
+  // and "Copy VARI:" for adding *extra* VARI sounds beyond the base game's
+  // set (rows 3+, codes $20+).
   const itemsSection = el("div", { className: "designer-section designer-items-head" }, [
     el("span", { className: "designer-bar-label", textContent: "Your sounds" }), itemCount,
     romSpace,
     el("span", { className: "sep" }), addNewBtn,
     el("span", { className: "designer-bar-label", textContent: "Copy VARI:" }), copySelect,
-    el("span", { className: "sep" }),
-    el("span", { className: "designer-bar-label", textContent: "Override GWAVE:" }), gwaveOverrideSelect,
   ]);
 
   // ── Editor + audition ──────────────────────────────────────────────────
@@ -540,13 +580,27 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   }
 
   function refreshItemList(): void {
-    const v = variCount(project.slots);
-    const cap = maxVari();
-    itemCount.textContent = supportsVari(project.engineBase)
-      ? `(VARI ${v}/${cap})`
-      : `(${project.slots.length} sounds — Robotron is GWAVE-only)`;
+    // Phase 6.1: count edited (non-stock) slots — that's what the user
+    // cares about ("how many of the game's sounds have I touched?").
+    // Total = current item count (stocks pre-populated + any user-added).
+    const game = project.engineBase;
+    const stockFlags = project.slots.map((_s, i) => isStockSlot(project.slots, i, game));
+    const editedCount = stockFlags.filter((s) => !s).length;
+    const total = project.slots.length;
+    itemCount.textContent = total > 0
+      ? `(${editedCount} edited / ${total} total)`
+      : `(no items)`;
     itemList.replaceChildren(...project.slots.map((slot, i) => {
-      const row = el("div", { className: `designer-item designer-item-${slot.kind}${i === selected ? " active" : ""}` });
+      const stock = stockFlags[i]!;
+      const cls = `designer-item designer-item-${slot.kind}${i === selected ? " active" : ""}${stock ? " designer-item-stock" : " designer-item-edited"}`;
+      const row = el("div", { className: cls });
+      if (stock) row.dataset.stock = "1";
+      // Stable selector for e2e captures + future scripts: every row
+      // carries its command code as `data-cmd` (zero-padded uppercase hex).
+      // VARI codes are auto-assigned by list order via `slotCmd`; GWAVE
+      // codes are the slot's `targetCmd`.  Both flow through `slotCmd`.
+      row.dataset.cmd = slotCmd(project.slots, i).toString(16).toUpperCase().padStart(2, "0");
+      row.dataset.kind = slot.kind;
       row.addEventListener("click", () => selectSlot(i));
       const name = el("input", { className: "designer-item-name", value: slot.name }) as HTMLInputElement;
       name.addEventListener("click", (e) => e.stopPropagation());
@@ -556,17 +610,25 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
         : `$${slot.targetCmd.toString(16).toUpperCase().padStart(2, "0")} GWAVE`;
       const code = el("span", { className: "designer-item-code", textContent: codeText });
       code.title = slot.kind === "vari"
-        ? "Custom VARI slot — auto-assigned command code (extends VVECT)."
-        : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`;
+        ? (stock ? "Stock VARI sound — edit the sliders to make it yours." : "Custom VARI slot — auto-assigned command code (extends VVECT).")
+        : (stock ? "Stock GWAVE sound — edit the sliders to make it yours." : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`);
+      // Dot indicator: dim grey for stock, green for edited.  Sits before the
+      // name input so the user reads "● $05 GWAVE BBSV" at a glance.
+      const dot = el("span", { className: "designer-item-dot", title: stock ? "Stock — unchanged from the base ROM." : "Edited — diverges from the base ROM." });
+      // × Remove is hidden for stock rows (they're the game's commands;
+      // a re-populate would just re-add them next time the project loads).
+      // User-added VARI rows ($20+) and edited rows keep the × so users
+      // can drop them; an edited stock row gets ↻ Reset record in the
+      // editor toolbar instead — the way to "remove" your edit.
       const del = el("button", { className: "designer-item-del", textContent: "✕", title: "Remove this sound" });
+      if (stock) del.style.visibility = "hidden";
       del.addEventListener("click", (e) => { e.stopPropagation(); removeSlot(i); });
-      row.append(code, name, del);
+      row.append(dot, code, name, del);
       return row;
     }));
     if (project.slots.length === 0) {
-      itemList.append(el("div", { className: "designer-empty", textContent: "No sounds yet — “+ New VARI” / “Copy VARI:” / “Override GWAVE:” to add one." }));
+      itemList.append(el("div", { className: "designer-empty", textContent: "No sounds yet — load the engine's base ROM to populate the list." }));
     }
-    refreshGwaveOverrideOptions();
     refreshRomBudget();
   }
 
@@ -712,10 +774,16 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   function addNew(): void {
     if (!baseRom || !supportsVari(project.engineBase) || variCount(project.slots) >= maxVari()) return;
     const record = readVariRecord(baseRom, project.engineBase, VARI_CMD_BASE); // base SAW as a starting point
-    project.slots.push({ kind: "vari", name: `Sound ${variCount(project.slots) + 1}`, record, start: [...record] });
+    // Phase 6.1: the populated stocks own $1D..$1F (SAW/FOSHIT/QUASAR);
+    // a user-added VARI lands at $20+ via the auto-assign rule.  Default
+    // the name to "My $XX" so it reads as user-authored next to the stock
+    // SAW / FOSHIT / QUASAR rows.
+    const newCmd = VARI_CMD_BASE + variCount(project.slots);
+    const name = `My $${newCmd.toString(16).toUpperCase()}`;
+    project.slots.push({ kind: "vari", name, record, start: [...record] });
     touch();
     selectSlot(project.slots.length - 1);
-    status("Added a new VARI sound.");
+    status(`Added a new VARI sound at $${newCmd.toString(16).toUpperCase()}.`);
   }
 
   function addCopy(label: string, record: number[]): void {
@@ -854,10 +922,18 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
 
   async function setEngine(game: GameKind): Promise<void> {
     if (!ctx.availableGames().has(game)) { status(`${LABEL[game]} ROM not loaded.`, "err"); refreshEngineUi(); return; }
-    if (!supportsVari(game) && variCount(project.slots) > 0) {
-      status(`${LABEL[game]} can't host VARI slots — remove your VARI sounds first.`, "err"); return;
+    // Phase 6.1: VARI count is now stock-aware — stock slots are pre-populated
+    // on every game and represent no user intent, so they're free to drop on
+    // an engine switch.  Only edited + user-added VARI count against the
+    // limits / Robotron's no-VARI rule.
+    const prevGame = project.engineBase;
+    const nonStockVariCount = project.slots
+      .filter((s, i) => s.kind === "vari" && !isStockSlot(project.slots, i, prevGame))
+      .length;
+    if (!supportsVari(game) && nonStockVariCount > 0) {
+      status(`${LABEL[game]} can't host VARI slots — your ${nonStockVariCount} edited/added VARI sound(s) would be lost. Reset or remove them first.`, "err"); return;
     }
-    if (supportsVari(game) && variCount(project.slots) > maxSlots(game)) {
+    if (supportsVari(game) && nonStockVariCount > maxSlots(game)) {
       status(`${LABEL[game]} holds at most ${maxSlots(game)} VARI sounds; trim the list first.`, "err"); return;
     }
     // Existing GWAVE override targets must remain editable on the new base
@@ -871,9 +947,78 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       }
     }
     project.engineBase = game;
+    // Drop stock slots (they reference the OLD base ROM's bytes); populate
+    // below repopulates them fresh from the NEW base ROM.  Edited / user-added
+    // slots survive.  Pre-compute flags so the in-place index isn't broken
+    // mid-filter by `splice`-style index shifts.
+    const stockFlags = project.slots.map((_s, i) => isStockSlot(project.slots, i, prevGame));
+    project.slots = project.slots.filter((_s, i) => !stockFlags[i]);
     touch();
     refreshEngineUi();
     await loadEngineRom();
+  }
+
+  /**
+   * Phase 6.1: pre-populate the project's slot list with the engine base's
+   * editable commands.  Idempotent — preserves any existing slot bytes (so
+   * user edits and user-added VARI rows survive a re-populate), and fills in
+   * stock entries for any canonical command not already in the list.  The
+   * result is sorted canonically: GWAVE block (by `targetCmd` asc) first,
+   * then VARI stock (rows 0..2 in order), then any user-added VARI rows.
+   *
+   * Called from `loadEngineRom` (every time the base ROM loads, which covers
+   * both *New Project* and *Open Project*), so opening a saved sparse project
+   * — whose `slots` only contains the user's deltas — comes back to a fully
+   * populated list.
+   */
+  function populateProject(p: CustomProject, rom: Uint8Array): void {
+    const game = p.engineBase;
+    const gwaveExisting = new Map<number, CustomSlot>();
+    const variExisting: CustomSlot[] = [];
+    for (const s of p.slots) {
+      if (s.kind === "gwave") gwaveExisting.set(s.targetCmd, s);
+      else variExisting.push(s);
+    }
+    const out: CustomSlot[] = [];
+    // GWAVE stock entries (every editable code) — preserve any existing slot.
+    for (const c of gwaveCommandsFor(game)) {
+      const ex = gwaveExisting.get(c.cmd);
+      if (ex) { out.push(ex); continue; }
+      const record = readGWaveRecord(rom, game, c.cmd);
+      out.push({ kind: "gwave", name: c.name, record, start: [...record], targetCmd: c.cmd });
+    }
+    if (supportsVari(game)) {
+      const stockVari = variCommandsFor(game).filter((c) => c.row <= 2);
+      // First 3 VARI positions are the stock SAW/FOSHIT/QUASAR rows;
+      // anything beyond is user-added VARI ($20+).
+      for (let row = 0; row < stockVari.length; row++) {
+        const ex = variExisting[row];
+        if (ex) { out.push(ex); continue; }
+        const c = stockVari[row]!;
+        const record = readVariRecord(rom, game, c.cmd);
+        out.push({ kind: "vari", name: c.name, record, start: [...record] });
+      }
+      for (let k = stockVari.length; k < variExisting.length; k++) out.push(variExisting[k]!);
+    } else {
+      // Robotron: no VARI population (non-linear dispatch is still v-future).
+      // Defensive: preserve any pre-existing VARI rows even though the UI
+      // shouldn't have allowed them — they'll be hidden by setControlsEnabled.
+      for (const v of variExisting) out.push(v);
+    }
+    p.slots = out;
+  }
+
+  /**
+   * Phase 6.1: serialise a project as a sparse recipe — strip every "stock"
+   * slot (record unchanged from start), keeping the JSON / IndexedDB shape
+   * small + portable.  On open, `populateProject` re-creates the stocks.
+   * Non-slot fields (waveformOverrides / patternOverrides / addedWaveforms /
+   * name / engineBase / timestamps) round-trip unchanged.
+   */
+  function projectForPersist(p: CustomProject): CustomProject {
+    const game = p.engineBase;
+    const filtered = p.slots.filter((_s, i) => !isStockSlot(p.slots, i, game));
+    return { ...p, slots: filtered };
   }
 
   async function loadEngineRom(): Promise<void> {
@@ -891,8 +1036,15 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       setControlsEnabled(false);
       return;
     }
+    // Phase 6.1: fill in stock entries before showing the item list.
+    populateProject(project, baseRom);
     setControlsEnabled(true);
     refreshItemList();
+    // Phase 6.1: auto-select the first slot once the list is populated so
+    // the editor + audition strip are visible immediately — the user sees
+    // an editable thing on landing, rather than a list with the editor
+    // collapsed.  Skipped when the caller already chose a slot (open path).
+    if (selected < 0 && project.slots.length > 0) selected = 0;
     if (selected >= 0 && selected < project.slots.length) selectSlot(selected);
   }
 
@@ -935,7 +1087,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     const name = nameInput.value.trim();
     if (!name) { status("Give the project a name first.", "err"); return; }
     project.name = name; touch();
-    void saveProject(project)
+    // Persist only the deltas (Phase 6.1): stock slots are reconstructed by
+    // `populateProject` on open, so writing them would just bloat the recipe.
+    void saveProject(projectForPersist(project))
       .then(() => {
         status(`Saved "${name}".`, "ok");
         // F2 fix: after refreshing the option list, point the Open dropdown
@@ -949,7 +1103,16 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     project = emptyProject(project.engineBase);
     nameInput.value = ""; selected = -1;
     projectSelect.value = ""; // empty project → drop the Open: selection too
+    // Phase 6.1: pre-populate the fresh project from the loaded base ROM so
+    // the list isn't empty — the user lands on a "this is the game's sound
+    // bank, edit any of it" view, not a "build from scratch" view.  Same
+    // shape as `loadEngineRom`'s populate; the auto-select picks slot 0.
+    if (baseRom) {
+      populateProject(project, baseRom);
+      if (project.slots.length > 0) selected = 0;
+    }
     refreshItemList(); setControlsEnabled(baseRom != null);
+    if (selected >= 0) selectSlot(selected);
     status("New project.");
   });
   projectSelect.addEventListener("change", () => {
@@ -958,7 +1121,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   });
   exportBtn.addEventListener("click", () => {
     project.name = nameInput.value.trim() || "untitled";
-    const blob = new Blob([exportJson(project)], { type: "application/json" });
+    // Export sparse (Phase 6.1) — same rationale as save: stock slots come
+    // back via `populateProject` on import; persisting them is dead weight.
+    const blob = new Blob([exportJson(projectForPersist(project))], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = el("a", { href: url, download: `${project.name.replace(/[^A-Za-z0-9]+/g, "_")}.json` });
     document.body.append(a); a.click(); a.remove();

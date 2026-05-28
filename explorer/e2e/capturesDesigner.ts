@@ -17,8 +17,10 @@
  * The first switch to Design lazy-imports the module, so each entry waits
  * long enough for it to mount AND for `refreshCopySources()` to finish
  * reading available ROMs (its `loadRomBytes` calls are async; the
- * `.designer-copy` and `.designer-gwave-override` selects populate only
- * once they resolve).
+ * `.designer-copy` populates only once it resolves; the GWAVE pre-populated
+ * rows (`.designer-item[data-cmd='XX'][data-kind='gwave']`) are available
+ * as soon as `populateProject` runs in `loadEngineRom`, which is part of
+ * the lazy-import boot).
  */
 import { type Entry, img } from "./manifest.ts";
 
@@ -74,7 +76,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { select: [".designer-gwave-override", "5"] }, // $05 = BBSV
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
       { waitMs: 800 }, // editor switch + offline render
     ],
     assert: [{ canvasNonBlank: ".designer-scope" }],
@@ -91,7 +93,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { select: [".designer-gwave-override", "5"] },
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-open-explore" },
       { waitMs: 2500 },
@@ -117,7 +119,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { select: [".designer-gwave-override", "5"] }, // override BBSV
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-wfcanvas-add" },           // + New waveform
       { waitMs: 600 },
@@ -166,7 +168,7 @@ export const entries: Entry[] = [
     steps: [
       { click: "#modeDesign" },
       { waitMs: 1500 },
-      { select: [".designer-gwave-override", "5"] }, // override BBSV
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" }, // pre-populated $05 BBSV row
       { waitMs: 600 },
       { click: ".designer-wfcanvas-add" },           // + New waveform → idx 7
       { waitMs: 600 },

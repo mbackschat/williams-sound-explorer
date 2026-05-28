@@ -8,7 +8,7 @@
 
 ## What it is
 
-A Williams arcade sound isn't a sample or an FM patch — it's a tiny **parameter record** that a shared synthesis engine reads. The VARI engine, for instance, turns just **nine bytes** into a swept variable-duty square wave (that's the whole of SAW, FOSHIT, QUASAR…). Design mode lets you do what Sam Dicker did when building a new Williams game: **assemble your own list of VARI sounds** — copy any game's sound as a starting point or add a new one, edit its parameter record, hear it, and save it as a custom ROM.
+A Williams arcade sound isn't a sample or an FM patch — it's a tiny **parameter record** that a shared synthesis engine reads. The VARI engine, for instance, turns just **nine bytes** into a swept variable-duty square wave (that's the whole of SAW, FOSHIT, QUASAR…). Design mode lets you do what Sam Dicker did when building a new Williams game: **fork the game's sound bank**, modify any of its sounds (or add new ones), and save the result as a custom ROM.
 
 This covers the **VARI** and **GWAVE** engines. VARI slots are *new sounds* added at command codes `$1D`+ (the engine's dispatcher has spare bits we widen); GWAVE slots *override* an existing GWAVE command's parameter record in place (GWAVE's dispatcher is hardcoded — no spare codes — so the model differs).
 
@@ -26,16 +26,16 @@ ROMs are added on the Explore onboarding screen.
 ## The workflow
 
 1. **Engine** — pick **Defender**, **Stargate**, or **Robotron**: which game's engine code your custom ROM runs on. VARI slots only work on Defender / Stargate (Robotron's VARI dispatch is non-linear); GWAVE slots work on every base. A record copied from any game plays the same — the engine is identical across games.
-2. **Build your list — "Your sounds":** the list holds **two kinds of slots**, mix freely:
-   - **VARI — new sounds at command codes `$1D`+**:
-     - **+ New VARI** adds a sound (seeded from the base game's SAW as a starting point).
-     - **Copy VARI:** adds a sound copied from any loaded game's VARI catalogue — `SAW` / `FOSHIT` / `QUASAR` (Defender/Stargate), `MOSQTO` (Robotron), and so on.
-     - Each is auto-assigned the next command code in `$1D`, `$1E`, … order. Capacity: **23** sounds on a Defender engine, **30** on Stargate.
-   - **GWAVE — overrides of existing GWAVE commands**:
-     - **Override GWAVE:** picks an existing GWAVE command (e.g. `$05 BBSV`) and adds it to your list. Editing the slot rewrites that command's 7-byte SVTAB record *in place* — firing `$05` in Explore plays your edit instead of stock BBSV. Each GWAVE command can be overridden at most once per project.
-     - Why "override" and not "new"? GWAVE has no spare command codes for new sounds (its dispatcher is hardcoded, branch-by-branch — only VARI has the spare-code trick). 13 editable GWAVE codes per base: `$01..$0D`.
-   - Each slot has a **name** (click to rename) and an **✕** to remove. VARI slots show yellow `$XX VARI`; GWAVE slots show purple `$XX GWAVE`. Click a slot to select and edit it.
-3. **Edit the parameter record** — drag the sliders. For VARI slots:
+2. **The list opens with the game's sound bank already loaded.** *New Project → Defender* pre-populates the item list with every editable command — 13 GWAVE rows (`$01 HBDV` … `$0D ED17`) plus 3 VARI rows (`$1D SAW` / `$1E FOSHIT` / `$1F QUASAR`), 16 in total. Stargate is the same; Robotron has 13 GWAVE rows (no VARI). Each row carries a **● dot indicator** before its code:
+   - **Grey dot** + dimmed name = **stock** (unchanged from the base ROM).
+   - **Green dot** + bright name = **edited** (you've changed its bytes; ↻ Reset record brings it back to stock).
+   The header reads *"Your sounds (N edited / M total)"* so you see at a glance how many of the game's commands you've touched. Click any row to edit it.
+3. **Add new sounds beyond the base game's set** — the **+ New VARI** and **Copy VARI:** controls still add **extra** VARI slots at the next free code (`$20`, `$21`, …):
+   - **+ New VARI** adds a sound (seeded from the base game's SAW as a starting point), capped at the engine's VVECT capacity: **23** on Defender, **30** on Stargate.
+   - **Copy VARI:** adds a sound copied from any loaded game's VARI catalogue — `SAW` / `FOSHIT` / `QUASAR` (Defender/Stargate), `MOSQTO` (Robotron).
+   - User-added rows get an **✕** to remove them; stock rows can't be removed (a reload would re-add them anyway — use ↻ Reset record on the editor instead).
+   - VARI rows show yellow `$XX VARI`; GWAVE rows show purple `$XX GWAVE`.
+4. **Edit the parameter record** — drag the sliders. For VARI slots:
    - **LOPER / HIPER** — the low- and high-cycle periods; together they set the duty cycle and pitch.
    - **LODT / HIDT** — how fast each period sweeps (signed).
    - **HIEN** — the threshold where the sweep stops.
@@ -62,16 +62,16 @@ ROMs are added on the Explore onboarding screen.
    Across both canvases, **lengths never change in this version** — the canvas always covers exactly what the kernel reads, with the same byte offsets. That keeps the ROM's pointer math (GWLD waveform walk + SVTAB `PATOFF`) valid without any rebase pass.
 
    At the right end of the editor's label row sits a **↻ Reset record** button — clicking it reverts the slider values to the slot's starting bytes (what was copied/created when the slot was added; this is the same reference the **Source: Start** transport toggle plays). It's greyed out until you actually edit, and works for both VARI and GWAVE editors. The waveform and pitch-pattern canvases have their own **Reset to stock** buttons — *those* clear per-canvas overrides; **↻ Reset record** only touches the parameter record (sliders).
-4. **Audition** — a thin scope strip below the editor renders the offline-rendered DAC trace; the **transport** bar below it (which sticks to the bottom of the viewport, so it's always reachable even on shorter windows) carries:
+5. **Audition** — a thin scope strip below the editor renders the offline-rendered DAC trace; the **transport** bar below it (which sticks to the bottom of the viewport, so it's always reachable even on shorter windows) carries:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.
    - **Source: ⟨Edited │ Start⟩** A/Bs your edits against the sound's starting point (its record when copied/created); flip it mid-playback to compare by ear.
    - **⇄ Diff** toggles an overlay of the starting point (grey) + divergence (red) behind the live trace, without interrupting audio.
    - A **playhead** sweeps the scope in time with playback and freezes on Pause; **editing any slider auto-replays** so you hear each change immediately.
    (Audition runs the actual custom ROM image through the real emulator offline — what you hear is faithful. Very long sounds are capped at 5 seconds.)
-5. **Save / share** —
-   - Name the project and click **Save** — it persists in your browser (IndexedDB) and reappears in **Open**.
-   - **⬇ JSON** downloads the project as a recipe; **⬆ JSON** loads one back. The file holds only your sounds' names + parameter values — **no copyrighted ROM bytes** — so it's safe to share, and it's reconstituted against your own base ROM.
+6. **Save / share** —
+   - Name the project and click **Save** — it persists in your browser (IndexedDB) and reappears in **Open**. **The saved project is sparse:** only your edits are stored (stock rows are reconstructed from the engine base when you re-open). That keeps the recipe small and ensures the saved artefact carries **zero copyrighted ROM bytes**.
+   - **⬇ JSON** downloads the same sparse recipe as a file; **⬆ JSON** loads one back. Safe to share — the file is just your sounds' names + parameter values.
 
 ## Auditioning in Explore (pause, step, scrub)
 
