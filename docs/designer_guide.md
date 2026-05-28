@@ -46,6 +46,22 @@ You need a **Defender or Stargate ROM** loaded — your custom ROM runs on one o
 - Copy SAW twice; on one, swap **HIDT** between small and large → changes how fast it sweeps. A/B them by selecting each.
 - Use **Source ⟨Edited│Start⟩** + **Diff** to see exactly how far your edits moved a sound from where it started.
 
+## How it compares to the original "Sound Designer"
+
+The closest prior art is msarnoff's **Defender Sound Studio** (zapspace.net, 2020) — see [`sound_studio_reference.md`](sound_studio_reference.md). It pioneered the idea of *tweak a Williams sound's parameters in the browser and hear it*, and we deliberately reuse two of its good ideas: **labelled parameter controls with in-place tooltips**, and **JSON preset import/export**. Where this mode differs:
+
+| | Defender Sound Studio (2020) | Design mode here |
+|---|---|---|
+| **How sounds run** | each ROM routine hand-ported to JavaScript | the **real ROMs** on a cycle-accurate 6802 emulator (bit-faithful) |
+| **Games** | Defender only | Defender, Stargate, **and** Robotron |
+| **What you make** | tweak one handler's existing preset | your **own custom ROM** — copy/new VARI sounds in your **own named item list**, at **new command codes** |
+| **Editing** | numeric inputs + tooltips | sliders + tooltips (same idea) |
+| **Comparing** | — | **A/B** (Edited vs Start) + a visual **Diff** overlay |
+| **Seeing** | oscilloscope + FFT | + DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrub, single-step (in Explore) |
+| **Saving** | JSON preset | JSON recipe — **zero ROM bytes**, reconstituted against your own ROM |
+
+In short: the Studio *tweaks* one game's existing sounds with a JS re-implementation; this builds a **new custom ROM** of sounds across all three games on the actual emulated hardware.
+
 ## Limits
 
 VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes), use Robotron as the engine base, or pause/step the live CPU on a custom sound — those are planned follow-ups (see [`designer_implementation.md`](designer_implementation.md)).

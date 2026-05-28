@@ -14,7 +14,7 @@
   <em>No install. You supply your own Williams sound ROMs (read in your browser, never uploaded), then explore the algorithms at slow motion. Works in Chrome and Firefox.</em>
 </p>
 
-![status](https://img.shields.io/badge/status-feature--complete-brightgreen) ![tests](https://img.shields.io/badge/tests-385%20%2F%20385-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Run in browser](https://img.shields.io/badge/run-in%20browser-blueviolet)](https://mbackschat.github.io/williams-sound-explorer/)
+![status](https://img.shields.io/badge/status-feature--complete-brightgreen) ![tests](https://img.shields.io/badge/tests-422%20%2F%20422-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) [![Run in browser](https://img.shields.io/badge/run-in%20browser-blueviolet)](https://mbackschat.github.io/williams-sound-explorer/)
 
 A browser-based explorer for the arcade **sound effects** of **Defender** (1980),
 **Stargate / Defender II** (1981), and **Robotron 2084** (1982). Every sound on
@@ -85,6 +85,12 @@ is not** (it is copyrighted). To rebuild the ROMs yourself:
 | `tools/` | Assembler toolchain (`build_roms.sh`, preprocessor) + data generators (glossary, label map, explainer cards, zero-page map). |
 | `docs/` | Curated reference: hardware model, the 8 synthesis primitives, per-game command catalogues, pedagogical design, architecture. Start at [`docs/00_INDEX.md`](docs/00_INDEX.md). |
 | [`MANUAL.md`](MANUAL.md) | User manual — 12 tutorials + interface tour. |
+
+## Sound Designer
+
+Beyond exploring, the app has a separate **Design** mode (the **Explore | Design** toggle in the header) for building your **own custom ROM** of VARI sounds: pick an engine base, copy any game's sound or add a new one into your own named list, edit its 9-byte parameter record with sliders, audition + A/B, and save as a JSON recipe (no ROM bytes). See [`docs/designer_guide.md`](docs/designer_guide.md).
+
+It's inspired by msarnoff's **Defender Sound Studio** (2020) and reuses its labelled-parameter and JSON-export ideas, but goes further: it runs the **real ROMs on the cycle-accurate emulator** (not a per-routine JavaScript hand-port), covers **all three games** (not just Defender), and lets you author **new sounds at new command codes** — a genuine custom ROM — rather than only tweaking existing presets.
 
 ## Development
 
