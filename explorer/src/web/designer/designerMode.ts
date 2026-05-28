@@ -17,12 +17,14 @@ import type { GameKind } from "../../board/soundboard.ts";
 import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
-import { buildCustomRom, maxSlots, VARI_CMD_BASE } from "../../engine/customRom.ts";
+import { gwaveCommandsFor, readGWaveRecord } from "../../engine/gwaveEdit.ts";
+import { buildCustomRom, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
-  type CustomProject,
+  type CustomProject, type CustomSlot,
 } from "./designerStore.ts";
 import { buildVariEditor, type VariEditorApi } from "./variEditor.ts";
+import { buildGWaveEditor, type GWaveEditorApi } from "./gwaveEditor.ts";
 import {
   renderSound, playSamples, drawWaveform, drawDiff, drawPlayhead, durationMs,
   onPlaybackState, pauseResume, stopPlayback, setLoop, playbackState, playbackProgress,
@@ -32,6 +34,38 @@ import {
 export interface DesignerHandle { dispose(): void; }
 
 const LABEL: Record<GameKind, string> = { defender: "Defender", stargate: "Stargate", robotron: "Robotron" };
+
+/** VARI slots need a clean linear dispatcher widen; Robotron's is non-linear. */
+const VARI_BASES = new Set<GameKind>(["defender", "stargate"]);
+const supportsVari = (game: GameKind): boolean => VARI_BASES.has(game);
+
+/** Count how many VARI slots come before index `i` (so we can assign codes $1D, $1E, …). */
+function variIndexOf(slots: CustomSlot[], i: number): number {
+  let n = 0;
+  for (let k = 0; k < i; k++) if (slots[k]!.kind === "vari") n++;
+  return n;
+}
+
+/** Total number of VARI slots in the project. */
+function variCount(slots: CustomSlot[]): number {
+  return slots.reduce((n, s) => n + (s.kind === "vari" ? 1 : 0), 0);
+}
+
+/** The command code an item-list row maps to: $1D+ for VARI, slot.targetCmd for GWAVE. */
+function slotCmd(slots: CustomSlot[], i: number): number {
+  const slot = slots[i]!;
+  return slot.kind === "vari" ? VARI_CMD_BASE + variIndexOf(slots, i) : slot.targetCmd;
+}
+
+/** Map a project's slots to the discriminated `CustomSlot` shape `buildCustomRom` accepts. */
+function toRomSlots(slots: CustomSlot[]): RomCustomSlot[] {
+  let variIdx = 0;
+  return slots.map((s) =>
+    s.kind === "vari"
+      ? { kind: "vari", code: VARI_CMD_BASE + (variIdx++), record: s.record }
+      : { kind: "gwave", cmd: s.targetCmd, record: s.record },
+  );
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, children: (Node | string)[] = [],
@@ -84,8 +118,8 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
 
   const nameInput = el("input", { type: "text", className: "designer-name", placeholder: "project name" });
   const projectSelect = el("select", { className: "designer-open", title: "Open a saved project" });
-  const saveBtn = el("button", { textContent: "Save", title: "Save this custom ROM to the browser (IndexedDB)." });
-  const newBtn = el("button", { textContent: "New", title: "Start an empty custom ROM." });
+  const saveBtn = el("button", { className: "designer-save", textContent: "Save", title: "Save this custom ROM to the browser (IndexedDB)." });
+  const newBtn = el("button", { className: "designer-new", textContent: "New", title: "Start an empty custom ROM." });
   const exportBtn = el("button", { textContent: "⬇ JSON", title: "Download this project as a JSON recipe (no ROM bytes)." });
   const importInput = el("input", { type: "file", accept: "application/json,.json", className: "designer-import" });
   const importBtn = el("button", { textContent: "⬆ JSON", title: "Load a project from a JSON recipe file." });
@@ -106,18 +140,42 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Item list ──────────────────────────────────────────────────────────
   const itemList = el("div", { className: "designer-items" });
   const itemCount = el("span", { className: "designer-bar-label" });
-  const addNewBtn = el("button", { textContent: "+ New", title: "Add a new sound (seeded from the base game's SAW)." });
-  const copySelect = el("select", { className: "designer-copy", title: "Copy a sound from any loaded game as a starting point" });
+  const addNewBtn = el("button", { textContent: "+ New VARI", title: "Add a new VARI sound at the next free command code (seeded from the base game's SAW)." });
+  const copySelect = el("select", { className: "designer-copy", title: "Copy a VARI sound from any loaded game as a starting point" });
+  // GWAVE has no equivalent of VARI's mask widen — you can only override an
+  // existing GWAVE command in place ($01..$0D).  The dropdown lists the
+  // editable codes for the engine base; greyed-out entries are already
+  // overridden in this project.
+  const gwaveOverrideSelect = el("select", { className: "designer-gwave-override", title: "Override an existing GWAVE command in place (its 7-byte SVTAB record becomes editable)." });
   const itemsSection = el("div", { className: "designer-section designer-items-head" }, [
     el("span", { className: "designer-bar-label", textContent: "Your sounds" }), itemCount,
     el("span", { className: "sep" }), addNewBtn,
-    el("span", { className: "designer-bar-label", textContent: "Copy:" }), copySelect,
+    el("span", { className: "designer-bar-label", textContent: "Copy VARI:" }), copySelect,
+    el("span", { className: "sep" }),
+    el("span", { className: "designer-bar-label", textContent: "Override GWAVE:" }), gwaveOverrideSelect,
   ]);
 
   // ── Editor + audition ──────────────────────────────────────────────────
-  const editor: VariEditorApi = buildVariEditor(onEditorChange);
+  const variEditor: VariEditorApi = buildVariEditor(onEditorChange);
+  const gwaveEditor: GWaveEditorApi = buildGWaveEditor(onEditorChange);
   const editorHost = el("div", { className: "designer-editor-host" });
-  editorHost.append(editor.el);
+  // Both editors live in the DOM concurrently; only the matching one is shown
+  // for the selected slot.  This keeps slider state stable across selections
+  // of the same kind.
+  editorHost.append(variEditor.el, gwaveEditor.el);
+  variEditor.el.style.display = "";
+  gwaveEditor.el.style.display = "none";
+
+  /** Editor label that switches with the selected slot's kind. */
+  const editorLabel = el("div", { className: "designer-edit-label", textContent: "Parameter record (VVECT — VARI)" });
+
+  function showEditorFor(kind: "vari" | "gwave"): void {
+    variEditor.el.style.display = kind === "vari" ? "" : "none";
+    gwaveEditor.el.style.display = kind === "gwave" ? "" : "none";
+    editorLabel.textContent = kind === "vari"
+      ? "Parameter record (VVECT — VARI)"
+      : "Parameter record (SVTAB — GWAVE override)";
+  }
 
   const playBtn = el("button", { className: "designer-play", textContent: "▶ Play", title: "Play the selected sound from the top." });
   const pauseBtn = el("button", { textContent: "⏸ Pause", title: "Pause / resume playback.", disabled: true });
@@ -181,22 +239,22 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   openInExploreBtn.addEventListener("click", () => {
     if (!baseRom || selected < 0) return;
     stopPlayback();
-    const cmd = VARI_CMD_BASE + selected;
     // Snapshot the project's current item list as (code, name) pairs so
     // Explore's "Try:" chip row can show your slots instead of the base
-    // game's stock commands (F3 fix).  Each click of the dynamic Custom
-    // switcher button refreshes this via the rebuild closure.
+    // game's stock commands (F3 fix).  VARI slots use auto-assigned codes;
+    // GWAVE slots use their override target.  Each click of the dynamic
+    // Custom switcher button refreshes this via the rebuild closure.
     const slotsOf = (): { code: number; name: string }[] =>
-      project.slots.map((s, i) => ({ code: VARI_CMD_BASE + i, name: s.name }));
+      project.slots.map((_s, i) => ({ code: slotCmd(project.slots, i), name: project.slots[i]!.name }));
     void ctx.auditionCustomRom({
       baseGame: project.engineBase,
       rom: buildEdited(),
-      cmd,
+      cmd: slotCmd(project.slots, selected),
       projectName: project.name || "untitled",
       slots: slotsOf(),
       rebuild: () => ({
         rom: buildEdited(),
-        cmd: VARI_CMD_BASE + (selected >= 0 ? selected : 0),
+        cmd: slotCmd(project.slots, selected >= 0 ? selected : 0),
         slots: slotsOf(),
       }),
     }).then(() => ctx.switchToExploreMode());
@@ -211,7 +269,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const editPanel = el("div", { className: "designer-edit" }, [
     el("div", { className: "designer-edit-cols" }, [
       el("div", { className: "designer-edit-left" }, [
-        el("div", { className: "designer-edit-label", textContent: "Parameter record (VVECT)" }),
+        editorLabel,
         editorHost,
         el("div", { className: "designer-audition-row" }, [
           playBtn, pauseBtn, loopBtn,
@@ -238,38 +296,74 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Behaviour ──────────────────────────────────────────────────────────
 
   function setControlsEnabled(on: boolean): void {
-    for (const b of [saveBtn, newBtn, exportBtn, addNewBtn]) b.disabled = !on;
+    for (const b of [saveBtn, newBtn, exportBtn]) b.disabled = !on;
+    const variOk = on && supportsVari(project.engineBase);
+    addNewBtn.disabled = !variOk || variCount(project.slots) >= maxVari();
+    copySelect.disabled = !variOk;
+    gwaveOverrideSelect.disabled = !on;
     itemsSection.style.display = on ? "" : "none";
     itemList.style.display = on ? "" : "none";
     editPanel.style.display = on && selected >= 0 ? "" : "none";
     lockedMsg.style.display = on ? "none" : "";
   }
 
+  /** VARI capacity on the current engine base, or 0 on Robotron. */
+  const maxVari = (): number => (supportsVari(project.engineBase) ? maxSlots(project.engineBase) : 0);
+
   function refreshEngineUi(): void {
     for (const [g, b] of baseButtons) {
       const avail = ctx.availableGames().has(g);
       b.classList.toggle("active", g === project.engineBase);
       b.classList.toggle("locked", !avail);
-      b.title = avail ? `Run on ${LABEL[g]}'s VARI engine` : `${LABEL[g]} ROM not loaded — add it in Explore mode first`;
+      const role = supportsVari(g) ? "VARI + GWAVE" : "GWAVE only";
+      b.title = avail ? `Run on ${LABEL[g]}'s engine (${role})` : `${LABEL[g]} ROM not loaded — add it in Explore mode first`;
     }
   }
 
   function refreshItemList(): void {
-    itemCount.textContent = `(${project.slots.length} / ${maxSlots(project.engineBase)})`;
-    addNewBtn.disabled = project.slots.length >= maxSlots(project.engineBase);
+    const v = variCount(project.slots);
+    const cap = maxVari();
+    itemCount.textContent = supportsVari(project.engineBase)
+      ? `(VARI ${v}/${cap})`
+      : `(${project.slots.length} sounds — Robotron is GWAVE-only)`;
     itemList.replaceChildren(...project.slots.map((slot, i) => {
-      const row = el("div", { className: "designer-item" + (i === selected ? " active" : "") });
+      const row = el("div", { className: `designer-item designer-item-${slot.kind}${i === selected ? " active" : ""}` });
       row.addEventListener("click", () => selectSlot(i));
       const name = el("input", { className: "designer-item-name", value: slot.name }) as HTMLInputElement;
       name.addEventListener("click", (e) => e.stopPropagation());
       name.addEventListener("input", () => { slot.name = name.value; touch(); });
-      const code = el("span", { className: "designer-item-code", textContent: `$${(VARI_CMD_BASE + i).toString(16).toUpperCase()}` });
+      const codeText = slot.kind === "vari"
+        ? `$${slotCmd(project.slots, i).toString(16).toUpperCase().padStart(2, "0")} VARI`
+        : `$${slot.targetCmd.toString(16).toUpperCase().padStart(2, "0")} GWAVE`;
+      const code = el("span", { className: "designer-item-code", textContent: codeText });
+      code.title = slot.kind === "vari"
+        ? "Custom VARI slot — auto-assigned command code (extends VVECT)."
+        : `Overrides the base game's GWAVE command $${slot.targetCmd.toString(16).toUpperCase()} in place.`;
       const del = el("button", { className: "designer-item-del", textContent: "✕", title: "Remove this sound" });
       del.addEventListener("click", (e) => { e.stopPropagation(); removeSlot(i); });
       row.append(code, name, del);
       return row;
     }));
-    if (project.slots.length === 0) itemList.append(el("div", { className: "designer-empty", textContent: "No sounds yet — “+ New” or “Copy:” to add one." }));
+    if (project.slots.length === 0) {
+      itemList.append(el("div", { className: "designer-empty", textContent: "No sounds yet — “+ New VARI” / “Copy VARI:” / “Override GWAVE:” to add one." }));
+    }
+    refreshGwaveOverrideOptions();
+  }
+
+  /** Populate the GWAVE override dropdown, greying out commands already overridden. */
+  function refreshGwaveOverrideOptions(): void {
+    const taken = new Set(project.slots.filter((s) => s.kind === "gwave").map((s) => (s as { targetCmd: number }).targetCmd));
+    const opts: HTMLOptionElement[] = [el("option", { value: "", textContent: "override…" }) as HTMLOptionElement];
+    for (const c of gwaveCommandsFor(project.engineBase)) {
+      const o = el("option", {
+        value: String(c.cmd),
+        textContent: `$${c.cmd.toString(16).toUpperCase().padStart(2, "0")} ${c.name}${taken.has(c.cmd) ? " (taken)" : ""}`,
+      }) as HTMLOptionElement;
+      if (taken.has(c.cmd)) o.disabled = true;
+      opts.push(o);
+    }
+    gwaveOverrideSelect.replaceChildren(...opts);
+    gwaveOverrideSelect.value = "";
   }
 
   const touch = (): void => { project.updatedAt = Date.now(); };
@@ -278,27 +372,46 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     stopPlayback(); clearTimeout(autoReplayTimer);
     selected = i;
     const slot = project.slots[i];
-    if (slot) editor.setRecord(slot.record);
+    if (slot) {
+      showEditorFor(slot.kind);
+      (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
+    }
     refreshItemList();
     setControlsEnabled(baseRom != null);
     if (slot && baseRom) redrawScope();
   }
 
   function addNew(): void {
-    if (!baseRom || project.slots.length >= maxSlots(project.engineBase)) return;
+    if (!baseRom || !supportsVari(project.engineBase) || variCount(project.slots) >= maxVari()) return;
     const record = readVariRecord(baseRom, project.engineBase, VARI_CMD_BASE); // base SAW as a starting point
-    project.slots.push({ name: `Sound ${project.slots.length + 1}`, record, start: [...record] });
+    project.slots.push({ kind: "vari", name: `Sound ${variCount(project.slots) + 1}`, record, start: [...record] });
     touch();
     selectSlot(project.slots.length - 1);
-    status("Added a new sound.");
+    status("Added a new VARI sound.");
   }
 
   function addCopy(label: string, record: number[]): void {
-    if (!baseRom || project.slots.length >= maxSlots(project.engineBase)) { status("At capacity — remove a sound first.", "err"); return; }
-    project.slots.push({ name: label, record: [...record], start: [...record] });
+    if (!baseRom || !supportsVari(project.engineBase)) { status("VARI slots aren't supported on Robotron — switch engine base, or use Override GWAVE.", "err"); return; }
+    if (variCount(project.slots) >= maxVari()) { status("VARI at capacity — remove a slot first.", "err"); return; }
+    project.slots.push({ kind: "vari", name: label, record: [...record], start: [...record] });
     touch();
     selectSlot(project.slots.length - 1);
     status(`Copied ${label}.`, "ok");
+  }
+
+  /** Add a GWAVE override slot: copies the base game's existing record at `targetCmd`. */
+  function addGwaveOverride(targetCmd: number): void {
+    if (!baseRom) return;
+    if (project.slots.some((s) => s.kind === "gwave" && s.targetCmd === targetCmd)) {
+      status(`$${targetCmd.toString(16).toUpperCase()} is already overridden — edit that slot instead.`, "err");
+      return;
+    }
+    const record = readGWaveRecord(baseRom, project.engineBase, targetCmd);
+    const name = gwaveCommandsFor(project.engineBase).find((c) => c.cmd === targetCmd)?.name ?? `$${targetCmd.toString(16).toUpperCase()}`;
+    project.slots.push({ kind: "gwave", name: `My ${name}`, record, start: [...record], targetCmd });
+    touch();
+    selectSlot(project.slots.length - 1);
+    status(`Overriding ${name} ($${targetCmd.toString(16).toUpperCase()}).`, "ok");
   }
 
   function removeSlot(i: number): void {
@@ -321,14 +434,24 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   // ── Audition (build the custom image, play the selected slot) ─────────────
 
   function buildEdited(): Uint8Array {
-    return buildCustomRom(baseRom!, project.engineBase, project.slots.map((s, i) => ({ code: VARI_CMD_BASE + i, record: s.record })));
+    return buildCustomRom(baseRom!, project.engineBase, toRomSlots(project.slots));
   }
   function renderEdited(): RenderedSound {
-    return renderSound(project.engineBase, buildEdited(), VARI_CMD_BASE + selected);
+    return renderSound(project.engineBase, buildEdited(), slotCmd(project.slots, selected));
   }
+  /** Render the selected slot's `start` bytes — for the A/B "Start" toggle and Diff overlay. */
   function renderStart(): RenderedSound {
-    const start = project.slots[selected]!.start;
-    return renderSound(project.engineBase, buildCustomRom(baseRom!, project.engineBase, [{ code: VARI_CMD_BASE, record: start }]), VARI_CMD_BASE);
+    const slot = project.slots[selected]!;
+    if (slot.kind === "vari") {
+      // Build a ROM containing only this one VARI sound (at the base code $1D)
+      // and fire it — gives the unedited timbre without any sibling VARI slots
+      // bleeding in.
+      const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "vari", code: VARI_CMD_BASE, record: slot.start }]);
+      return renderSound(project.engineBase, rom, VARI_CMD_BASE);
+    }
+    // GWAVE: override the same target with the `start` bytes and fire that code.
+    const rom = buildCustomRom(baseRom!, project.engineBase, [{ kind: "gwave", cmd: slot.targetCmd, record: slot.start }]);
+    return renderSound(project.engineBase, rom, slot.targetCmd);
   }
 
   function drawScopeFrame(withPlayhead: boolean): void {
@@ -388,12 +511,32 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (src) addCopy(src.label, src.record);
     copySelect.value = "";
   });
+  gwaveOverrideSelect.addEventListener("change", () => {
+    const cmd = Number(gwaveOverrideSelect.value);
+    if (cmd) addGwaveOverride(cmd);
+    gwaveOverrideSelect.value = "";
+  });
 
   // ── Engine base + copy sources ────────────────────────────────────────
 
   async function setEngine(game: GameKind): Promise<void> {
     if (!ctx.availableGames().has(game)) { status(`${LABEL[game]} ROM not loaded.`, "err"); refreshEngineUi(); return; }
-    if (project.slots.length > maxSlots(game)) { status(`${LABEL[game]} holds at most ${maxSlots(game)} sounds; trim the list first.`, "err"); return; }
+    if (!supportsVari(game) && variCount(project.slots) > 0) {
+      status(`${LABEL[game]} can't host VARI slots — remove your VARI sounds first.`, "err"); return;
+    }
+    if (supportsVari(game) && variCount(project.slots) > maxSlots(game)) {
+      status(`${LABEL[game]} holds at most ${maxSlots(game)} VARI sounds; trim the list first.`, "err"); return;
+    }
+    // Existing GWAVE override targets must remain editable on the new base
+    // (all three games share the editable $01..$0D list, so this is a no-op
+    // today — written as a guard against future per-game divergence).
+    const editable = new Set(gwaveCommandsFor(game).map((c) => c.cmd));
+    for (const s of project.slots) {
+      if (s.kind === "gwave" && !editable.has(s.targetCmd)) {
+        status(`GWAVE override $${s.targetCmd.toString(16).toUpperCase()} isn't valid on ${LABEL[game]} — remove it first.`, "err");
+        return;
+      }
+    }
     project.engineBase = game;
     touch();
     refreshEngineUi();
@@ -403,7 +546,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   async function loadEngineRom(): Promise<void> {
     if (!ctx.availableGames().has(project.engineBase)) {
       baseRom = null;
-      lockedMsg.textContent = `Load a Defender or Stargate ROM in Explore mode — a custom ROM runs on one of their VARI engines.`;
+      lockedMsg.textContent = `Load the ${LABEL[project.engineBase]} ROM in Explore mode first — Design needs a base ROM to layer your custom sounds onto.`;
       setControlsEnabled(false);
       return;
     }

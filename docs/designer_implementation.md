@@ -119,10 +119,32 @@ Why this shape:
 - **No 4th `GameKind`.** Explore stays pointed at the base game's glossary / labelmap / zero-page metadata; the worklet just runs the swapped bytes. Custom slots at codes `≥ $20` aren't in Explore's chip row, so Design fires them directly via `host.fire(cmd)` instead of expecting a chip-click.
 - **Visible source.** The dynamic `.game-pick-custom` entry in `#gameSwitcher` (purple, prefixed with `✎`) tells the user which ROM the worklet is *actually* running — base game vs. their custom image. Clicking a base game button reloads the stock ROM and clears `customRomActive`; clicking the Custom entry re-runs the project's rebuild closure (edits made in Design since the last hand-off are picked up).
 
+## GWAVE editor — Phase 5 step 1 (shipped)
+
+GWAVE slots **override an existing GWAVE command's 7-byte SVTAB record in place** (the model differs from VARI because GWAVE has no spare command codes — its dispatcher is a hardcoded branch tree). A project can mix VARI new-sound slots (yellow `$XX VARI`) and GWAVE override slots (purple `$XX GWAVE`) freely. Robotron unlocks as an engine base for GWAVE-only projects: in-place SVTAB patching needs no dispatcher widen.
+
+**Module map (additions in this step):**
+
+- `engine/gwaveEdit.ts` — `SVTAB_BASE` per game (Defender `$FEEC`, Stargate `$FEEA`, Robotron `$FE45`), `SVTAB_STRIDE=7`, `GWAVE_FIELDS` (9 logical fields, nybble-aware), `gwaveCommandsFor` ($01..$0D editable on every game), `readGWaveRecord`, `patchGWaveRecord`, `getField`/`setField`.
+- `engine/customRom.ts` — `CustomSlot` is now a discriminated union `VariSlot | GwaveSlot`. `buildCustomRom` partitions, applies VARI extensions, then patches SVTAB rows in place for GWAVE. Robotron is supported for GWAVE-only builds.
+- `web/designer/gwaveEditor.ts` — 9-row slider panel mirroring `variEditor.ts` (WAVE# is a `0..6` select with named labels: GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7).
+- `web/designer/designerMode.ts` — `Override GWAVE:` select in the items header (greys out codes already taken); slot-kind-aware editor swap + item-list rendering; engine-base picker accepts Robotron (with VARI controls gated off there). `.designer-new` class added so capture-harness reset can click it.
+- `web/designer/designerStore.ts` — `CustomProject.slots` is a `(VariCustomSlot | GwaveCustomSlot)[]` discriminated union; legacy v1 (`{ baseGame, edits }`) and v2 (no-`kind` slots) both auto-migrate as VARI on load.
+
+**Schema (Step 1):** GWAVE slots carry `{ kind: "gwave", name, record, start, targetCmd }`. The `targetCmd` is the base game's command code being overridden ($01..$0D). VARI slots stay `{ kind: "vari", name, record, start }`.
+
+**What's not yet editable in this step:** the waveform *bytes* (GWVTAB) and the pitch-pattern *bytes* (GFRTAB) — those land in Step 2 and Step 3 (canvas-based byte editors). Step 1 makes the WAVE# selector and pattern length/offset editable, which already gives wide audible range without canvases.
+
+**Tests:** `gwaveEdit.test.ts` (23, incl. a golden assertion reading real HBDV bytes from the dev Defender ROM), `customRom.test.ts` (+6: GWAVE override, mixed VARI+GWAVE, Robotron GWAVE, no-mask-touch when only GWAVE present, malformed/non-editable rejection), `designerStore.test.ts` (+ GWAVE round-trip, Robotron base, duplicate-target rejection, v2 migration). Full suite **459**.
+
+**Capture entries (`e2e/capturesDesigner.ts`):** `designer-gwave-overview` (item list with a `$05 GWAVE` slot + the SVTAB editor panel + offline-rendered scope) and `designer-gwave-audition-explore` (Open-in-Explore handoff; the custom-ROM SVTAB override at $05 plays in Explore with the chip-row overlay).
+
 ## Fast-follows (not yet built)
 
-- **GWAVE editor** — adds editable waveform (`GWVTAB`) + period-curve (`GFRTAB`) byte tables; the point to revisit msarnoff's `WavetableWithSlider` interaction live.
-- **Robotron as engine base** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band.
+- **GWAVE editor Step 2** — editable waveform canvas (GWVTAB bytes; lengths unchanged → no pointer rebase).
+- **GWAVE editor Step 3** — editable pitch-pattern canvas (GFRTAB bytes; lengths unchanged → SVTAB byte-6 offsets stay valid).
+- **Adding new waveforms / new GWAVE codes** — both feasible, deferred to v-future (see `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis).
+- **Robotron as engine base for VARI** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band. (GWAVE on Robotron *is* supported now since it's in-place SVTAB patching.)
 - **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
 
 ## The true Custom ROM (shipped) — how it works

@@ -90,7 +90,12 @@
 }
 .designer-item:hover { background: #22262e; }
 .designer-item.active { border-color: #ffd866; background: #2a2a1e; }
-.designer-item-code { font-family: ui-monospace, monospace; font-size: 0.72rem; color: #9098a6; min-width: 2.2rem; }
+/* GWAVE override slots get a purple accent to distinguish them from VARI new
+   slots (yellow when active), echoing the ✎ Custom switcher entry's colour. */
+.designer-item-gwave.active { border-color: #b78ff5; background: #251f33; }
+.designer-item-gwave .designer-item-code { color: #b78ff5; }
+.designer-item-vari .designer-item-code { color: #ffd866; }
+.designer-item-code { font-family: ui-monospace, monospace; font-size: 0.72rem; color: #9098a6; min-width: 5.5rem; }
 .designer-item-name {
   flex: 1; background: transparent; border: 1px solid transparent; border-radius: 3px;
   color: #d1d4dc; font: inherit; padding: 0.15rem 0.3rem;

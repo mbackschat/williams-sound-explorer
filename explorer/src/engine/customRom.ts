@@ -1,30 +1,35 @@
 /**
- * Custom-ROM image builder (Designer v-next, Phase 3 step 1) — headless,
+ * Custom-ROM image builder (Designer v-next, Phase 3 → Phase 5) — headless,
  * DOM-free.
  *
  * Productizes the dispatcher spike (`research/findings_designer_feasibility.md`):
- * given a base game and a set of VARI slots `{ code, record }`, emit a runnable
- * ROM image where each slot's command code plays its 9-byte VARI record. The
- * emulator runs the result unchanged — this is the engine behind the "true
- * Custom ROM with its own item list".
+ * given a base game and a set of slots, emit a runnable ROM image where each
+ * slot's command plays its parameter record.  The emulator runs the result
+ * unchanged — this is the engine behind the "true Custom ROM with its own item
+ * list" (VARI) and "GWAVE override in place" (Phase 5 step 1).
  *
- * Mechanics (Defender / Stargate — their VARI dispatch is a clean linear band):
- *   - The IRQ dispatch, after `ANDA #$1F` (command mask) and `DECA`, routes any
- *     value `> $1B` to VARI with `VVECT row = A − $1C`. So command code `cmd`
- *     (post-DECA `cmd−1`) selects `VVECT row = cmd − $1D`.
- *   - The *only* cap on reachable rows is the 5-bit mask. Widening the mask
- *     operand `$1F → $3F` (a single byte) unlocks codes `$20–$3F`.
- *   - The base ROMs are densely packed (no free region to relocate `VVECT`), so
- *     we extend `VVECT` **in place** over the disposable RADIO/ORGAN data tables
- *     that follow it, stopping before the GWAVE tables (`GWVTAB`) — `capacityRows`.
- *     `VVECT` stays at its base, so `VARILD`'s `LDX #VVECT` needs no repoint.
+ * Two slot kinds coexist in one build:
  *
- * Robotron is unsupported here: its VARI dispatch special-cases `$3F`
- * (`SUBA #$39`) and routes part of the space through a `JMPTBL` pointer table,
- * so the clean linear widening doesn't apply.
+ * - **VARI slot** — `{ kind: "vari", code, record(9) }`.  After `ANDA #$1F`
+ *   (command mask) and `DECA`, the IRQ dispatch routes any value `> $1B` to
+ *   VARI with `VVECT row = A − $1C`, so `cmd` selects `VVECT row = cmd − $1D`.
+ *   The 5-bit mask is widened to `$3F` (one-byte patch) only when a slot's
+ *   code exceeds `$1F`.  `VVECT` is **extended in place** over the disposable
+ *   RADIO/ORGAN data tables that follow it, stopping before `GWVTAB` —
+ *   `capacityRows` per game.  Defender / Stargate only (Robotron's VARI
+ *   dispatch special-cases `$3F` and routes part of the space through a
+ *   `JMPTBL`, so the clean linear widening doesn't apply).
+ *
+ * - **GWAVE slot** — `{ kind: "gwave", cmd, record(7) }`.  Overrides an
+ *   existing GWAVE command's 7-byte SVTAB entry **in place** (no table
+ *   extension, no dispatcher patch).  Works on every game (Defender / Stargate
+ *   / Robotron) — GWAVE dispatch is already wired for the editable codes
+ *   ($01..$0D).  Adding *new* GWAVE codes is a v-future item (would need
+ *   dispatcher injection — see `plans/designer-mode.md` § Phase 5 deferrals).
  */
 import type { GameKind } from "../board/soundboard.ts";
 import { VVECT_BASE, VVECT_STRIDE } from "./variEdit.ts";
+import { patchGWaveRecord, gwaveCommandsFor, SVTAB_STRIDE } from "./gwaveEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
 export const VARI_CMD_BASE = 0x1D;
@@ -44,22 +49,33 @@ interface BaseSpec {
   capacityRows: number;
 }
 
-const SUPPORTED: Partial<Record<GameKind, BaseSpec>> = {
+const VARI_SUPPORTED: Partial<Record<GameKind, BaseSpec>> = {
   defender: { capacityRows: 23 },
   stargate: { capacityRows: 30 },
 };
 
-export interface CustomSlot {
+export interface VariSlot {
+  kind: "vari";
   /** Command code the sound is reached by ($1D and up). */
   code: number;
-  /** Its 9-byte VVECT record. */
+  /** 9-byte VVECT record. */
   record: number[];
 }
 
+export interface GwaveSlot {
+  kind: "gwave";
+  /** Override target — an existing GWAVE command ($01..$0D) whose SVTAB entry is replaced. */
+  cmd: number;
+  /** 7-byte SVTAB record. */
+  record: number[];
+}
+
+export type CustomSlot = VariSlot | GwaveSlot;
+
 /** Max number of VARI slots a custom ROM can hold on this base (throws if unsupported). */
 export function maxSlots(game: GameKind): number {
-  const spec = SUPPORTED[game];
-  if (!spec) throw new Error(`Custom ROM build is only supported on Defender/Stargate (got ${game})`);
+  const spec = VARI_SUPPORTED[game];
+  if (!spec) throw new Error(`Custom VARI slots are only supported on Defender/Stargate (got ${game})`);
   return spec.capacityRows;
 }
 
@@ -79,44 +95,77 @@ function findUnique(rom: Uint8Array, pat: readonly number[]): number {
   return idx;
 }
 
+/** Validate one VARI slot against the per-game capacity / range. */
+function validateVariSlot(s: VariSlot, game: GameKind, seen: Set<number>): void {
+  const spec = VARI_SUPPORTED[game];
+  if (!spec) throw new Error(`Custom VARI slots are only supported on Defender/Stargate (got ${game})`);
+  const maxCode = VARI_CMD_BASE + spec.capacityRows - 1;
+  if (!Number.isInteger(s.code) || s.code < VARI_CMD_BASE || s.code > maxCode) {
+    throw new Error(`VARI slot code $${s.code.toString(16).toUpperCase()} out of range $${VARI_CMD_BASE.toString(16).toUpperCase()}..$${maxCode.toString(16).toUpperCase()}`);
+  }
+  if (seen.has(s.code)) throw new Error(`duplicate VARI slot code $${s.code.toString(16).toUpperCase()}`);
+  seen.add(s.code);
+  if (s.record.length !== VVECT_STRIDE) throw new Error(`VARI record must be exactly ${VVECT_STRIDE} bytes, got ${s.record.length}`);
+  for (const b of s.record) {
+    if (!Number.isInteger(b) || b < 0 || b > 0xFF) throw new Error(`VARI record byte out of range (0..255): ${b}`);
+  }
+}
+
+/** Validate one GWAVE override against the per-game editable list. */
+function validateGwaveSlot(s: GwaveSlot, game: GameKind, seen: Set<number>): void {
+  const editable = gwaveCommandsFor(game);
+  if (!editable.some((c) => c.cmd === s.cmd)) {
+    throw new Error(`GWAVE override $${s.cmd.toString(16).toUpperCase()} is not an editable GWAVE command on ${game}`);
+  }
+  if (seen.has(s.cmd)) throw new Error(`duplicate GWAVE override $${s.cmd.toString(16).toUpperCase()}`);
+  seen.add(s.cmd);
+  if (s.record.length !== SVTAB_STRIDE) throw new Error(`GWAVE record must be exactly ${SVTAB_STRIDE} bytes, got ${s.record.length}`);
+  for (const b of s.record) {
+    if (!Number.isInteger(b) || b < 0 || b > 0xFF) throw new Error(`GWAVE record byte out of range (0..255): ${b}`);
+  }
+}
+
 /**
- * Build a runnable custom ROM image from a base game + VARI slots. Returns a
- * copy of `baseRom`; the original is untouched.
+ * Build a runnable custom ROM image from a base game + slots (mixed VARI +
+ * GWAVE). Returns a copy of `baseRom`; the original is untouched.
  */
 export function buildCustomRom(baseRom: Uint8Array, game: GameKind, slots: CustomSlot[]): Uint8Array {
-  const spec = SUPPORTED[game];
-  if (!spec) throw new Error(`Custom ROM build is only supported on Defender/Stargate (got ${game})`);
-
-  // ── Validate up front (before touching the ROM) ──────────────────────────
+  // ── Partition + validate up front (before touching the ROM) ──────────────
   if (slots.length === 0) throw new Error("a custom ROM needs at least one slot");
-  const maxCode = VARI_CMD_BASE + spec.capacityRows - 1;
-  const seen = new Set<number>();
+  const variSlots: VariSlot[] = [];
+  const gwaveSlots: GwaveSlot[] = [];
+  const seenVari = new Set<number>();
+  const seenGwave = new Set<number>();
   for (const s of slots) {
-    if (!Number.isInteger(s.code) || s.code < VARI_CMD_BASE || s.code > maxCode) {
-      throw new Error(`slot code $${s.code.toString(16).toUpperCase()} out of range $${VARI_CMD_BASE.toString(16).toUpperCase()}..$${maxCode.toString(16).toUpperCase()}`);
+    if (s.kind === "vari") { validateVariSlot(s, game, seenVari); variSlots.push(s); }
+    else                  { validateGwaveSlot(s, game, seenGwave); gwaveSlots.push(s); }
+  }
+
+  let out: Uint8Array = baseRom.slice();
+
+  // ── VARI: widen mask (if needed) + extend VVECT in place ─────────────────
+  if (variSlots.length > 0) {
+    // The per-slot validator already guards Defender/Stargate, but reassert
+    // here so the code is self-evident.
+    const spec = VARI_SUPPORTED[game];
+    if (!spec) throw new Error(`Custom VARI slots are only supported on Defender/Stargate (got ${game})`);
+
+    if (variSlots.some((s) => s.code > 0x1F)) {
+      out[findUnique(out, MASK_PATTERN) + 2] = MASK_WIDE;
     }
-    if (seen.has(s.code)) throw new Error(`duplicate slot code $${s.code.toString(16).toUpperCase()}`);
-    seen.add(s.code);
-    if (s.record.length !== VVECT_STRIDE) throw new Error(`record must be exactly ${VVECT_STRIDE} bytes, got ${s.record.length}`);
-    for (const b of s.record) {
-      if (!Number.isInteger(b) || b < 0 || b > 0xFF) throw new Error(`record byte out of range (0..255): ${b}`);
+    const vvOff = VVECT_BASE[game]! - romBase(out);
+    const byRow = new Map(variSlots.map((s) => [s.code - VARI_CMD_BASE, s.record]));
+    const maxRow = Math.max(...byRow.keys());
+    const fill = variSlots[0]!.record; // benign default for any unassigned in-between row
+    for (let row = 0; row <= maxRow; row++) {
+      out.set(byRow.get(row) ?? fill, vvOff + row * VVECT_STRIDE);
     }
   }
 
-  const out = baseRom.slice();
-
-  // ── 1. Widen the command mask only if a code needs it (> $1F) ─────────────
-  if (slots.some((s) => s.code > 0x1F)) {
-    out[findUnique(out, MASK_PATTERN) + 2] = MASK_WIDE;
+  // ── GWAVE: override SVTAB rows in place (any game; no dispatcher patch) ──
+  for (const s of gwaveSlots) {
+    out = patchGWaveRecord(out, game, s.cmd, s.record);
   }
 
-  // ── 2. Write the custom VVECT in place (row = code − $1D) ─────────────────
-  const vvOff = VVECT_BASE[game]! - romBase(out);
-  const byRow = new Map(slots.map((s) => [s.code - VARI_CMD_BASE, s.record]));
-  const maxRow = Math.max(...byRow.keys());
-  const fill = slots[0]!.record; // benign default for any unassigned in-between row
-  for (let row = 0; row <= maxRow; row++) {
-    out.set(byRow.get(row) ?? fill, vvOff + row * VVECT_STRIDE);
-  }
   return out;
 }

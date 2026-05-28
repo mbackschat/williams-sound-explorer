@@ -1,30 +1,34 @@
 /**
  * Designer project JSON export/import (the saveable artefact) for the
- * own-item-list `CustomProject` shape, plus legacy v1 conversion.
+ * own-item-list `CustomProject` shape — VARI + GWAVE slots — plus the legacy
+ * v1 (`{ baseGame, edits }`) and v2 (no-`kind` slots) on-disk shape conversions.
  *
  * IndexedDB CRUD is browser-only and untested here; these cover the pure
  * serialise / parse-and-validate path (the import-failure surface a user hits)
- * and the v1→CustomProject migration.
+ * and the migrations.
  */
 import { describe, expect, it } from "vitest";
 import { exportJson, importJson, type CustomProject } from "../src/web/designer/designerStore.ts";
 import { maxSlots } from "../src/engine/customRom.ts";
 
 const SAW = [0x40, 0x01, 0x00, 0x10, 0xE1, 0x00, 0x80, 0xFF, 0xFF];
+const HBDV = [0x81, 0x24, 0x00, 0x00, 0x00, 0x16, 0x31];
+
 const project: CustomProject = {
   name: "My game",
   engineBase: "defender",
-  slots: [{ name: "Thunder", record: SAW, start: SAW }],
+  slots: [{ kind: "vari", name: "Thunder", record: SAW, start: SAW }],
   createdAt: 100,
   updatedAt: 200,
 };
 
-describe("exportJson / importJson (CustomProject)", () => {
-  it("round-trips a project (name, engineBase, named slots preserved)", () => {
+describe("exportJson / importJson — VARI slots", () => {
+  it("round-trips a VARI project (name, engineBase, named slots preserved)", () => {
     const back = importJson(exportJson(project));
     expect(back.name).toBe("My game");
     expect(back.engineBase).toBe("defender");
     expect(back.slots).toHaveLength(1);
+    expect(back.slots[0]!.kind).toBe("vari");
     expect(back.slots[0]!.name).toBe("Thunder");
     expect(back.slots[0]!.record).toEqual(SAW);
     expect(back.slots[0]!.start).toEqual(SAW);
@@ -36,35 +40,112 @@ describe("exportJson / importJson (CustomProject)", () => {
   });
 
   it("defaults a slot's `start` to its record when absent", () => {
-    const back = importJson(JSON.stringify({ ...project, slots: [{ name: "x", record: SAW }] }));
+    const back = importJson(JSON.stringify({ ...project, slots: [{ kind: "vari", name: "x", record: SAW }] }));
     expect(back.slots[0]!.start).toEqual(SAW);
   });
 
-  it("rejects non-JSON, a missing name, and a bad engine base", () => {
+  it("rejects non-JSON and a missing name", () => {
     expect(() => importJson("{nope")).toThrow(/JSON/i);
     expect(() => importJson(JSON.stringify({ ...project, name: "" }))).toThrow(/name/i);
-    expect(() => importJson(JSON.stringify({ ...project, engineBase: "robotron" }))).toThrow(/engine base/i);
   });
 
-  it("rejects malformed slots and over-capacity projects", () => {
-    expect(() => importJson(JSON.stringify({ ...project, slots: [{ name: "x", record: [1, 2, 3] }] }))).toThrow(/bytes/i);
-    expect(() => importJson(JSON.stringify({ ...project, slots: [{ record: SAW }] }))).toThrow(/name/i);
-    const tooMany = Array.from({ length: maxSlots("defender") + 1 }, (_, i) => ({ name: `s${i}`, record: SAW, start: SAW }));
+  it("Robotron is a valid engine base, but VARI slots there are rejected", () => {
+    expect(() => importJson(JSON.stringify({ ...project, engineBase: "robotron" }))).toThrow(/VARI slots aren't supported on robotron/);
+  });
+
+  it("rejects malformed VARI slots and over-capacity projects", () => {
+    expect(() => importJson(JSON.stringify({ ...project, slots: [{ kind: "vari", name: "x", record: [1, 2, 3] }] }))).toThrow(/bytes/i);
+    expect(() => importJson(JSON.stringify({ ...project, slots: [{ kind: "vari", record: SAW }] }))).toThrow(/name/i);
+    const tooMany = Array.from({ length: maxSlots("defender") + 1 }, (_, i) => ({ kind: "vari" as const, name: `s${i}`, record: SAW, start: SAW }));
     expect(() => importJson(JSON.stringify({ ...project, slots: tooMany }))).toThrow(/too many/i);
   });
 });
 
-describe("legacy v1 recipe migration", () => {
-  it("converts { baseGame, edits } to named slots", () => {
+describe("exportJson / importJson — GWAVE slots", () => {
+  const gp: CustomProject = {
+    name: "G-mix",
+    engineBase: "defender",
+    slots: [{ kind: "gwave", name: "Loud BBSV", record: HBDV, start: HBDV, targetCmd: 0x05 }],
+    createdAt: 100,
+    updatedAt: 200,
+  };
+
+  it("round-trips a GWAVE project preserving targetCmd + record + name", () => {
+    const back = importJson(exportJson(gp));
+    expect(back.slots).toHaveLength(1);
+    const s = back.slots[0]!;
+    expect(s.kind).toBe("gwave");
+    if (s.kind !== "gwave") return; // narrow for TS
+    expect(s.name).toBe("Loud BBSV");
+    expect(s.record).toEqual(HBDV);
+    expect(s.targetCmd).toBe(0x05);
+  });
+
+  it("Robotron + GWAVE-only project is accepted (no dispatcher widen needed)", () => {
+    const robo: CustomProject = { ...gp, engineBase: "robotron" };
+    const back = importJson(exportJson(robo));
+    expect(back.engineBase).toBe("robotron");
+    expect(back.slots[0]!.kind).toBe("gwave");
+  });
+
+  it("rejects a GWAVE override targeting a non-editable command", () => {
+    const bad = { ...gp, slots: [{ kind: "gwave", name: "x", record: HBDV, start: HBDV, targetCmd: 0x12 }] }; // BON2 excluded
+    expect(() => importJson(JSON.stringify(bad))).toThrow(/editable GWAVE command/i);
+  });
+
+  it("rejects duplicate GWAVE override targets", () => {
+    const dup = { ...gp, slots: [
+      { kind: "gwave", name: "a", record: HBDV, start: HBDV, targetCmd: 0x05 },
+      { kind: "gwave", name: "b", record: HBDV, start: HBDV, targetCmd: 0x05 },
+    ]};
+    expect(() => importJson(JSON.stringify(dup))).toThrow(/duplicate GWAVE override/i);
+  });
+
+  it("rejects a malformed GWAVE record (wrong length / out-of-range byte)", () => {
+    expect(() => importJson(JSON.stringify({ ...gp, slots: [{ kind: "gwave", name: "x", record: [1,2,3], targetCmd: 0x05 }] }))).toThrow(/bytes/i);
+    expect(() => importJson(JSON.stringify({ ...gp, slots: [{ kind: "gwave", name: "x", record: [1,2,3,4,5,6,256], targetCmd: 0x05 }] }))).toThrow(/bytes/i);
+  });
+
+  it("mixed VARI + GWAVE in one project round-trips", () => {
+    const mixed: CustomProject = {
+      ...project,
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x05 },
+      ],
+    };
+    const back = importJson(exportJson(mixed));
+    expect(back.slots).toHaveLength(2);
+    expect(back.slots[0]!.kind).toBe("vari");
+    expect(back.slots[1]!.kind).toBe("gwave");
+  });
+});
+
+describe("legacy v1 recipe migration (override-in-place)", () => {
+  it("converts { baseGame, edits } to named VARI slots", () => {
     const legacy = JSON.stringify({ name: "old", baseGame: "defender", edits: { 29: SAW } }); // $1D = SAW
     const p = importJson(legacy);
     expect(p.engineBase).toBe("defender");
     expect(p.slots).toHaveLength(1);
+    expect(p.slots[0]!.kind).toBe("vari");
     expect(p.slots[0]!.name).toBe("SAW");
     expect(p.slots[0]!.record).toEqual(SAW);
   });
 
-  it("rejects a legacy recipe whose base game can't be a custom-ROM engine base", () => {
-    expect(() => importJson(JSON.stringify({ name: "r", baseGame: "robotron", edits: { 29: SAW } }))).toThrow(/engine base/i);
+  it("rejects a legacy recipe whose base game can't host VARI slots", () => {
+    expect(() => importJson(JSON.stringify({ name: "r", baseGame: "robotron", edits: { 29: SAW } }))).toThrow(/VARI slots/i);
+  });
+});
+
+describe("v2 on-disk migration (slots without `kind` are tagged VARI)", () => {
+  it("a v2 project (slots have no kind) imports as all-VARI", () => {
+    const v2 = JSON.stringify({
+      name: "v2-project", engineBase: "defender",
+      slots: [{ name: "Thunder", record: SAW }],
+      createdAt: 1, updatedAt: 2,
+    });
+    const back = importJson(v2);
+    expect(back.slots[0]!.kind).toBe("vari");
+    expect(back.slots[0]!.record).toEqual(SAW);
   });
 });

@@ -10,29 +10,48 @@
 
 A Williams arcade sound isn't a sample or an FM patch — it's a tiny **parameter record** that a shared synthesis engine reads. The VARI engine, for instance, turns just **nine bytes** into a swept variable-duty square wave (that's the whole of SAW, FOSHIT, QUASAR…). Design mode lets you do what Sam Dicker did when building a new Williams game: **assemble your own list of VARI sounds** — copy any game's sound as a starting point or add a new one, edit its parameter record, hear it, and save it as a custom ROM.
 
-This covers the **VARI** engine.
+This covers the **VARI** and **GWAVE** engines. VARI slots are *new sounds* added at command codes `$1D`+ (the engine's dispatcher has spare bits we widen); GWAVE slots *override* an existing GWAVE command's parameter record in place (GWAVE's dispatcher is hardcoded — no spare codes — so the model differs).
 
 ## Getting in
 
 At the top of the page there's an **Explore | Design ✎** switch. Click **Design**. (Explore mode is completely unchanged — Design is a separate surface.)
 
-You need a **Defender or Stargate ROM** loaded — your custom ROM runs on one of their VARI engines. (If you also have the Robotron ROM, you can copy *its* VARI sounds too.) ROMs are added on the Explore onboarding screen.
+You need at least one of the game ROMs loaded:
+
+- For **VARI** sounds (new sounds at codes `$1D`+), Defender or Stargate; Robotron's VARI dispatcher is too non-linear to grow.
+- For **GWAVE** overrides (replacing an existing GWAVE command's record), any of the three games — Defender, Stargate, or Robotron.
+
+ROMs are added on the Explore onboarding screen.
 
 ## The workflow
 
-1. **Engine** — pick **Defender** or **Stargate**: which VARI engine your custom ROM runs on. (A record copied from any game plays the same — the engine is identical across games.)
-2. **Build your list — "Your sounds":**
-   - **+ New** adds a sound (seeded from the base game's SAW as a starting point).
-   - **+ Copy from…** adds a sound copied from any loaded game's VARI catalogue — `SAW` / `FOSHIT` / `QUASAR` (Defender/Stargate), `MOSQTO` (Robotron), and so on.
-   - Each sound has a **name** (click to rename) and is auto-assigned a command code (`$1D`, `$1E`, …) by list order. **✕** removes one. You can hold up to **23** sounds on a Defender engine, **30** on Stargate.
-   - Click a sound to select and edit it.
-3. **Edit the parameter record** — drag the eight sliders. Hover each label:
+1. **Engine** — pick **Defender**, **Stargate**, or **Robotron**: which game's engine code your custom ROM runs on. VARI slots only work on Defender / Stargate (Robotron's VARI dispatch is non-linear); GWAVE slots work on every base. A record copied from any game plays the same — the engine is identical across games.
+2. **Build your list — "Your sounds":** the list holds **two kinds of slots**, mix freely:
+   - **VARI — new sounds at command codes `$1D`+**:
+     - **+ New VARI** adds a sound (seeded from the base game's SAW as a starting point).
+     - **Copy VARI:** adds a sound copied from any loaded game's VARI catalogue — `SAW` / `FOSHIT` / `QUASAR` (Defender/Stargate), `MOSQTO` (Robotron), and so on.
+     - Each is auto-assigned the next command code in `$1D`, `$1E`, … order. Capacity: **23** sounds on a Defender engine, **30** on Stargate.
+   - **GWAVE — overrides of existing GWAVE commands**:
+     - **Override GWAVE:** picks an existing GWAVE command (e.g. `$05 BBSV`) and adds it to your list. Editing the slot rewrites that command's 7-byte SVTAB record *in place* — firing `$05` in Explore plays your edit instead of stock BBSV. Each GWAVE command can be overridden at most once per project.
+     - Why "override" and not "new"? GWAVE has no spare command codes for new sounds (its dispatcher is hardcoded, branch-by-branch — only VARI has the spare-code trick). 13 editable GWAVE codes per base: `$01..$0D`.
+   - Each slot has a **name** (click to rename) and an **✕** to remove. VARI slots show yellow `$XX VARI`; GWAVE slots show purple `$XX GWAVE`. Click a slot to select and edit it.
+3. **Edit the parameter record** — drag the sliders. For VARI slots:
    - **LOPER / HIPER** — the low- and high-cycle periods; together they set the duty cycle and pitch.
    - **LODT / HIDT** — how fast each period sweeps (signed).
    - **HIEN** — the threshold where the sweep stops.
    - **SWPDT** — a 16-bit countdown before the low-modulation kicks in.
    - **LOMOD** — added to the low period once the sweep finishes (signed).
    - **VAMP** — output amplitude.
+
+   For **GWAVE** slots the panel switches to nine SVTAB fields (the editor label reads "Parameter record (SVTAB — GWAVE override)"). Bytes 0 and 1 are nybble-packed — what looks like two sliders per byte is one byte underneath:
+
+   - **GECHO** / **GCCNT** — echo count (how many decayed plays after the first) / cycles per frequency note. Together they shape rhythm + sweep speed.
+   - **GECDEC** / **WAVE#** — echo decay (amplitude drop per echo, in 1/16ths) / which of the 7 stock waves to start from (`0`=GS2 through `6`=GS1.7).
+   - **PRDECA** — pre-decay factor applied to the RAM waveform copy at load (0 = no decay; larger wraps mod-256 to produce the characteristic "math-error" timbre).
+   - **GDFINC** / **GDCNT** — signed frequency-delta increment / how many samples between applications. Together they glide pitch.
+   - **PATLEN** / **PATOFF** — pitch-pattern length + offset into GFRTAB (which existing pattern you point at).
+
+   In **step 1** of the GWAVE editor (this version), the seven SVTAB bytes are editable but the **waveform bytes** (in GWVTAB) and the **pitch-pattern bytes** (in GFRTAB) are not — that lands in steps 2 and 3 (canvas-based byte editors). For now, swapping `WAVE#` between the 7 stock waves and changing `PATOFF` / `PATLEN` to point at a different existing pattern gives you a wide audible range without those canvases.
 4. **Audition** — the transport:
    - **▶ Play** plays the selected sound from the top; **⏸ Pause** holds / **▶ Resume** (sounds can run several seconds).
    - **🔁 Loop** repeats continuously — edits update the loop live, so you can tweak-and-listen hands-free.
