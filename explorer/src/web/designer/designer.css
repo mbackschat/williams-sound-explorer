@@ -173,14 +173,14 @@
   display: grid;
   grid-template-rows: repeat(8, auto);
   grid-auto-flow: column;
-  /* Williams names max out at 6 chars (`CLDWNV`, `FOSHIT`, `QUASAR`, `MOSQTO`)
-     and our auto-added VARI default is `My $XX` (also 6).  So we size cells
-     for a 7-char input (leaves room for a one-char user rename without
-     immediately scrolling) + the 9-char `$XX GWAVE` code label.  Fixed
-     11.5rem cells (not `1fr`) so columns don't stretch to fill — the list
-     takes only the width it needs, leaving room for the editor on wide
-     viewports.  Longer user-typed names scroll within the input on focus. */
-  grid-auto-columns: 11.5rem;
+  /* Williams names max out at 6 chars (`CLDWNV`, `FOSHIT`, `QUASAR`, `MOSQTO`),
+     and the auto-added VARI default `My $XX` is also 6.  But the **Copy VARI**
+     dropdown pastes cross-game labels like `Stargate FOSHIT` (15 chars), so
+     we leave ~50% headroom over the bare minimum so those don't immediately
+     scroll/clip.  Fixed 17rem cells (not `1fr`) keep the list at the width
+     it actually needs.  Longer than ~12 chars still scrolls within the
+     input on focus — that's intentional. */
+  grid-auto-columns: 17rem;
   gap: 0.25rem 0.5rem;
   margin: 0.4rem 0 0.2rem;
   width: max-content;
@@ -190,6 +190,13 @@
 .designer-item {
   display: flex; align-items: center; gap: 0.5rem; padding: 0.18rem 0.5rem;
   background: #1a1d24; border: 1px solid #2a2f37; border-radius: 4px; cursor: pointer;
+  /* `min-width: 0` overrides CSS Grid's default `min-width: auto`, which
+     would otherwise size each track to its widest item — that's how a
+     single long copy-from label like "Stargate FOSHIT" was making one
+     column wider than the others.  With 0, cells stay at the column's
+     fixed width (`grid-auto-columns: 17rem`) and overflowing input text
+     scrolls inside the input instead of stretching the column. */
+  min-width: 0;
 }
 .designer-item:hover { background: #22262e; }
 .designer-item.active { border-color: #ffd866; background: #2a2a1e; }
@@ -203,12 +210,12 @@
    that bloated each cell. */
 .designer-item-code { font-family: ui-monospace, monospace; font-size: 0.72rem; color: #9098a6; min-width: 4.5rem; }
 .designer-item-name {
-  /* Sized for Williams's max stock name (6 chars: CLDWNV / FOSHIT / QUASAR /
-     MOSQTO) plus a couple of slack chars for the user to rename in place
-     without immediate horizontal scrolling.  `flex: 0 0 5rem` fixes the
-     visible field at 5 rem — longer typed names scroll within the input
-     on focus, not by stretching the cell. */
-  flex: 0 0 5rem; width: 5rem; min-width: 0;
+  /* Sized to comfortably fit the longest *seen* names in practice — the
+     copy-from dropdown's cross-game labels like "Stargate FOSHIT" (15 chars).
+     Williams's own stock names cap at 6 chars; the extra ~50% room here is
+     for those cross-game copies + a bit of user-rename slack.  Anything
+     longer scrolls inside the input on focus. */
+  flex: 0 0 9rem; width: 9rem; min-width: 0;
   background: transparent; border: 1px solid transparent; border-radius: 3px;
   color: #d1d4dc; font: inherit; padding: 0.15rem 0.3rem;
 }
