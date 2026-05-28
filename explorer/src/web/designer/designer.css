@@ -173,10 +173,16 @@
   display: grid;
   grid-template-rows: repeat(8, auto);
   grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 1fr);
-  gap: 0.25rem 0.6rem;
+  /* Item content is tight: dot + "$XX GWAVE" label (~5.5rem) + a short name
+     (most ROM names are 4–6 chars, longest is "Defender SAW" ~12).  Fixed
+     14rem cells (not `1fr`) so columns don't stretch to fill the container
+     — the list takes only the width it needs, leaving room for the editor
+     beside it on wide viewports. */
+  grid-auto-columns: 14rem;
+  gap: 0.25rem 0.5rem;
   margin: 0.4rem 0 0.2rem;
-  max-width: 80rem;
+  width: max-content;
+  max-width: 100%;
 }
 .designer-empty { grid-column: 1 / -1; } /* span all columns when the list is empty */
 .designer-item {
