@@ -491,7 +491,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const srcEditedBtn = el("button", { className: "active", textContent: "Edited", title: "Audition your edited sound." });
   const srcStartBtn = el("button", { textContent: "Start", title: "Audition the sound's starting point (as copied/created)." });
   const sourceToggle = el("div", { className: "designer-source game-switcher", role: "radiogroup" }, [srcEditedBtn, srcStartBtn]);
-  const diffBtn = el("button", { textContent: "⇄ Diff", title: "Overlay the starting point (grey) + divergence (red) behind the live trace." });
+  const diffBtn = el("button", { className: "designer-diff", textContent: "⇄ Diff", title: "Overlay the starting point (grey) + divergence (red) behind the live trace." });
   const volSlider = el("input", { type: "range", min: "0", max: "1", step: "0.01", value: String(volume), className: "designer-vol" });
   loopBtn.setAttribute("aria-pressed", "false");
   diffBtn.setAttribute("aria-pressed", "false");

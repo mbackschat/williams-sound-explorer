@@ -274,4 +274,42 @@ export const entries: Entry[] = [
     ],
     shot: { clip: "#designer-root", file: img("designer-gwave-remove-waveform") },
   },
+
+  // Item-list close-up (MANUAL_DESIGNER illustration) — a tight clip of just the
+  // populated list so the five engine colour-tags, the stock/edited dots, and
+  // the 7-row column flow are legible (the full-root hero is too zoomed out).
+  {
+    id: "designer-item-list",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+    ],
+    assert: [{ attrContains: [".designer-item[data-cmd='18'][data-kind='radio']", "data-kind", "radio"] }],
+    shot: { clip: ".designer-items", file: img("designer-item-list") },
+  },
+
+  // Diff overlay (MANUAL_DESIGNER illustration) — select BBSV, make a large edit
+  // (+ New waveform), toggle Diff on, and shoot the scope: the start (grey ghost)
+  // + the divergence (red) sit behind the live trace. Illustrates the A/B + Diff
+  // feature, which nothing else captures.
+  {
+    id: "designer-diff",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { click: ".designer-item[data-cmd='05'][data-kind='gwave']" },
+      { waitMs: 600 },
+      { click: ".designer-wfcanvas-add" }, // big edit so the diff is clearly visible
+      { waitMs: 700 },
+      { click: ".designer-diff" },          // toggle Diff overlay on
+      { waitMs: 400 },
+    ],
+    assert: [
+      { hasClass: [".designer-diff", "toggle-on"] },
+      { canvasNonBlank: ".designer-scope" },
+    ],
+    shot: { clip: ".designer-edit", file: img("designer-diff") },
+  },
 ];
