@@ -86,14 +86,20 @@ Most tools for these sounds either *play* them (emulators) or *document* them (d
 
 ### vs. Defender Sound Studio (msarnoff, 2020)
 
-The closest peer: [Defender Sound Studio](https://zapspace.net/defender_sound/), a browser tool by Daniel Lopez (msarnoff) that lets you pick a Defender sound, tweak its parameters, and hear it, with an oscilloscope/FFT and JSON preset import/export. WSED deliberately reuses two of its good ideas — labelled parameter controls with tooltips, and JSON import/export — but differs in four ways:
+The closest peer: [Defender Sound Studio](https://zapspace.net/defender_sound/), a browser tool by Daniel Lopez (msarnoff) that lets you pick a Defender sound, tweak its parameters, and hear it, with an oscilloscope/FFT and JSON preset import/export. WSED deliberately reuses two of its good ideas — labelled parameter controls with tooltips, and JSON import/export — but differs in five ways:
+
+**By design:**
 
 - **Real ROM, not a re-implementation.** The Studio is a hand-written JavaScript port of each routine; WSED runs the **actual ROM bytes** on a cycle-accurate 6802 emulator, so it's bit-faithful and any valid ROM works unchanged.
 - **Three games, not one.** Defender only, vs. WSED's Defender + Stargate + Robotron.
-- **Far more visible.** WSED adds the DAC byte-tape, the routine swimlane, LFSR/engine state, the RAM heatmap, the spectrogram, the scrubber, and single-step — none of which the Studio has.
-- **Design, not just tweak.** WSED's Design mode **builds a custom ROM** with its own list of new sounds at new command codes; **Open in Explore** then drops that custom ROM into Explore's live worklet, so every visualisation (and pause/step/scrub) runs on your authored sound. The Studio only tweaks existing presets in a JS re-implementation.
+- **Explore + Design, not just tweak.** WSED has a separate **Explore** mode (DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrubber, single-step) — and the Designer's **Open in Explore** + **↓ .bin** push your custom ROM into Explore's live pipeline or MAME respectively. The Studio is play-and-tweak only.
+- **`.bin` round-trip.** WSED's Designer downloads a runnable custom ROM you can load in MAME or burn to EPROM, and uploads it back to keep editing. The Studio's saved artefact is a JSON preset that stays in the browser.
 
-→ [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md); the detailed feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
+**Current state (editor coverage):**
+
+The Studio's 9 UI tabs edit **6 of Defender's data-driven sound engines** today (the other 3 are parameterless in the ROM). WSED currently edits **2 of those engines (VARI + GWAVE)** but across all three games; **LFSR and FNOISE editors are planned next** (research done — see `plans/designer-mode.md` Phases 7 + 8), at which point editor coverage matches the Studio's, with WSED still running the actual ROMs over three games rather than a hand-port over one.
+
+→ [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md); the full feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
 ### vs. disassemblies & write-ups
 

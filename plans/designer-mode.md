@@ -20,6 +20,8 @@
 | 5b.polish | **× Remove** waveform + **ROM-space indicator** + **↻ Reset record** (closes the add/edit/remove triad; surfaces the layout budget *before* a build throws) | ✅ shipped 2026-05-28 |
 | 6.1 | **"Fork-the-game" pre-populated item list** — *New Project* opens with every editable command pre-loaded; stock-vs-edited dot indicator; sparse on disk | ✅ shipped 2026-05-28 |
 | 6.2 | **Download + Upload `.bin`** — closes the copy → modify → download → MAME → upload → modify loop | ✅ shipped 2026-05-28 (v1 full fidelity) |
+| 7 | **LFSR editor** (LITE / APPEAR / TURBO / LAUNCH …) — third engine, parameter patches in caller immediates | 📋 planned (research done — see § Phase 7) |
+| 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | 📋 planned (research done — see § Phase 8) |
 
 Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
 
@@ -181,6 +183,142 @@ This is the architectural inversion of how Phase 6 would have been done with the
 
 - **Storing ROM bytes in the recipe** — locked-out in Phase 1; #3 of the "fork-the-game" interpretations (the user surfaced it explicitly to ask if it was the intent — it isn't, and it shouldn't be).
 - **Editing non-data-driven engines (SCREAM / ORGAN / RADIO / NOISE / FNOISE / HYPER)** — bespoke code per sound, not data-authorable. Stock entries in the populated list for those engines would only be **viewable** (their command code + name shown for context), not editable. Decision pending — easier to *omit* them from the populated list than to render them as locked rows; revisit if users ask.
+
+---
+
+---
+
+## Phase 7 — LFSR editor (planned)
+
+The third engine: the LFSR noise family that produces **LITE** (lightning), **APPEAR** (enemy-appear descent), **TURBO** (turbo burst), and Robotron's **LAUNCH**. Same architectural pattern as VARI + GWAVE — override-in-place editor — but with one structural twist: **parameters are immediate operands in caller code, not in a parameter table**.
+
+### Foundations (verified — see `research/findings_designer_feasibility.md` § LFSR)
+
+- All three games share the kernel shape `LITEN` / `NOISE` (Robotron renames `NOISE` to `MOISE` in source).
+- Per-sound callers (`LITE` / `APPEAR` / `TURBO` / `LAUNCH`) pre-load the kernel's working registers via 2–4 `LDAA/LDAB/LDX #<imm>` writes, then `BRA` into the kernel.
+- The "record" is a virtual one: a logical set of fields the editor reads from / writes to specific operand bytes at known caller addresses.
+- Caller addresses are per-game (Defender/Stargate share; Robotron's are different). All addresses already documented in the explorer's label-map JSON (`{game}_labelmap.json`).
+
+### Per-sound record layouts
+
+| Caller (cmd → label) | Defender / Stargate addr | Robotron addr | Editable fields |
+|---|---|---|---|
+| `$11 LITE` | `$F88C` | `$F55A` | `DFREQ`, `LFREQ_start`, `CYCNT` |
+| `$15 APPEAR` | `$F894` | `$F562` | `DFREQ`, `LFREQ_start`, `CYCNT` |
+| `$14 TURBO` | `$F8CD` | `$F59B` | `CYCNT_NFFLG`, `DECAY`, `NFRQ1_hi`, `NFRQ1_lo`, `NAMP` |
+| `$39 LAUNCH` (Robotron only) | — | `$F550` | `DFREQ`, `LFREQ_start`, `CYCNT` |
+
+(Robotron's wider catalogue also routes `$2C..$3E` through JMPTBL to additional SCREAM/SING variants — those are out of LFSR scope.)
+
+### Build order
+
+1. **Headless core** (`explorer/src/engine/lfsrEdit.ts`, TDD):
+   - `LFSR_RECORD_LAYOUT: Record<GameKind, Record<number, FieldDescriptor[]>>` — per-game, per-cmd field map (offset within the caller's instruction sequence, signed flag, displayable max).
+   - `lfsrCommandsFor(game)` — returns `[{ cmd, label, callerAddr }]`.
+   - `readLfsrRecord(rom, game, cmd)` / `patchLfsrRecord(rom, game, cmd, fields)`.
+   - Unit tests: golden bytes for LITE / APPEAR / TURBO / LAUNCH read against the real ROMs; round-trip; out-of-range guards.
+
+2. **`buildCustomRom` extension** (`explorer/src/engine/customRom.ts`):
+   - Add `kind: "lfsr"` to `CustomSlot`. Build flow: locate caller, write each field's bytes at its operand offset. No table relocation, no mask widening (LFSR codes are in the JMPTBL middle band, already wired).
+   - Tests: round-trip on the real ROMs; ensure the unedited path is byte-identical to the base.
+
+3. **Designer UI** (`explorer/src/web/designer/lfsrEditor.ts` + wiring in `designerMode.ts`):
+   - Per-sound slider panel (each sound has a *different* set of fields — the editor renders only the fields its caller actually sets).
+   - Pre-populate the item list with `$11 LFSR LITE` / `$14 LFSR TURBO` / `$15 LFSR APPEAR` (+ Robotron's `$39 LAUNCH`); same stock/edited dot indicator as Phase 6.1.
+   - Audition / Open-in-Explore / ↓ .bin / ↑ .bin all work transparently — the build path is the only place that branches by kind.
+   - Smoke capture: `designer-lfsr-overview` mirroring the existing GWAVE one.
+
+### Scope estimate
+
+- Phase 7.1 (headless + tests): ~2 h.
+- Phase 7.2 (customRom integration): ~1 h.
+- Phase 7.3 (Designer UI + smoke + doc sweep): ~3 h.
+- **Total: ~6 h** end-to-end including the doc sweep + capture refresh.
+
+### Out of scope
+
+- Adding *new* LFSR command codes (same dispatcher constraint as Phase 5 GWAVE — would need code injection, not data patching). Override-in-place only.
+- Editing the LFSR's tap-network polynomial (it's a global instruction sequence shared by every LFSR/NOISE/FNOISE sound — changing taps would affect them all uniformly and isn't a useful per-sound knob).
+
+---
+
+## Phase 8 — FNOISE editor (planned)
+
+The fourth engine: filtered noise (slope-limited DAC walk). Sounds: **BG1** (background drone), **THRUST**, **CANNON**, plus Robotron's **HBOMB**. **The interesting part — this engine has split authorability across games:**
+
+- **Robotron** has a clean **`FNTAB` data table** at `$F785` with 4 records of 6 bytes each — fully data-driven, identical shape to VARI's `VVECT` and GWAVE's `SVTAB`. Source comments on CANTB literally say *"DEFENDER SND #$17"*, confirming Robotron's authors extracted the parameters from Defender's inline code into a table.
+- **Defender / Stargate** have the same parameters but **inline** in the caller code (same shape as LFSR — `LDAA/LDAB/LDX #<imm>` before `BRA FNOISE`).
+
+Both paths land at the same kernel (`FNOISE` `$F930` Defender/Stargate, `$F7B3` Robotron via `FNLOAD` `$F7A5`).
+
+### Foundations (verified — see `research/findings_designer_feasibility.md` § FNOISE)
+
+**FNTAB record layout (Robotron, 6 bytes):**
+
+| Offset | Field | Meaning |
+|---|---|---|
+| 0 | `DSFLG` | Distortion flag (0 = clean, 1 = AND with LFSR HI for instantaneous chaos) |
+| 1 | `LOFRQ` | Initial lower-frequency latch |
+| 2 | `FDFLG` | Frequency-decay flag |
+| 3 | `FMAX` | Initial max slope per walk step |
+| 4 | `SAMPC` hi | Sample count (16-bit BE) between LFSR redraws |
+| 5 | `SAMPC` lo | ↑ |
+
+**Defender/Stargate inline (per-caller):**
+
+| Caller | Editable bytes |
+|---|---|
+| `$0F BG1` | DSFLG only (rest inherits prior register state — partial editability) |
+| `$16 THRUST` | DSFLG, FMAX |
+| `$17 CANNON` | DSFLG, SAMPC_hi, SAMPC_lo, FDFLG, FMAX |
+
+### Build order
+
+1. **Headless core** (`explorer/src/engine/fnoiseEdit.ts`, TDD):
+   - Per-game branch: Robotron uses `FNTAB_BASE = $F785` + stride 6 (clean indexed read/write); Defender/Stargate use a per-caller operand-offset table.
+   - Common surface: `readFnoiseRecord(rom, game, cmd)` / `patchFnoiseRecord(rom, game, cmd, fields)` return / accept the 6 logical fields regardless of game.
+   - `fnoiseCommandsFor(game)` — returns `[{ cmd, label, recordKind: "table" | "inline" }]`.
+   - Unit tests: byte-for-byte read on each game's stock ROM; round-trip; the FNTAB table vs inline-code paths produce identical logical records for sounds shared between Defender and Robotron (e.g. THRUST `$16`).
+
+2. **`buildCustomRom` extension**:
+   - Add `kind: "fnoise"` to `CustomSlot`. Build branches on game: write FNTAB record on Robotron; rewrite caller-code immediates on Defender/Stargate.
+   - **Robotron unlocks HBOMB** (`$3E`) — no Defender/Stargate equivalent, since `FNTAB[HBMBTB]` is Robotron-only. The editor surfaces HBOMB only on Robotron engine base.
+   - Tests: cross-game equivalence for THRUST `$16` — editing the *same logical record* on Defender vs Robotron produces semantically identical sound output (their kernels are byte-identical).
+
+3. **Designer UI** (`explorer/src/web/designer/fnoiseEditor.ts`):
+   - 6 sliders for the logical record. On Defender/Stargate's BG1 (inline, partial editability), the sliders for inherited fields are disabled with a tooltip ("This field inherits prior CPU state on Defender/Stargate; only Robotron's BG1 lets you set it explicitly. Switch engine base to edit.").
+   - Pre-populate the item list with the per-game set: BG1 / THRUST / CANNON on all games; HBOMB on Robotron only.
+   - Same stock/edited dot indicator as Phase 6.1.
+   - Smoke captures: `designer-fnoise-overview` + `designer-fnoise-cross-game` (round-trip THRUST between Defender and Robotron).
+
+### Scope estimate
+
+- Phase 8.1 (headless dual-path core): ~3 h (Robotron table easy; Defender/Stargate inline-immediate scan + tests).
+- Phase 8.2 (customRom integration): ~1 h.
+- Phase 8.3 (Designer UI + smoke + doc sweep): ~3 h.
+- **Total: ~7 h** end-to-end.
+
+### Out of scope
+
+- Adding new FNOISE codes (same blocker as GWAVE — dispatcher widen needed, not on roadmap).
+- Editing the global LFSR taps that drive the random redraws (shared with LFSR — same out-of-scope reasoning).
+
+---
+
+## Engine coverage after Phases 7 + 8
+
+| Engine | Authoring shape | Status after Phases 7+8 |
+|---|---|---|
+| VARI | 9-byte VVECT record | ✅ shipped (Phase 1) |
+| GWAVE | 7-byte SVTAB + GWVTAB + GFRTAB | ✅ shipped (Phase 5) |
+| **LFSR** | inline immediates in caller code | 📋 **Phase 7** |
+| **FNOISE** | FNTAB (Robotron) / inline (Defender/Stargate) | 📋 **Phase 8** |
+| SCREAM | **bespoke** — no preset record | ❌ not authorable as data |
+| ORGAN | tune data (`ORGTAB` 4 B/note) + self-modifying RAM pitch | ❌ pitch needs an assembler |
+| RADIO ($18) | likely small wavetable + phase-accum (needs spike) | ❌ not on roadmap |
+| HYPER ($19) | likely PWM sweep (needs spike) | ❌ not on roadmap |
+
+After Phases 7+8: **4 of the 6 nominally data-driven Williams engines** editable in the Designer — matching the Defender Sound Studio's coverage (GWAVE / VARI / FNOISE / LFSR + 2 sub-variants) while spanning **3 games** instead of 1.
 
 ---
 

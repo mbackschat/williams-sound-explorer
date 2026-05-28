@@ -104,20 +104,39 @@ Shortcuts are ignored while you're typing in the project name, slot name, or any
 
 ## How it compares to the original "Sound Designer"
 
-The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.net/defender_sound/)** (2020) — see [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md). It pioneered the idea of *tweak a Williams sound's parameters in the browser and hear it*, and we deliberately reuse two of its good ideas: **labelled parameter controls with in-place tooltips**, and **JSON preset import/export**. Where this mode differs:
+The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.net/defender_sound/)** (2020) — see [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md). It pioneered the idea of *tweak a Williams sound's parameters in the browser and hear it*, and we deliberately reuse two of its good ideas: **labelled parameter controls with in-place tooltips**, and **JSON preset import/export**. Two differences shape everything else: WSED runs the **real ROMs** on a cycle-accurate 6802 emulator instead of a JS re-implementation, and WSED is **explore + design**, not just design.
 
-| | Defender Sound Studio (2020) | Design mode here |
+### By design (architecture)
+
+| | Defender Sound Studio (2020) | WSED |
 |---|---|---|
-| **How sounds run** | each ROM routine hand-ported to JavaScript | the **real ROMs** on a cycle-accurate 6802 emulator (bit-faithful) |
-| **Games** | Defender only | Defender, Stargate, **and** Robotron |
-| **What you make** | tweak one handler's existing preset | your **own custom ROM** — copy/new VARI sounds in your **own named item list**, at **new command codes** |
-| **Editing** | numeric inputs + tooltips | sliders + tooltips (same idea) |
-| **Comparing** | — | **A/B** (Edited vs Start) + a visual **Diff** overlay |
-| **Seeing** | oscilloscope + FFT | + DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrub, single-step — via **Open in Explore** the custom ROM runs in Explore's live pipeline |
-| **Saving** | JSON preset | JSON recipe — **zero ROM bytes**, reconstituted against your own ROM |
+| **How sounds run** | each ROM routine hand-ported to JavaScript | the **real ROM bytes** on a cycle-accurate 6802 emulator (bit-faithful — any valid ROM image works unchanged) |
+| **Scope** | Defender only | **Defender, Stargate, and Robotron** sharing one explorer surface |
+| **Saved artefact** | JSON preset of parameter values | JSON recipe (sparse — only your edits) **and** the runnable custom `.bin` ROM image — see *Save / share / export* above. Recipe is zero-ROM-bytes, safe to share; `.bin` carries copyrighted bytes and is for personal use |
+| **Round-trip** | edit → play in browser | **edit → play in browser → ↓ .bin → load in MAME / burn EPROM → ↑ .bin → continue editing** |
+| **Explore vs Design** | tweak-and-play only | a separate **Explore** mode with the DAC byte-tape, routine swimlane, LFSR/engine state, RAM heatmap, spectrogram, scrubber, single-step — and **Open in Explore** drops your custom ROM into that live pipeline so every visualisation runs on your authored sound |
+| **A/B + diff** | — | **Source: Edited│Start** toggle (the slot's bytes when copied/created vs. now) + a **Diff** scope overlay |
 
-In short: the Studio *tweaks* one game's existing sounds with a JS re-implementation; this builds a **new custom ROM** of sounds across all three games on the actual emulated hardware.
+### Engine coverage (current state)
+
+The Studio has 9 UI tabs covering Defender's full dispatched sound surface, with **6 of them editable** (the other 3 are parameterless in the ROM, so they're "just hit play"). WSED currently has **2 engines editable** (**VARI** and **GWAVE**) across all three games — and 2 more are **planned with research done** (LFSR + FNOISE; see `plans/designer-mode.md` Phases 7 + 8).
+
+| Engine | Sound Studio | WSED today | WSED after Phases 7 + 8 |
+|---|---|---|---|
+| **GWAVE** (wavetable + envelope) | ✅ G-wave tab | ✅ shipped | ✅ |
+| **VARI** (pulse-train sweep) | ✅ Pulses tab | ✅ shipped | ✅ |
+| **LFSR** (LITE, APPEAR, TURBO, …) | ✅ Smooth/Square/Player-shoot/Sweeps tabs | ❌ | 📋 Phase 7 |
+| **FNOISE** (BG1, THRUST, CANNON, HBOMB) | ✅ Smooth noise tab | ❌ | 📋 Phase 8 |
+| **SCREAM** ($1A humanoid fall) | ❌ "just hit play" (no preset record in ROM) | ❌ same blocker | ❌ same blocker |
+| **HYPER** ($19 insert credit) | ❌ "just hit play" | ❌ | ❌ |
+| **ORGAN** tunes | ❌ (its *Music* tab is a separate sequencer) | ❌ — pitch is self-modifying code | ❌ — same blocker |
+
+**So on Defender alone, the Studio currently edits more engines than WSED. After Phases 7 + 8 the editor coverage is equivalent** (both edit the four data-driven engines), with WSED extending across three games rather than one and running the actual ROMs rather than a hand-port.
+
+### In short
+
+The Studio *tweaks* one game's existing sounds with a JS re-implementation. WSED **edits the actual ROMs** of all three games and **builds a runnable custom ROM** you can take to MAME or a real cabinet.
 
 ## Limits
 
-VARI only, on a **Defender/Stargate** engine base. You can't yet copy/edit the other engines (GWAVE wavetables, SCREAM, ORGAN tunes) or use Robotron as the engine base — those are planned follow-ups (see [`docs/designer_implementation.md`](docs/designer_implementation.md)). For pause/step/scrub on a custom sound, use **Open in Explore** above.
+The Designer covers **VARI** and **GWAVE** today; LFSR and FNOISE are next (planned — see `plans/designer-mode.md`). SCREAM, HYPER, and ORGAN pitch aren't authorable as data without an in-browser 6800 assembler, which WSED deliberately does not include. Robotron as a VARI engine base is also a future item (its dispatcher is non-linear). For pause/step/scrub on a custom sound, use **Open in Explore** above.

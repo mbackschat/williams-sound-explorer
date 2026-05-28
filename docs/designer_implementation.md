@@ -304,6 +304,15 @@ Closes the *edit → MAME → upload → edit* loop. Two halves:
 
 **Tests:** 13 new in `tests/projectFromBin.test.ts` exercising every detection path in isolation + a kitchen-sink round-trip that combines all six. **545 tests total** (was 532). Capture entry `designer-bin-roundtrip` covers the UI wiring end-to-end (edit BBSV → ↓ .bin → ↑ .bin → status reports the reconstructed edit).
 
+## Planned engines — LFSR (Phase 7) + FNOISE (Phase 8)
+
+The Designer currently edits 2 of Williams's data-driven engines: VARI + GWAVE. Research for the next two — **LFSR** (LITE / APPEAR / TURBO / LAUNCH) and **FNOISE** (BG1 / THRUST / CANNON / HBOMB) — is done (`research/findings_designer_feasibility.md`); the full plan lives in `plans/designer-mode.md` § Phase 7 + Phase 8. Short version:
+
+- **LFSR** — same architectural pattern as VARI + GWAVE (override-in-place editor) but parameters are **immediate operands in caller code**, not in a parameter table. The editor's "record" is a virtual one: a logical set of fields mapped to specific operand bytes at known caller addresses (`LITE` `$F88C` Defender/Stargate / `$F55A` Robotron, etc.). Pure byte patches — no instruction restructure, no in-browser assembler.
+- **FNOISE** — **split personality across games.** Robotron has a proper **6-byte `FNTAB` data table** at `$F785` (clean indexed authoring, identical shape to VARI's `VVECT`); Defender / Stargate have the same parameters but inline in caller code (same shape as LFSR). One headless module branches by game; the UI exposes the same 6 logical fields regardless.
+
+After Phases 7 + 8, WSED's editor coverage matches the Defender Sound Studio's (4 data-driven engines: GWAVE / VARI / LFSR / FNOISE), while spanning 3 games and running the actual ROMs rather than a hand-port. SCREAM / HYPER / ORGAN-pitch remain out-of-scope by design (need an assembler we deliberately don't ship).
+
 ## Fast-follows (not yet built)
 
 - **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.

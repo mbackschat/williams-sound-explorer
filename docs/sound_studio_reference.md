@@ -1,6 +1,8 @@
 # Defender Sound Studio — Prior-Art Reference
 
 > Summary of what to learn from msarnoff's *Defender Sound Studio* (`zapspace.net/defender_sound/`) — the closest existing browser-based exploration tool. Use as input for your own design. Full deep-dive: `research/findings_sound_studio.md`.
+>
+> **WSED vs. Studio — quick read:** today WSED edits **2 of the Studio's 6 editable engines** (VARI + GWAVE) but across **3 games** instead of 1, and runs the **actual ROMs** instead of a hand-port. **LFSR + FNOISE editors are planned next** (`plans/designer-mode.md` Phases 7 + 8 — research done, byte-level details in `research/findings_designer_feasibility.md`), which closes the per-engine gap. The full feature-by-feature table is in `MANUAL_DESIGNER.md` § *How it compares*.
 
 ## What it is
 
