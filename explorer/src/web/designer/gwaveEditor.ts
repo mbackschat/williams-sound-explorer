@@ -17,7 +17,7 @@
  * slot selection.  The host owns the record; this panel is a pure view that
  * fires its callbacks per slider tweak / per canvas stroke.
  */
-import { GWAVE_FIELDS, getField, setField, STOCK_WAVE_NAMES, STOCK_WAVE_LENGTHS, type GWaveField } from "../../engine/gwaveEdit.ts";
+import { GWAVE_FIELDS, getField, setField, STOCK_WAVE_NAMES, DEFAULT_NEW_WAVE_LENGTH, type GWaveField } from "../../engine/gwaveEdit.ts";
 
 export interface GWaveEditorApi {
   /** The slider panel (SVTAB record editor) — column 1 in the GWAVE 3-column layout. */
@@ -49,11 +49,19 @@ export interface GWaveEditorApi {
   currentPatternOffset(): number;
   /** Current pitch-pattern length (SVTAB byte 5). */
   currentPatternLength(): number;
+  /**
+   * Phase 5 step 4: clamp the WAVE# slider's max attribute so the user
+   * can only pick indices that *exist* in the project's GWVTAB.  Pass the
+   * highest valid index (6 = stock-only, 6+N = N added waveforms).
+   */
+  setMaxWaveIdx(maxIdx: number): void;
 }
 
 function fmtValue(field: GWaveField, value: number): string {
   if (field.label === "WAVE#") {
-    const name = STOCK_WAVE_NAMES[value] ?? "?";
+    // Stock waves 0..6 have ROM names; user-added waves at 7..15 print as
+    // "user-added" so the slider readout still tells you what you're on.
+    const name = value <= 6 ? (STOCK_WAVE_NAMES[value] ?? "?") : "user-added";
     return `${value} (${name})`;
   }
   const hex = `$${value.toString(16).toUpperCase().padStart(field.packing === "byte" ? 2 : 1, "0")}`;
@@ -67,6 +75,7 @@ export function buildGWaveEditor(
   onWaveformReset: (idx: number) => void,
   onPatternDraw: (offset: number, bytes: number[]) => void,
   onPatternReset: (offset: number) => void,
+  onAddWaveform: () => void,
 ): GWaveEditorApi {
   let record: number[] = new Array(7).fill(0);
 
@@ -146,10 +155,23 @@ export function buildGWaveEditor(
   const resetBtn = document.createElement("button");
   resetBtn.className = "designer-wfcanvas-reset";
   resetBtn.textContent = "Reset to stock";
-  resetBtn.title = "Revert this waveform's bytes to the base ROM's original (clears the project's override for this WAVE#).";
+  resetBtn.title = "Revert this waveform's bytes to the base ROM's original (clears the project's override for this WAVE#). Only applies to stock waves 0..6.";
   resetBtn.addEventListener("click", () => onWaveformReset(currentWaveIdx()));
 
-  canvasHost.append(canvasLabel, canvas, sharedRow, resetBtn);
+  // "+ New waveform" button (Phase 5 step 4) — appends a fresh user-added
+  // wave at idx (6 + addedCount + 1) and switches the slot's WAVE# to it.
+  // Hidden when the WAVE# nybble's added-wave budget is full (9 max).
+  const addWaveBtn = document.createElement("button");
+  addWaveBtn.className = "designer-wfcanvas-add";
+  addWaveBtn.textContent = "+ New waveform";
+  addWaveBtn.title = `Add a new ${DEFAULT_NEW_WAVE_LENGTH}-byte waveform to the project. Custom ROM relocates GWVTAB and switches this slot's WAVE# to the new index. Costs ~${DEFAULT_NEW_WAVE_LENGTH + 1} bytes of free ROM space.`;
+  addWaveBtn.addEventListener("click", () => onAddWaveform());
+
+  const wfButtons = document.createElement("div");
+  wfButtons.className = "designer-wfcanvas-btns";
+  wfButtons.append(resetBtn, addWaveBtn);
+
+  canvasHost.append(canvasLabel, canvas, sharedRow, wfButtons);
   // `canvasHost` is now `waveformPanelEl` (column 2 of the GWAVE edit row).
 
   function redrawCanvas(): void {
@@ -212,10 +234,13 @@ export function buildGWaveEditor(
   function setWaveform(bytes: number[], sharedBy: { cmd: number; name: string }[], isOverridden: boolean): void {
     wfBytes = [...bytes];
     wfIdxAtPaint = currentWaveIdx();
-    const name = STOCK_WAVE_NAMES[wfIdxAtPaint] ?? "?";
-    const overrideMark = isOverridden ? " · edited" : "";
-    canvasLabel.textContent = `Waveform — ${wfIdxAtPaint} ${name} (${STOCK_WAVE_LENGTHS[wfIdxAtPaint] ?? "?"} bytes)${overrideMark}`;
-    canvasLabel.dataset.overridden = isOverridden ? "1" : "0";
+    const isStock = wfIdxAtPaint <= 6;
+    const name = isStock ? (STOCK_WAVE_NAMES[wfIdxAtPaint] ?? "?") : "user-added";
+    const overrideMark = isStock
+      ? (isOverridden ? " · edited" : "")
+      : " · user-added";
+    canvasLabel.textContent = `Waveform — ${wfIdxAtPaint} ${name} (${bytes.length} bytes)${overrideMark}`;
+    canvasLabel.dataset.overridden = isStock ? (isOverridden ? "1" : "0") : "1";
     // "Shared by" — every editable GWAVE command that points at this idx via
     // its SVTAB byte-1 low nybble.  The user's current edit affects all of
     // them, so the warning is the right place to say so.
@@ -362,5 +387,13 @@ export function buildGWaveEditor(
     currentWaveIdx,
     currentPatternOffset,
     currentPatternLength,
+    setMaxWaveIdx(maxIdx: number): void {
+      // Find the WAVE# row and clamp its slider's max attribute.  The
+      // "+ New waveform" button hides itself when there's no room left
+      // (project has the maximum 9 added waveforms — WAVE# nybble is full).
+      const waveRow = rows.find((r) => r.field.label === "WAVE#");
+      if (waveRow) waveRow.slider.max = String(Math.max(0, Math.min(15, maxIdx)));
+      addWaveBtn.style.display = maxIdx >= 15 ? "none" : "";
+    },
   };
 }

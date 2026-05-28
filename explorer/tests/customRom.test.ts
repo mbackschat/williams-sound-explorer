@@ -20,7 +20,12 @@ import { resolve as pathResolve } from "node:path";
 import type { GameKind } from "../src/board/soundboard.ts";
 import { runSoundWithRom } from "../src/engine/runner.ts";
 import { readVariRecord, patchVariRecord } from "../src/engine/variEdit.ts";
-import { readGWaveRecord, patchGWaveRecord, readWaveform, patchWaveform, readPattern, patchPattern, STOCK_WAVE_LENGTHS } from "../src/engine/gwaveEdit.ts";
+import {
+  readGWaveRecord, patchGWaveRecord, readWaveform, patchWaveform,
+  readPattern, patchPattern, STOCK_WAVE_LENGTHS,
+  GWVTAB_BASE, LDX_GWVTAB_LOC,
+} from "../src/engine/gwaveEdit.ts";
+import { VVECT_BASE } from "../src/engine/variEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE } from "../src/engine/customRom.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -302,5 +307,104 @@ describe("Pitch-pattern overrides (Phase 5 step 3)", () => {
     expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 100: Array.from({ length: 100 }, () => 0) } })).toThrow(/GFRTAB|past/i);
     // out-of-range byte
     expect(() => buildCustomRom(base, "defender", [], { patternOverrides: { 0: [256] } })).toThrow(/range/i);
+  });
+});
+
+describe("Added waveforms (Phase 5 step 4) — GWVTAB relocation", () => {
+  // Helper: a 16-byte test waveform with a distinct shape so the kernel's
+  // output is unambiguously the user's bytes, not a stock waveform.
+  const TEST_WAVE_16 = [0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
+                       0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0xFF];
+
+  it("with no added waveforms, GWVTAB stays at its original address (no LDX patch)", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const custom = buildCustomRom(base, "defender", [{ kind: "vari", code: 0x1D, record: REC }]);
+    // The LDX operand at LDX_GWVTAB_LOC + 1 still points at GWVTAB_BASE.
+    const opOff = (LDX_GWVTAB_LOC.defender + 1) - 0xF800;
+    expect((custom[opOff]! << 8) | custom[opOff + 1]!).toBe(GWVTAB_BASE.defender);
+  });
+
+  it("with 1 added waveform, GWVTAB is relocated and LDX is repointed", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const custom = buildCustomRom(base, "defender", [], { addedWaveforms: [TEST_WAVE_16] });
+    const opOff = (LDX_GWVTAB_LOC.defender + 1) - 0xF800;
+    const newAddr = (custom[opOff]! << 8) | custom[opOff + 1]!;
+    // Relocated right after the stock 3-row VVECT (27 bytes).
+    expect(newAddr).toBe(VVECT_BASE.defender + 27);
+    // The first byte at the new GWVTAB address is the length byte for idx 0 (GS2 = 8).
+    expect(custom[newAddr - 0xF800]).toBe(8);
+  });
+
+  it("idx 7 reads the user's added waveform bytes — verified via SVTAB+WAVE# nybble", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // Build a project with one added wave at idx 7, and override BBSV ($05)
+    // to set WAVE# = 7 so its SVTAB record reads our new wave.
+    const bbsvBase = readGWaveRecord(base, "defender", 0x05);
+    const bbsv7 = [...bbsvBase];
+    bbsv7[1] = (bbsvBase[1]! & 0xF0) | 0x7; // keep GECDEC hi-nybble, set WAVE# = 7
+    const custom = buildCustomRom(
+      base, "defender",
+      [{ kind: "gwave", cmd: 0x05, record: bbsv7 }],
+      { addedWaveforms: [TEST_WAVE_16] },
+    );
+    // Walk to idx 7 in the relocated GWVTAB and confirm the bytes.
+    const opOff = (LDX_GWVTAB_LOC.defender + 1) - 0xF800;
+    const newAddr = (custom[opOff]! << 8) | custom[opOff + 1]!;
+    // Walk: 7 stock entries occupy 159 bytes, idx 7 starts at offset 159.
+    const idx7LenAt = newAddr - 0xF800 + 159;
+    expect(custom[idx7LenAt]).toBe(16);
+    expect(Array.from(custom.slice(idx7LenAt + 1, idx7LenAt + 17))).toEqual(TEST_WAVE_16);
+    // And the rendered command produces a non-stock DAC trace.
+    expect(eqSeq(dacValues(custom, "defender", 0x05), dacValues(base, "defender", 0x05))).toBe(false);
+  });
+
+  it("VARI slots + added waveform: VVECT before the relocated GWVTAB; both work", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // 4 VARI rows (codes $1D..$20) — push maxRow to 3 → VVECT extent = 36 bytes.
+    const sawRec = readVariRecord(base, "defender", 0x1D);
+    const custom = buildCustomRom(
+      base, "defender",
+      [
+        { kind: "vari", code: 0x1D, record: sawRec },
+        { kind: "vari", code: 0x20, record: sawRec }, // requires mask widen
+      ],
+      { addedWaveforms: [TEST_WAVE_16] },
+    );
+    const opOff = (LDX_GWVTAB_LOC.defender + 1) - 0xF800;
+    const newAddr = (custom[opOff]! << 8) | custom[opOff + 1]!;
+    // VVECT now occupies max(27, 4*9) = 36 bytes; new GWVTAB right after.
+    expect(newAddr).toBe(VVECT_BASE.defender + 36);
+    // Mask was widened ($20 > $1F).
+    expect(custom[(0xFCBD + 2) - 0xF800]).toBe(0x3F);
+    // VARI at $20 still works (plays SAW).
+    const variTruth = dacValues(patchVariRecord(base, "defender", 0x1D, sawRec), "defender", 0x1D);
+    expect(eqSeq(dacValues(custom, "defender", 0x20), variTruth)).toBe(true);
+  });
+
+  it("throws 'Won't fit' when VVECT + new GWVTAB exceeds the free region", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    // Pile on a high VARI code AND multiple added waves to overflow the
+    // 215-byte Defender region.  Code $30 → row $13 → VVECT extent 180 bytes;
+    // stock GWVTAB 159; 1 added wave 17 → 180 + 159 + 17 = 356, overrun 141.
+    const sawRec = readVariRecord(base, "defender", 0x1D);
+    expect(() =>
+      buildCustomRom(
+        base, "defender",
+        [{ kind: "vari", code: 0x30, record: sawRec }],
+        { addedWaveforms: [TEST_WAVE_16] },
+      ),
+    ).toThrow(/Won't fit|over by/i);
+  });
+
+  it("rejects more than 9 added waveforms (WAVE# is a 4-bit nybble)", () => {
+    if (!haveRom("defender")) return;
+    const base = loadRom("defender");
+    const tenWaves = Array.from({ length: 10 }, () => TEST_WAVE_16);
+    expect(() => buildCustomRom(base, "defender", [], { addedWaveforms: tenWaves })).toThrow(/9 added|nybble/i);
   });
 });

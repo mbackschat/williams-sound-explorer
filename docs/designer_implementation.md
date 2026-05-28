@@ -192,9 +192,43 @@ The original Designer layout dedicated half the screen to a tall audition scope 
 
 Result on a 1920×1080 viewport: the entire editor — header + items + 3-column edit row + audition strip + transport — fits with no scroll. Tests + capture entries are unchanged (the manifest entries assert *behaviour*, not pixel layout); `designer-gwave-overview.png` and `designer-gwave-audition-explore.png` were regenerated.
 
+## Phase 5b — Adding new waveforms (shipped 2026-05-28)
+
+Beyond the 7 stock waveforms, a project can carry up to **9 user-added waveforms** (idx 7..15 — the rest of the WAVE# nybble's range). When `addedWaveforms` is non-empty the builder **relocates the whole GWVTAB** into the free RADIO/ORGAN region of the ROM and **repoints `LDX #GWVTAB`** to that fresh address — a single 2-byte operand patch per game. Stock-idx overrides (Step 2) are folded into the relocated table so the in-place patch path doesn't double-write.
+
+**Headless additions** (`engine/gwaveEdit.ts`):
+- `LDX_GWVTAB_LOC` — the CPU address of the `CE` opcode whose operand is GWVTAB (Defender `$FBA8`, Stargate `$FB7E`, Robotron `$FA03`). Located by scanning each ROM for `CE <hi> <lo>` where `<hi><lo>` is `GWVTAB_BASE`; exactly one match per game.
+- `DEFAULT_NEW_WAVE_LENGTH = 16` — matches the most-used stock size.
+- `MAX_WAVE_IDX = 15` — the WAVE# nybble's range.
+- `buildExtendedGwvtab(rom, game, stockOverrides, addedWaves)` — emits the new GWVTAB byte sequence: stock 7 (with overrides applied) followed by user-added entries (each `[length, …samples]`). Tests cover identity (stock-only round-trip), overrides, appended waves, and the length/byte/range guards.
+- `extendedGwvtabSize(addedWaves)` — pre-flight size in bytes; `159 + sum(1 + addedWaves[k].length)`.
+
+**Custom-ROM builder** (`engine/customRom.ts`):
+- `BuildOptions.addedWaveforms?: number[][]` — ordered list mapped to idx 7..15. Capped at 9 (`WAVE#` is a 4-bit nybble). Empty/absent = the in-place Step 2 patch path stays; *any* entry = relocation path activates.
+- Relocation layout: VVECT first (extent = `max(27, (maxRow+1)*9)`); new GWVTAB right after. Free region = `GWVTAB_BASE[game] - VVECT_BASE[game]` (215 bytes on Defender, 271 on Stargate, 298 on Robotron). Throws `"Won't fit …"` with the overrun byte count if exceeded.
+- `LDX #GWVTAB` operand at `LDX_GWVTAB_LOC[game] + 1` is rewritten in place; one CE-opcode site per game (verified golden test).
+
+**Schema** (`web/designer/designerStore.ts`):
+- `CustomProject.addedWaveforms?: number[][]` — top-level ordered list. JSON round-trip + validation: at most 9 entries, each 1..255 bytes in 0..255 range. v1/v2/v3 on-disk shapes import without the field (`undefined`).
+
+**Designer UI** (`web/designer/gwaveEditor.ts` + `designerMode.ts`):
+- **+ New waveform** button under the waveform canvas — appends a 16-byte sine-seed wave, switches the slot's `WAVE#` to it, refreshes the canvas. Hidden when `addedWaveforms.length === 9` (cap reached).
+- `setMaxWaveIdx(maxIdx)` clamps the `WAVE#` slider's `max` attribute to the existing wave count so the user can only pick indices that exist.
+- Canvas label distinguishes stock (`Waveform — 4 GSQ22 (16 bytes)`) from user-added (`Waveform — 7 user-added (16 bytes) · user-added`).
+- WAVE# slider readout shows `7 (user-added)` for added indices.
+
+**Tests added by Phase 5b:** 10 new in `gwaveEdit.test.ts` (constants + `buildExtendedGwvtab` identity / overrides / appended / rejection + `extendedGwvtabSize`), 5 in `customRom.test.ts` (LDX patch present/absent / idx 7 reads user bytes / mixed with VARI / "won't fit" overrun / nybble cap), 5 in `designerStore.test.ts` (round-trip, absent, malformed, standalone, kitchen-sink with all four override channels). **+20 tests**, 520 total.
+
+**Capture entry:** `designer-gwave-added-waveform` exercises **+ New waveform** in the GWAVE override flow and shoots `#designer-root` — the slot's WAVE# is at 7, the canvas reads "user-added (16 bytes)", and the audition replays a non-stock trace.
+
+**Why these byte+code edits don't break pointers:**
+- Stock GWVTAB stays untouched if `addedWaveforms` is empty (in-place Step 2 path).
+- When relocated, **only `LDX #GWVTAB`'s operand changes** (one instruction patched); SVTAB, GFRTAB, and every other ROM pointer are untouched.
+- VVECT extension still works alongside relocation (rows-required + new-GWVTAB-size budget checked together — the builder throws cleanly when both want to grow beyond the free region).
+
 ## Fast-follows (not yet built)
 
-- **Adding new waveforms / new GWAVE codes** — both feasible, deferred to v-future (see `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis).
+- **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.
 - **Robotron as engine base for VARI** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band. (GWAVE on Robotron *is* supported now since it's in-place SVTAB patching.)
 - **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
 

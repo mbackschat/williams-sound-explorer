@@ -61,6 +61,35 @@ export function gfrtabMaxEnd(game: GameKind): number {
 }
 
 /**
+ * CPU address of the `LDX #GWVTAB` immediate-load instruction in `GWLD` —
+ * the byte at `[addr]` is the `CE` opcode and `[addr+1..addr+2]` is the
+ * big-endian operand pointing at GWVTAB.  Patching the operand to point
+ * at a relocated GWVTAB unlocks v-future Step 4 ("new waveforms"): we
+ * build a fresh GWVTAB with extra entries appended in the free RADIO/ORGAN
+ * region and repoint this one instruction to find it.  Found by scanning
+ * each ROM for `CE <GWVTAB hi> <GWVTAB lo>`; exactly one match per game.
+ */
+export const LDX_GWVTAB_LOC: Record<GameKind, number> = {
+  defender: 0xFBA8,
+  stargate: 0xFB7E,
+  robotron: 0xFA03,
+};
+
+/**
+ * Default length (sample bytes) used when the user adds a new waveform.
+ * 16 matches the most-used stock size (GS1, GS12, GSQ22, GS1.7) and gives
+ * a reasonable drawing resolution at the current canvas width.
+ */
+export const DEFAULT_NEW_WAVE_LENGTH = 16;
+
+/**
+ * `WAVE#` (the low nybble of SVTAB byte 1) is a 4-bit field, so a custom
+ * ROM can reference up to 16 waveform indices.  The stock 7 occupy idx
+ * 0..6; user-added waveforms occupy idx 7..15.
+ */
+export const MAX_WAVE_IDX = 15;
+
+/**
  * Start address of each game's `GWVTAB` (the table of 7 stock waveforms).
  * Layout in every game is identical — a sequence of `length-byte, …samples`
  * records, walked by `GWLD2`/`GWLD3` to look up a waveform by index.  Each
@@ -129,8 +158,8 @@ export const GWAVE_FIELDS: readonly GWaveField[] = [
     help: "Cycles per frequency-note — how many wave cycles play before advancing one byte of the pitch pattern. Larger = slower pitch sweep." },
   { key: "gecdec", label: "GECDEC", byteOffset: 1, packing: "hi-nybble", signed: false, min: 0, max: 15,
     help: "Echo decay — how much amplitude drops between echoes (subtracted per sample, in 1/16ths of the original)." },
-  { key: "wave", label: "WAVE#", byteOffset: 1, packing: "lo-nybble", signed: false, min: 0, max: 6,
-    help: "Waveform index — picks one of the 7 stock waves in GWVTAB (0=GS2, 1=GSSQ2, 2=GS1, 3=GS12, 4=GSQ22, 5=GS72, 6=GS1.7). Higher indices read past the stock waves; usually not what you want." },
+  { key: "wave", label: "WAVE#", byteOffset: 1, packing: "lo-nybble", signed: false, min: 0, max: 15,
+    help: "Waveform index — picks the wave the GWAVE kernel reads (0..6 = stock GS2 / GSSQ2 / GS1 / GS12 / GSQ22 / GS72 / GS1.7; 7..15 = user-added waveforms when present). Indices past the table's actual length read garbage; the Designer's '+ New waveform' button only enables values you've populated." },
   { key: "prdeca", label: "PRDECA", byteOffset: 2, packing: "byte", signed: false, min: 0, max: 0xFF,
     help: "Pre-decay factor — at load, the RAM waveform copy is decayed by (length>>4)·PRDECA per sample. 0 = no decay, larger = harder distortion (wraps mod-256 to produce the characteristic math-error timbre)." },
   { key: "gdfinc", label: "GDFINC", byteOffset: 3, packing: "byte", signed: true, min: 0, max: 0xFF,
@@ -258,16 +287,23 @@ export function setField(record: readonly number[], field: GWaveField, value: nu
 
 // ─── Waveform bytes (GWVTAB) — Phase 5 step 2 ──────────────────────────────
 
-/** Throw on invalid waveform index. */
+/** Throw if `idx` is outside the WAVE# nybble range (0..15). */
 function assertWaveIdx(idx: number): void {
-  if (!Number.isInteger(idx) || idx < 0 || idx > 6) {
-    throw new Error(`waveform idx out of range 0..6: ${idx}`);
+  if (!Number.isInteger(idx) || idx < 0 || idx > MAX_WAVE_IDX) {
+    throw new Error(`waveform idx out of range 0..${MAX_WAVE_IDX}: ${idx}`);
   }
 }
 
-/** Byte offset into the ROM array of waveform `idx`'s first sample byte. */
+/** Throw if `idx` doesn't address a stock waveform (0..6). */
+function assertStockIdx(idx: number): void {
+  if (!Number.isInteger(idx) || idx < 0 || idx > 6) {
+    throw new Error(`stock waveform idx out of range 0..6: ${idx} (user-added waveforms live in the project, not the ROM)`);
+  }
+}
+
+/** Byte offset into the ROM array of stock waveform `idx`'s first sample byte. */
 function waveformOffset(rom: Uint8Array, game: GameKind, idx: number): number {
-  assertWaveIdx(idx);
+  assertStockIdx(idx);
   const off = (GWVTAB_BASE[game] + STOCK_WAVE_SAMPLE_OFFSETS[idx]!) - romBase(rom);
   const len = STOCK_WAVE_LENGTHS[idx]!;
   if (off < 0 || off + len > rom.length) {
@@ -294,7 +330,7 @@ export function patchWaveform(
   idx: number,
   bytes: readonly number[],
 ): Uint8Array {
-  assertWaveIdx(idx);
+  assertStockIdx(idx);
   const expected = STOCK_WAVE_LENGTHS[idx]!;
   if (bytes.length !== expected) {
     throw new Error(`Waveform ${idx} (${STOCK_WAVE_NAMES[idx]}) must be exactly ${expected} bytes, got ${bytes.length}`);
@@ -393,4 +429,60 @@ export function patternUsers(rom: Uint8Array, game: GameKind, offset: number, le
     if (cmdOff < end && cmdOff + cmdLen > offset) out.push({ ...c });
   }
   return out;
+}
+
+// ─── Added waveforms (Phase 5 step 4) — extending GWVTAB ──────────────────
+
+/**
+ * Build a fresh GWVTAB byte sequence containing the 7 stock waveforms
+ * (with any byte overrides applied to idx 0..6) plus the user's added
+ * waveforms (`addedWaves`, indexed in order from idx 7 onward).  Format
+ * is the same length-prefixed walking layout the kernel expects:
+ * `[length, …samples]` records back-to-back.
+ *
+ * The host (`engine/customRom.ts`) writes the result into the relocated
+ * GWVTAB position and patches `LDX #GWVTAB` to point at it.  Stock-idx
+ * overrides replace those samples; new waveforms get appended.  Lengths
+ * never change for stock idx 0..6 (Step 2's invariant), so the walking
+ * positions of those entries are unaffected.
+ */
+export function buildExtendedGwvtab(
+  rom: Uint8Array,
+  game: GameKind,
+  stockOverrides: Record<number, number[]>,
+  addedWaves: number[][],
+): number[] {
+  const out: number[] = [];
+  // Stock 7 entries (with overrides applied).
+  for (let idx = 0; idx < 7; idx++) {
+    const len = STOCK_WAVE_LENGTHS[idx]!;
+    const overridden = stockOverrides[idx];
+    const samples = overridden ?? readWaveform(rom, game, idx);
+    if (samples.length !== len) {
+      throw new Error(`stockOverrides[${idx}] must be exactly ${len} bytes for stock waveform, got ${samples.length}`);
+    }
+    out.push(len, ...samples);
+  }
+  // Added entries (idx 7..15).  Length is whatever the user picked
+  // (1..255), validated up-front.
+  for (let k = 0; k < addedWaves.length; k++) {
+    const samples = addedWaves[k]!;
+    if (!Array.isArray(samples) || samples.length < 1 || samples.length > 0xFF) {
+      throw new Error(`addedWaves[${k}] (idx ${7 + k}) must be 1..255 bytes, got ${samples?.length}`);
+    }
+    for (const b of samples) {
+      if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+        throw new Error(`addedWaves[${k}] byte out of range (0..255): ${b}`);
+      }
+    }
+    out.push(samples.length, ...samples);
+  }
+  return out;
+}
+
+/** Byte count of the new GWVTAB given `addedWaves` (stock 159 + 1+len per new). */
+export function extendedGwvtabSize(addedWaves: number[][]): number {
+  let size = 159; // stock GWVTAB span (verified against the real Defender ROM)
+  for (const w of addedWaves) size += 1 + w.length;
+  return size;
 }

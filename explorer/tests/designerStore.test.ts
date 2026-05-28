@@ -280,3 +280,78 @@ describe("exportJson / importJson — patternOverrides (Phase 5 step 3)", () => 
     expect(back.patternOverrides).toEqual({ 0x47: BBSND_FLAT });
   });
 });
+
+describe("exportJson / importJson — addedWaveforms (Phase 5 step 4)", () => {
+  const W16 = Array.from({ length: 16 }, (_, i) => i * 16); // 16-byte ramp
+
+  it("round-trips a project that adds one new waveform", () => {
+    const p: CustomProject = {
+      name: "added",
+      engineBase: "defender",
+      slots: [],
+      addedWaveforms: [W16],
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.addedWaveforms).toEqual([W16]);
+  });
+
+  it("absent field stays absent (not an empty array) on a project without added waves", () => {
+    const p: CustomProject = {
+      name: "no-added",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100, updatedAt: 200,
+    };
+    expect(importJson(exportJson(p)).addedWaveforms).toBeUndefined();
+  });
+
+  it("rejects malformed addedWaveforms (non-array, too many entries, bad lengths, bad bytes)", () => {
+    const base: CustomProject = {
+      name: "bad-added",
+      engineBase: "defender",
+      slots: [{ kind: "vari", name: "v", record: SAW, start: SAW }],
+      createdAt: 100, updatedAt: 200,
+    };
+    expect(() => importJson(JSON.stringify({ ...base, addedWaveforms: "nope" }))).toThrow(/array/i);
+    expect(() => importJson(JSON.stringify({ ...base, addedWaveforms: Array.from({ length: 10 }, () => W16) }))).toThrow(/9 added|nybble/i);
+    expect(() => importJson(JSON.stringify({ ...base, addedWaveforms: [[]] }))).toThrow(/1\.\.255/);
+    expect(() => importJson(JSON.stringify({ ...base, addedWaveforms: [Array.from({ length: 256 }, () => 0)] }))).toThrow(/1\.\.255/);
+    expect(() => importJson(JSON.stringify({ ...base, addedWaveforms: [[1, 2, 256]] }))).toThrow(/range/i);
+  });
+
+  it("permits a project with only an added waveform (no slots, no other overrides)", () => {
+    const p: CustomProject = {
+      name: "wave-only",
+      engineBase: "defender",
+      slots: [],
+      addedWaveforms: [W16],
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.slots).toHaveLength(0);
+    expect(back.addedWaveforms).toEqual([W16]);
+  });
+
+  it("a fully-loaded project (slots + every override channel + added waves) round-trips", () => {
+    const FLAT16 = Array.from({ length: 16 }, () => 0x40);
+    const BBSND_FLAT = Array.from({ length: 0x14 }, () => 0x20);
+    const p: CustomProject = {
+      name: "kitchen-sink",
+      engineBase: "defender",
+      slots: [
+        { kind: "vari", name: "v", record: SAW, start: SAW },
+        { kind: "gwave", name: "g", record: HBDV, start: HBDV, targetCmd: 0x05 },
+      ],
+      waveformOverrides: { 4: FLAT16 },
+      patternOverrides: { 0x47: BBSND_FLAT },
+      addedWaveforms: [W16],
+      createdAt: 100, updatedAt: 200,
+    };
+    const back = importJson(exportJson(p));
+    expect(back.slots).toHaveLength(2);
+    expect(back.waveformOverrides).toEqual({ 4: FLAT16 });
+    expect(back.patternOverrides).toEqual({ 0x47: BBSND_FLAT });
+    expect(back.addedWaveforms).toEqual([W16]);
+  });
+});

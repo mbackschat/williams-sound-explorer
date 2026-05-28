@@ -106,4 +106,23 @@ export const entries: Entry[] = [
     ],
     shot: { viewport: true, file: img("designer-gwave-audition-explore") },
   },
+
+  // Step 4 — "+ New waveform" creates a user-added waveform at idx 7 and
+  // points the slot's WAVE# at it.  Verifies the relocated GWVTAB path
+  // works end-to-end (the offline audition renders, so customRom.ts is
+  // patching LDX #GWVTAB + writing the new table correctly).
+  {
+    id: "designer-gwave-added-waveform",
+    game: "defender",
+    steps: [
+      { click: "#modeDesign" },
+      { waitMs: 1500 },
+      { select: [".designer-gwave-override", "5"] }, // override BBSV
+      { waitMs: 600 },
+      { click: ".designer-wfcanvas-add" },           // + New waveform
+      { waitMs: 600 },
+    ],
+    assert: [{ canvasNonBlank: ".designer-scope" }],
+    shot: { clip: "#designer-root", file: img("designer-gwave-added-waveform") },
+  },
 ];

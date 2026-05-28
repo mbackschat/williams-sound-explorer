@@ -21,6 +21,9 @@ import {
   SVTAB_STRIDE,
   GWVTAB_BASE,
   GFRTAB_BASE,
+  LDX_GWVTAB_LOC,
+  DEFAULT_NEW_WAVE_LENGTH,
+  MAX_WAVE_IDX,
   STOCK_WAVE_LENGTHS,
   STOCK_WAVE_SAMPLE_OFFSETS,
   STOCK_WAVE_NAMES,
@@ -37,6 +40,8 @@ import {
   gfrtabMaxEnd,
   getField,
   setField,
+  buildExtendedGwvtab,
+  extendedGwvtabSize,
 } from "../src/engine/gwaveEdit.ts";
 
 const REPO = pathResolve(__dirname, "..");
@@ -112,7 +117,10 @@ describe("GWAVE_FIELDS", () => {
     expect(f("GECHO")).toMatchObject({ byteOffset: 0, packing: "hi-nybble", min: 0, max: 15 });
     expect(f("GCCNT")).toMatchObject({ byteOffset: 0, packing: "lo-nybble", min: 0, max: 15 });
     expect(f("GECDEC")).toMatchObject({ byteOffset: 1, packing: "hi-nybble", min: 0, max: 15 });
-    expect(f("WAVE#")).toMatchObject({ byteOffset: 1, packing: "lo-nybble", min: 0, max: 6 });
+    // WAVE# is a 4-bit nybble — 0..6 are stock waves; 7..15 are reserved for
+    // user-added waveforms (Phase 5 step 4).  The field's max is the full
+    // nybble range; the Designer UI clamps to (6 + added wave count).
+    expect(f("WAVE#")).toMatchObject({ byteOffset: 1, packing: "lo-nybble", min: 0, max: 15 });
   });
 
   it("every field has help text for tooltips", () => {
@@ -211,7 +219,7 @@ describe("getField / setField (nybble-aware)", () => {
 
   it("rejects out-of-range values per field", () => {
     const wave = GWAVE_FIELDS.find((f) => f.label === "WAVE#")!;
-    expect(() => setField(HBDV, wave, 7)).toThrow(); // WAVE# max is 6 (7 stock waves: 0..6)
+    expect(() => setField(HBDV, wave, 16)).toThrow(); // WAVE# is a 4-bit nybble (0..15); 16 overflows
     const gecho = GWAVE_FIELDS.find((f) => f.label === "GECHO")!;
     expect(() => setField(HBDV, gecho, 16)).toThrow(); // nybble max is 15
   });
@@ -489,5 +497,104 @@ describe("patternUsers — overlapping pitch patterns", () => {
       expect(seen.has(u.cmd)).toBe(false);
       seen.add(u.cmd);
     }
+  });
+});
+
+// ─── Added waveforms (Phase 5 step 4) — extending GWVTAB ───────────────────
+
+describe("Step 4 constants", () => {
+  it("MAX_WAVE_IDX is 15 (4-bit WAVE# nybble)", () => {
+    expect(MAX_WAVE_IDX).toBe(15);
+  });
+
+  it("DEFAULT_NEW_WAVE_LENGTH matches the most-used stock size", () => {
+    expect(DEFAULT_NEW_WAVE_LENGTH).toBe(16);
+  });
+
+  it("LDX #GWVTAB locations exist in each game's real ROM, with the right operand", () => {
+    for (const game of ["defender", "stargate", "robotron"] as GameKind[]) {
+      const p = pathResolve(REPO, `public/roms/${game}_sound.bin`);
+      if (!existsSync(p)) continue;
+      const rom = new Uint8Array(readFileSync(p));
+      const base = 0x10000 - rom.length;
+      const off = LDX_GWVTAB_LOC[game] - base;
+      // CE = LDX immediate; operand is GWVTAB_BASE big-endian.
+      expect(rom[off], `${game} opcode at LDX_GWVTAB_LOC`).toBe(0xCE);
+      expect((rom[off + 1]! << 8) | rom[off + 2]!).toBe(GWVTAB_BASE[game]);
+    }
+  });
+});
+
+describe("buildExtendedGwvtab", () => {
+  function stockBytes(game: GameKind): Uint8Array {
+    const p = pathResolve(REPO, `public/roms/${game}_sound.bin`);
+    if (!existsSync(p)) return new Uint8Array(0);
+    return new Uint8Array(readFileSync(p));
+  }
+
+  it("rebuilds a GWVTAB byte-identical to the stock table when there are no overrides or added waves", () => {
+    const rom = stockBytes("defender");
+    if (rom.length === 0) return;
+    const built = buildExtendedGwvtab(rom, "defender", {}, []);
+    expect(built).toHaveLength(159);
+    // Spot-check: idx 0 length byte + first 8 sample bytes = GS2.
+    expect(built[0]).toBe(8);
+    expect(built.slice(1, 9)).toEqual([0x7F, 0xD9, 0xFF, 0xD9, 0x7F, 0x24, 0x00, 0x24]);
+  });
+
+  it("applies stock-idx overrides in place (length unchanged, samples replaced)", () => {
+    const rom = stockBytes("defender");
+    if (rom.length === 0) return;
+    const flat8 = Array.from({ length: 8 }, () => 0x80);
+    const built = buildExtendedGwvtab(rom, "defender", { 0: flat8 }, []);
+    expect(built[0]).toBe(8);                                    // length byte unchanged
+    expect(built.slice(1, 9)).toEqual(flat8);                    // samples replaced
+    // idx 1's length byte should still be at position 9 (i.e. the override
+    // didn't shift anything downstream).
+    expect(built[9]).toBe(8);
+  });
+
+  it("appends added waveforms after the stock 7, in order", () => {
+    const rom = stockBytes("defender");
+    if (rom.length === 0) return;
+    const new1 = Array.from({ length: 16 }, (_, i) => i + 1);   // 16 bytes
+    const new2 = Array.from({ length: 32 }, (_, i) => 32 - i);  // 32 bytes
+    const built = buildExtendedGwvtab(rom, "defender", {}, [new1, new2]);
+    expect(built).toHaveLength(159 + 17 + 33);
+    // First added entry: length 16 at offset 159, then 16 bytes.
+    expect(built[159]).toBe(16);
+    expect(built.slice(160, 176)).toEqual(new1);
+    // Second added entry: length 32 at offset 176, then 32 bytes.
+    expect(built[176]).toBe(32);
+    expect(built.slice(177, 209)).toEqual(new2);
+  });
+
+  it("rejects a stock override whose length doesn't match the stock waveform", () => {
+    const rom = stockBytes("defender");
+    if (rom.length === 0) return;
+    // idx 0 = GS2 = 8 bytes; passing 16 should throw.
+    expect(() => buildExtendedGwvtab(rom, "defender", { 0: Array.from({ length: 16 }, () => 0) }, [])).toThrow(/8 bytes/);
+  });
+
+  it("rejects an added waveform with empty/oversized bytes or out-of-range bytes", () => {
+    const rom = stockBytes("defender");
+    if (rom.length === 0) return;
+    expect(() => buildExtendedGwvtab(rom, "defender", {}, [[]])).toThrow(/1\.\.255/);
+    expect(() => buildExtendedGwvtab(rom, "defender", {}, [Array.from({ length: 256 }, () => 0)])).toThrow(/1\.\.255/);
+    expect(() => buildExtendedGwvtab(rom, "defender", {}, [[0, 0, 256]])).toThrow(/range/i);
+  });
+});
+
+describe("extendedGwvtabSize", () => {
+  it("returns 159 for zero added waves (stock table size)", () => {
+    expect(extendedGwvtabSize([])).toBe(159);
+  });
+
+  it("counts 1 length byte + bytes.length per added waveform", () => {
+    expect(extendedGwvtabSize([Array.from({ length: 16 }, () => 0)])).toBe(159 + 17);
+    expect(extendedGwvtabSize([
+      Array.from({ length: 8 }, () => 0),
+      Array.from({ length: 32 }, () => 0),
+    ])).toBe(159 + 9 + 33);
   });
 });

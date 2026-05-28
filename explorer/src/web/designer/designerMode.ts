@@ -17,7 +17,7 @@ import type { GameKind } from "../../board/soundboard.ts";
 import type { AppContext } from "../appContext.ts";
 import { loadRomBytes } from "../romStore.ts";
 import { variCommandsFor, readVariRecord } from "../../engine/variEdit.ts";
-import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers } from "../../engine/gwaveEdit.ts";
+import { gwaveCommandsFor, readGWaveRecord, readWaveform, waveformUsers, readPattern, patternUsers, DEFAULT_NEW_WAVE_LENGTH } from "../../engine/gwaveEdit.ts";
 import { buildCustomRom, maxSlots, VARI_CMD_BASE, type CustomSlot as RomCustomSlot } from "../../engine/customRom.ts";
 import {
   ENGINE_BASES, listProjects, getProject, saveProject, exportJson, importJson,
@@ -181,13 +181,30 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   const gwaveEditor: GWaveEditorApi = buildGWaveEditor(
     (rec) => { onEditorChange(rec); refreshWaveformCanvas(); refreshPatternCanvas(); },
     (idx, bytes) => {
-      project.waveformOverrides ??= {};
-      project.waveformOverrides[idx] = bytes;
+      // For stock waves (0..6), edits land in `waveformOverrides`.  For
+      // user-added waves (7..15), edits land in `addedWaveforms[idx - 7]`.
+      if (idx <= 6) {
+        project.waveformOverrides ??= {};
+        project.waveformOverrides[idx] = bytes;
+      } else {
+        project.addedWaveforms ??= [];
+        const slot = idx - 7;
+        if (slot >= 0 && slot < project.addedWaveforms.length) {
+          project.addedWaveforms[slot] = bytes;
+        }
+      }
       touch();
       scheduleAutoReplay();
       refreshWaveformCanvas();
     },
     (idx) => {
+      // "Reset to stock" only meaningful for stock idx (clears an override).
+      // For added waves (idx ≥ 7) there's no stock to revert to — this is a
+      // no-op today (could become "remove this waveform" in a v-future).
+      if (idx > 6) {
+        status("Added waveforms have no stock to revert to (use a stock idx 0..6 or remove via /reset… coming soon).", "");
+        return;
+      }
       if (project.waveformOverrides) {
         delete project.waveformOverrides[idx];
         if (Object.keys(project.waveformOverrides).length === 0) delete project.waveformOverrides;
@@ -211,6 +228,34 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
       touch();
       scheduleAutoReplay();
       refreshPatternCanvas();
+    },
+    // "+ New waveform" handler (Phase 5 step 4): append a fresh user-added
+    // wave at idx (7 + addedCount), seeded with the current canvas bytes so
+    // the user starts editing from something audible.  Set the slot's
+    // WAVE# nybble to the new idx and refresh.  Capped at 9 (WAVE# nybble).
+    () => {
+      const slot = project.slots[selected];
+      if (!baseRom || !slot || slot.kind !== "gwave") return;
+      project.addedWaveforms ??= [];
+      if (project.addedWaveforms.length >= 9) { status("Added-waveform cap (9) reached — WAVE# is a 4-bit nybble.", "err"); return; }
+      // Seed bytes: a centred sine-ish ramp at DEFAULT_NEW_WAVE_LENGTH so
+      // the new waveform isn't silent on add.  User edits via the canvas.
+      const seed: number[] = [];
+      for (let i = 0; i < DEFAULT_NEW_WAVE_LENGTH; i++) {
+        seed.push(Math.round(0x80 + 0x60 * Math.sin((i / DEFAULT_NEW_WAVE_LENGTH) * 2 * Math.PI)));
+      }
+      project.addedWaveforms.push(seed);
+      const newIdx = 6 + project.addedWaveforms.length; // idx 7 for the first add
+      // Switch the slot's WAVE# nybble to the new idx.
+      const rec = [...slot.record];
+      rec[1] = (rec[1]! & 0xF0) | (newIdx & 0x0F);
+      slot.record = rec;
+      touch();
+      gwaveEditor.setRecord(rec);
+      refreshGwaveEditorLimits();
+      refreshWaveformCanvas();
+      scheduleAutoReplay();
+      status(`Added waveform idx ${newIdx} (${seed.length} bytes) — edit via the canvas.`, "ok");
     },
   );
   // The sliders column contains *both* editors' slider panels (VARI + GWAVE);
@@ -449,7 +494,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     if (slot) {
       showEditorFor(slot.kind);
       (slot.kind === "vari" ? variEditor : gwaveEditor).setRecord(slot.record);
-      if (slot.kind === "gwave") { refreshWaveformCanvas(); refreshPatternCanvas(); }
+      if (slot.kind === "gwave") { refreshGwaveEditorLimits(); refreshWaveformCanvas(); refreshPatternCanvas(); }
     }
     refreshItemList();
     setControlsEnabled(baseRom != null);
@@ -469,10 +514,31 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     const slot = project.slots[selected];
     if (!slot || slot.kind !== "gwave") return;
     const idx = gwaveEditor.currentWaveIdx();
-    const overridden = project.waveformOverrides?.[idx];
-    const bytes = overridden ?? readWaveform(baseRom, project.engineBase, idx);
-    const sharedBy = waveformUsers(baseRom, project.engineBase, idx).map((c) => ({ cmd: c.cmd, name: c.name }));
-    gwaveEditor.setWaveform([...bytes], sharedBy, !!overridden);
+    if (idx <= 6) {
+      // Stock waveform — bytes come from the base ROM, possibly overridden
+      // by `waveformOverrides` (Step 2 behaviour, unchanged).
+      const overridden = project.waveformOverrides?.[idx];
+      const bytes = overridden ?? readWaveform(baseRom, project.engineBase, idx);
+      const sharedBy = waveformUsers(baseRom, project.engineBase, idx).map((c) => ({ cmd: c.cmd, name: c.name }));
+      gwaveEditor.setWaveform([...bytes], sharedBy, !!overridden);
+    } else {
+      // User-added waveform (Phase 5 step 4) — bytes live in the project,
+      // not in the base ROM.  "Shared by" lists other editable commands
+      // whose SVTAB WAVE# nybble happens to point at this idx (in the
+      // base ROM).  The canvas treats `isOverridden = true` for added
+      // waves so the Reset button stays meaningful as "Remove this
+      // waveform" semantics later, or as a visual cue right now.
+      const addedIdx = idx - 7;
+      const bytes = project.addedWaveforms?.[addedIdx] ?? [];
+      const sharedBy = waveformUsers(baseRom, project.engineBase, idx).map((c) => ({ cmd: c.cmd, name: c.name }));
+      gwaveEditor.setWaveform([...bytes], sharedBy, true);
+    }
+  }
+
+  /** Clamp the WAVE# slider to existing waveforms (6 stock + N added). */
+  function refreshGwaveEditorLimits(): void {
+    const maxIdx = 6 + (project.addedWaveforms?.length ?? 0);
+    gwaveEditor.setMaxWaveIdx(maxIdx);
   }
 
   /**
@@ -567,6 +633,7 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
     return buildCustomRom(baseRom!, project.engineBase, toRomSlots(project.slots), {
       waveformOverrides: project.waveformOverrides,
       patternOverrides: project.patternOverrides,
+      addedWaveforms: project.addedWaveforms,
     });
   }
   function renderEdited(): RenderedSound {

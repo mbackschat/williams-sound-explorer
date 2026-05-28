@@ -86,6 +86,14 @@ export interface CustomProject {
    * unchanged.  Surfaced in the Designer canvas as "Shared by …".
    */
   patternOverrides?: Record<number, number[]>;
+  /**
+   * User-added waveforms (Phase 5 step 4) — ordered list mapped to WAVE#
+   * indices `7, 8, …`.  Each entry is 1..255 sample bytes.  When present,
+   * the custom ROM build relocates GWVTAB into the free region and
+   * repoints `LDX #GWVTAB`; see `engine/customRom.ts`.  Empty/absent =
+   * no relocation needed.
+   */
+  addedWaveforms?: number[][];
   createdAt: number;
   updatedAt: number;
 }
@@ -203,12 +211,17 @@ function coerceProject(raw: unknown): CustomProject {
         Object.entries(patRaw).filter(([_, v]) => Array.isArray(v)),
       ) as Record<number, number[]>)
     : undefined;
+  const addedRaw = o.addedWaveforms;
+  const addedWaveforms = Array.isArray(addedRaw)
+    ? (addedRaw.filter((v) => Array.isArray(v)) as number[][])
+    : undefined;
   return {
     name: String(o.name ?? "untitled"),
     engineBase: (ENGINE_BASES.includes(o.engineBase as GameKind) ? o.engineBase : "defender") as GameKind,
     slots,
     ...(waveformOverrides && Object.keys(waveformOverrides).length > 0 ? { waveformOverrides } : {}),
     ...(patternOverrides && Object.keys(patternOverrides).length > 0 ? { patternOverrides } : {}),
+    ...(addedWaveforms && addedWaveforms.length > 0 ? { addedWaveforms } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : 0,
     updatedAt: typeof o.updatedAt === "number" ? o.updatedAt : 0,
   };
@@ -337,6 +350,33 @@ export function importJson(text: string): CustomProject {
     if (Object.keys(acc).length > 0) patternOverrides = acc;
   }
 
+  // Added waveforms (optional, Phase 5 step 4).  Ordered list — each entry
+  // is 1..255 sample bytes; map to WAVE# indices 7, 8, ….  At most 9
+  // (the 4-bit WAVE# nybble's 0..15 range minus the 7 stock indices).
+  let addedWaveforms: number[][] | undefined;
+  if (o.addedWaveforms != null) {
+    if (!Array.isArray(o.addedWaveforms)) {
+      throw new Error("addedWaveforms must be an array of byte arrays.");
+    }
+    if (o.addedWaveforms.length > 9) {
+      throw new Error(`At most 9 added waveforms (got ${o.addedWaveforms.length}); WAVE# is a 4-bit nybble.`);
+    }
+    const acc: number[][] = [];
+    for (let i = 0; i < o.addedWaveforms.length; i++) {
+      const v = o.addedWaveforms[i];
+      if (!Array.isArray(v) || v.length < 1 || v.length > 0xFF) {
+        throw new Error(`addedWaveforms[${i}] must be 1..255 bytes.`);
+      }
+      for (const b of v) {
+        if (!Number.isInteger(b) || b < 0 || b > 0xFF) {
+          throw new Error(`addedWaveforms[${i}] byte out of range (0..255): ${b}`);
+        }
+      }
+      acc.push(v as number[]);
+    }
+    if (acc.length > 0) addedWaveforms = acc;
+  }
+
   const now = Date.now();
   return {
     name: o.name,
@@ -344,6 +384,7 @@ export function importJson(text: string): CustomProject {
     slots,
     ...(waveformOverrides ? { waveformOverrides } : {}),
     ...(patternOverrides ? { patternOverrides } : {}),
+    ...(addedWaveforms ? { addedWaveforms } : {}),
     createdAt: typeof o.createdAt === "number" ? o.createdAt : now,
     updatedAt: now,
   };

@@ -33,6 +33,7 @@ import {
   patchGWaveRecord, gwaveCommandsFor, SVTAB_STRIDE,
   patchWaveform, STOCK_WAVE_LENGTHS,
   patchPattern, gfrtabMaxEnd,
+  GWVTAB_BASE, LDX_GWVTAB_LOC, buildExtendedGwvtab,
 } from "./gwaveEdit.ts";
 
 /** Lowest VARI command code on a linear-dispatch base; `row = code − VARI_CMD_BASE`. */
@@ -146,6 +147,21 @@ function validateGwaveSlot(s: GwaveSlot, game: GameKind, seen: Set<number>): voi
 export interface BuildOptions {
   waveformOverrides?: Record<number, number[]>;
   patternOverrides?: Record<number, number[]>;
+  /**
+   * User-added waveforms (Phase 5 step 4) appended after the 7 stock entries
+   * in a *relocated* GWVTAB.  Indexed in order: `addedWaveforms[0]` → idx 7,
+   * `addedWaveforms[1]` → idx 8, etc.  Each entry is 1..255 sample bytes.
+   * When `addedWaveforms` is empty/absent, GWVTAB stays at its original
+   * location and `waveformOverrides` patch the stock bytes in place
+   * (backward-compatible with Step 2 projects).
+   *
+   * Layout when relocation is needed: VVECT occupies its usual slot from
+   * `VVECT_BASE[game]` up to `max((maxRow+1)*9, 27)` bytes; the relocated
+   * GWVTAB follows immediately, and `LDX #GWVTAB` in GWLD is repointed at
+   * that fresh address.  The builder throws if VVECT + new GWVTAB exceeds
+   * the free region (the RADIO/ORGAN block up to the original GWVTAB base).
+   */
+  addedWaveforms?: number[][];
 }
 
 /**
@@ -164,9 +180,17 @@ export function buildCustomRom(
   const waveformKeys = Object.keys(waveformOverrides);
   const patternOverrides = options.patternOverrides ?? {};
   const patternKeys = Object.keys(patternOverrides);
-  if (slots.length === 0 && waveformKeys.length === 0 && patternKeys.length === 0) {
-    throw new Error("a custom ROM needs at least one slot, waveform override, or pattern override");
+  const addedWaveforms = options.addedWaveforms ?? [];
+  if (slots.length === 0 && waveformKeys.length === 0 && patternKeys.length === 0 && addedWaveforms.length === 0) {
+    throw new Error("a custom ROM needs at least one slot, waveform override, pattern override, or added waveform");
   }
+  if (addedWaveforms.length > 9) {
+    // WAVE# is a 4-bit nybble (0..15); stock waves occupy 0..6, so the
+    // 9 remaining indices (7..15) are the hard ceiling for additions.
+    throw new Error(`at most 9 added waveforms (got ${addedWaveforms.length}); WAVE# is a 4-bit nybble`);
+  }
+  // Per-byte validation of added waveforms is delegated to `buildExtendedGwvtab`
+  // below — keep the validator a single source of truth.
   const variSlots: VariSlot[] = [];
   const gwaveSlots: GwaveSlot[] = [];
   const seenVari = new Set<number>();
@@ -236,13 +260,56 @@ export function buildCustomRom(
     out = patchGWaveRecord(out, game, s.cmd, s.record);
   }
 
-  // ── GWAVE waveform bytes: patch GWVTAB in place (Phase 5 step 2) ─────────
-  // Lengths don't change (validated above), so GWLD2/3 walking + every
-  // SVTAB record stays valid.  This affects *every* command pointing at
-  // the overridden index — the Designer UI surfaces this as "Shared by".
-  for (const k of waveformKeys) {
-    const idx = Number(k);
-    out = patchWaveform(out, game, idx, (waveformOverrides as Record<number, number[]>)[idx]!);
+  // ── GWAVE waveform bytes: in-place patch OR relocated GWVTAB ─────────────
+  // No added waves → patch stock bytes in place (Step 2 behaviour, preserved).
+  // Any added waves → rebuild the whole GWVTAB (stock + added) in a fresh
+  // region of free ROM and repoint `LDX #GWVTAB` to it (Step 4 behaviour).
+  // The two paths are mutually exclusive: when relocating, `waveformOverrides`
+  // for idx 0..6 are folded into the rebuilt table via `buildExtendedGwvtab`,
+  // so the in-place loop would double-write the same bytes.
+  if (addedWaveforms.length === 0) {
+    for (const k of waveformKeys) {
+      const idx = Number(k);
+      out = patchWaveform(out, game, idx, (waveformOverrides as Record<number, number[]>)[idx]!);
+    }
+  } else {
+    // Build the new GWVTAB byte sequence (stock 7 with overrides applied +
+    // added waves appended).  Note: stock-idx overrides must match stock
+    // lengths; idx ≥ 7 entries in `waveformOverrides` are NOT consulted here
+    // — the host plumbs added waves through `addedWaveforms` as an ordered list.
+    const stockOverrides: Record<number, number[]> = {};
+    for (const k of waveformKeys) {
+      const idx = Number(k);
+      if (idx >= 0 && idx <= 6) stockOverrides[idx] = (waveformOverrides as Record<number, number[]>)[idx]!;
+    }
+    const newGwvtabBytes = buildExtendedGwvtab(out, game, stockOverrides, addedWaveforms);
+
+    // VVECT footprint within the free region — preserve stock 3 rows as a
+    // floor so existing GWAVE-only projects (no VARI slots) still have a
+    // valid table at $FD76.  When there are VARI slots they occupy rows
+    // 0..maxRow (filled in the loop above).
+    let vvectExtent = 27; // stock 3 rows × 9 bytes
+    if (variSlots.length > 0) {
+      const maxRow = Math.max(...variSlots.map((s) => s.code - VARI_CMD_BASE));
+      vvectExtent = Math.max(vvectExtent, (maxRow + 1) * VVECT_STRIDE);
+    }
+    const freeRegion = GWVTAB_BASE[game] - VVECT_BASE[game];
+    const newGwvtabSize = newGwvtabBytes.length;
+    if (vvectExtent + newGwvtabSize > freeRegion) {
+      const overrun = vvectExtent + newGwvtabSize - freeRegion;
+      throw new Error(
+        `Won't fit on ${game}: VVECT ${vvectExtent} bytes + relocated GWVTAB ${newGwvtabSize} bytes ` +
+        `> ${freeRegion} bytes free (over by ${overrun} bytes). ` +
+        `Reduce VARI slots, shorten added waveforms, or remove one.`,
+      );
+    }
+    // Write the relocated GWVTAB right after the VVECT extent.
+    const newGwvtabAddr = VVECT_BASE[game] + vvectExtent;
+    out.set(newGwvtabBytes, newGwvtabAddr - romBase(out));
+    // Patch `LDX #GWVTAB` operand (2 bytes, big-endian) at +1 past the CE opcode.
+    const ldxOperandOff = (LDX_GWVTAB_LOC[game] + 1) - romBase(out);
+    out[ldxOperandOff] = (newGwvtabAddr >> 8) & 0xFF;
+    out[ldxOperandOff + 1] = newGwvtabAddr & 0xFF;
   }
 
   // ── GWAVE pitch-pattern bytes: patch GFRTAB in place (Phase 5 step 3) ─────

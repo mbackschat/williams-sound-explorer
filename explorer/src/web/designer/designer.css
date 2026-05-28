@@ -222,6 +222,16 @@
 }
 .designer-wfcanvas-reset:hover:not(:disabled) { background: #2a2f37; }
 .designer-wfcanvas-reset:disabled { opacity: 0.4; cursor: not-allowed; }
+/* "Reset to stock" + "+ New waveform" sit side-by-side at the bottom of
+   the waveform canvas panel. */
+.designer-wfcanvas-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.designer-wfcanvas-add {
+  background: #1a1d24; border: 1px solid #6e4fa3; border-radius: 4px;
+  color: #d4c2f7; font: inherit; font-size: 0.78rem;
+  padding: 0.25rem 0.6rem; cursor: pointer;
+}
+.designer-wfcanvas-add:hover:not(:disabled) { background: #2c2440; border-color: #b78ff5; color: #e8dcff; }
+.designer-wfcanvas-add:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Pitch-pattern canvas (Phase 5 step 3) — sibling column to the waveform
    canvas in the 3-column GWAVE edit row.  Teal bars (vs purple waveform)
