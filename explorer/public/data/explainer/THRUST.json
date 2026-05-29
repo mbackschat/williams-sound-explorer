@@ -21,6 +21,6 @@
   "see": [
     "**CANNON** — same engine with distortion on + bigger amplitude. Compare them via the A/B diff.",
     "**BG1** — another FNOISE preset, configured as a background loop.",
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE"
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §FNOISE"
   ]
 }

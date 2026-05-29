@@ -19,7 +19,7 @@
     "Source: `VSNDRM1.SRC:353` (Defender CANNON), `VSNDRM1.SRC:364` (FNOISE inner loop)."
   ],
   "see": [
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE filtered noise",
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §FNOISE filtered noise",
     "Compare CANNON vs THRUST vs BG1 (all FNOISE presets) in the A/B diff"
   ]
 }

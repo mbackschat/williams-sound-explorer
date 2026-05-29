@@ -20,8 +20,8 @@
     "Source: `VSNDRM1.SRC:785` (Defender), `VSNDRM3.SRC:1581` (Robotron)."
   ],
   "see": [
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §GWAVE wavetable",
-    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag a parameter slider",
-    "[MANUAL.md](MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — toggle Skip WVDECA + scrub"
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §GWAVE wavetable",
+    "[MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag a parameter slider",
+    "[MANUAL.md](../../MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — toggle Skip WVDECA + scrub"
   ]
 }

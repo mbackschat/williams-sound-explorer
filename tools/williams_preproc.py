@@ -4,7 +4,7 @@ Williams .SRC → vasm-oldstyle preprocessor.
 
 Translates the 1980-1982 Williams sound-ROM source dialect (Motorola
 MACRO80 / AS) into a form vasm-oldstyle accepts.  See
-`docs/vasm_install_notes.md` for the catalogue of dialect mismatches.
+`docs/pipeline/vasm_install_notes.md` for the catalogue of dialect mismatches.
 
 Usage:  python3 tools/williams_preproc.py INPUT.SRC > OUTPUT.s68
 """

@@ -5,7 +5,7 @@
  *   docs/img/readme/demo.gif  — a short slow-motion clip (Playwright video → ffmpeg)
  *
  * Local maintainer tool (drives the dev server's gitignored public/roms/, emits
- * only PNG/GIF, never ROM bytes).  See docs/web-capture.md.  Prereqs:
+ * only PNG/GIF, never ROM bytes).  See docs/implementation/web-capture.md.  Prereqs:
  *   cd explorer && npm run dev:roms && npm run dev      # server on :5173
  * Usage:
  *   npx tsx e2e/readme.ts            # both

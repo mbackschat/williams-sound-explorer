@@ -8,7 +8,7 @@ A guided tour for hearing, watching, and tweaking the sound effects of three cla
 
 All three games drive a Motorola 6802 ("sound CPU") at 894 886 Hz that runs a tiny 2 KB (Defender/Stargate) or 4 KB (Robotron) program by Sam Dicker. There's no FM chip, no sample bank, no wave-table chip. **Every sound is a few dozen lines of 6800 assembly poking byte values into an 8-bit DAC.** The explorer makes that program visible, audible at slow motion, and editable in real time.
 
-Background reading: [`docs/sound_hardware_model.md`](docs/sound_hardware_model.md) for the board's signal chain, [`docs/synthesis_techniques.md`](docs/synthesis_techniques.md) for the eight DSP primitives the engines share, [`docs/defender_sound_catalogue.md`](docs/defender_sound_catalogue.md) / [`docs/stargate_sound_catalogue.md`](docs/stargate_sound_catalogue.md) / [`docs/robotron_sound_catalogue.md`](docs/robotron_sound_catalogue.md) for every command code, [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md) for prior art (zapspace's Defender Sound Studio).
+Background reading: [`docs/hardware/sound_hardware_model.md`](docs/hardware/sound_hardware_model.md) for the board's signal chain, [`docs/hardware/synthesis_techniques.md`](docs/hardware/synthesis_techniques.md) for the eight DSP primitives the engines share, [`docs/catalogue/defender_sound_catalogue.md`](docs/catalogue/defender_sound_catalogue.md) / [`docs/catalogue/stargate_sound_catalogue.md`](docs/catalogue/stargate_sound_catalogue.md) / [`docs/catalogue/robotron_sound_catalogue.md`](docs/catalogue/robotron_sound_catalogue.md) for every command code, [`docs/design/sound_studio_reference.md`](docs/design/sound_studio_reference.md) for prior art (zapspace's Defender Sound Studio).
 
 ---
 
@@ -40,7 +40,7 @@ Key numbers:
 - **Reconstruction filter**: a single-pole low-pass around 10 kHz built from a 1458 op-amp — kills the high-frequency stair-step from the 8-bit DAC.
 - **Programmable command set**: 64 commands per game (6-bit). Defender uses 32; Stargate also 32; Robotron uses 63.
 
-The explorer emulates all of this cycle-accurately, then plays the resulting DAC byte stream through the Web Audio API. Read [`docs/sound_hardware_model.md`](docs/sound_hardware_model.md) for the schematic-level detail.
+The explorer emulates all of this cycle-accurately, then plays the resulting DAC byte stream through the Web Audio API. Read [`docs/hardware/sound_hardware_model.md`](docs/hardware/sound_hardware_model.md) for the schematic-level detail.
 
 ---
 
@@ -82,7 +82,7 @@ A **"Hide help"** button sits in the header (next to the game switcher).  Toggle
 | **Spectrogram** | Scrolling FFT of the post-volume signal, full width. Low frequencies at the bottom, high at the top. LITE's broadband noise shows as a thick upward sweep. |
 | **RAM heatmap** | Step 6.6, sits just below the spectrogram (open by default). 16×8 grid of the sound CPU's zero-page RAM. Cells colour cold→hot over a 1 s decay since the last write; hover a cell for `$AA = $VV · last write N ms ago` **plus what the cell does** — its name + description (e.g. `GECHO (gwave) — Echo flag`). Most cells are reused by several engines (the 128-byte zero page is overlaid), so the tooltip names the meaning for whichever engine is currently playing and notes "reused by N" when the cell is shared. Watching it during a sound is the cheapest way to find an engine's working set. |
 | **Glossary** | Click any engine name, term, or DAC reference to read its full explanation — or just hover it for a one-line tooltip (41 terms across hardware, technique, engine-state, and analysis). Sits in a two-up beside the Explainer card, just below the RAM heatmap. |
-| **Explainer card** | Pattern 9 (Step 6.3). Algorithm walkthrough for the most-recently-fired sound — TL;DR / how it works / what to watch / key code paths / cross-refs. Open by default, paired beside the Glossary. All 63 catalogued routines have cards (source of truth: `docs/explainer_cards.md`). |
+| **Explainer card** | Pattern 9 (Step 6.3). Algorithm walkthrough for the most-recently-fired sound — TL;DR / how it works / what to watch / key code paths / cross-refs. Open by default, paired beside the Glossary. All 63 catalogued routines have cards (source of truth: `docs/design/explainer_cards.md`). |
 | **Listen-then-look quiz** | Pattern 10 (Step 6.4). Random sound from the catalogue, MCQ engine identification, reveal with link into the explainer card. Tracks score per session. Collapsed by default. |
 | **A/B diff & genealogy** | Pick two `(game, cmd)` pairs and click Compare. The red band between the two byte tapes flashes where they disagree. Sound family chips below auto-load canonical comparisons. |
 
@@ -118,7 +118,7 @@ The **Explore | Design ✎** switch in the header flips between this read-only e
 
 ## 3. The six synthesis engines
 
-Every Williams sound is built from one of these algorithms. Read [`docs/synthesis_techniques.md`](docs/synthesis_techniques.md) for the source-level walk-through.
+Every Williams sound is built from one of these algorithms. Read [`docs/hardware/synthesis_techniques.md`](docs/hardware/synthesis_techniques.md) for the source-level walk-through.
 
 | Engine | Used for | What it does |
 |---|---|---|
@@ -165,7 +165,7 @@ What you should see:
 - **Spectrogram**: a thick broadband sweep moving upward — the LFSR clock accelerating.
 - **Engine view → VARI/GWAVE/etc**. all stay idle; LFSR doesn't have its own canvas pane (its state shows in the Code panel as `LFSR: state=… bit=… LFREQ=… CYCNT=…`).
 
-**Context**: LITE is the *smallest* sound in any Williams ROM — about 30 instructions. It's the canonical "does the whole explorer work end-to-end" test. The full algorithm is documented in [`docs/synthesis_techniques.md` §LFSR](docs/synthesis_techniques.md) and the source lives in `research/williams-soundroms/VSNDRM1.SRC:265-289` (search for `LITEN`).
+**Context**: LITE is the *smallest* sound in any Williams ROM — about 30 instructions. It's the canonical "does the whole explorer work end-to-end" test. The full algorithm is documented in [`docs/hardware/synthesis_techniques.md` §LFSR](docs/hardware/synthesis_techniques.md) and the source lives in `research/williams-soundroms/VSNDRM1.SRC:265-289` (search for `LITEN`).
 
 ---
 
@@ -183,7 +183,7 @@ What you should see:
 
 What you're hearing: the LFSR's clock rate slowed by 100×. At normal speed the LFSR cycles ~10 kHz worth of bits per second — far above the audible limit, so it sounds like noise. At ¹⁄₁₀₀× the bits are spaced at ~100 Hz — well within the audible band, where each shift is a click.
 
-**Context**: Slow-motion is the central pedagogical idea of the explorer. From [`docs/pedagogical_design.md`](docs/pedagogical_design.md): "every variable that affects what you hear should be visible, named, and animatable at human-scale (1×, ¹⁄₁₀×, ¹⁄₁₀₀×, single-step)." The point is to stop the sound from being a black box.
+**Context**: Slow-motion is the central pedagogical idea of the explorer. From [`docs/design/pedagogical_design.md`](docs/design/pedagogical_design.md): "every variable that affects what you hear should be visible, named, and animatable at human-scale (1×, ¹⁄₁₀×, ¹⁄₁₀₀×, single-step)." The point is to stop the sound from being a black box.
 
 The LFSR algorithm is unusually elegant — 30 lines of 6800 assembly produce something acoustically indistinguishable from white noise. See `research/williams-soundroms/VSNDRM1.SRC:268-289` for the original code; the feedback polynomial is `bit[0] ^ bit[3] ^ bit[4]` (encoded via the `EORA LO; LSRA; ROR HI; ROR LO` sequence).
 
@@ -209,13 +209,13 @@ The colour scheme is symmetric around the mid-rail (`$80`):
 - Green → near silence
 - Yellow / red → positive values
 
-**Context**: The byte tape is *Pattern 2* from [`docs/pedagogical_design.md`](docs/pedagogical_design.md). It's the most literal visualisation possible — there's nothing between you and the speaker except this stream of bytes. Reading the tape teaches you how each engine encodes audio:
+**Context**: The byte tape is *Pattern 2* from [`docs/design/pedagogical_design.md`](docs/design/pedagogical_design.md). It's the most literal visualisation possible — there's nothing between you and the speaker except this stream of bytes. Reading the tape teaches you how each engine encodes audio:
 
 - LITE's tape alternates blue/red in a noisy pattern (the LFSR).
 - HBDV's tape shows a sine-shaped wave repeating, then the colours dim across echoes (WVDECA decay).
 - SAW's tape shows blocks of one colour, then the other (the duty cycle).
 
-The source-line citation comes from the **label map**: `tools/build_labelmap.py` parses the assembled vasm listings into a JSON table mapping every ROM address back to its source label + line number. See [`docs/explorer_implementation.md` §Stage swimlane + label map](docs/explorer_implementation.md) for how that pipeline works.
+The source-line citation comes from the **label map**: `tools/build_labelmap.py` parses the assembled vasm listings into a JSON table mapping every ROM address back to its source label + line number. See [`docs/implementation/explorer_implementation.md` §Stage swimlane + label map](docs/implementation/explorer_implementation.md) for how that pipeline works.
 
 ---
 
@@ -236,7 +236,7 @@ What you're hearing: SAW played backwards. The descending pitch becomes ascendin
 
 **Context**: Tape-loop scrubbing is *Pattern 11*. Implementation: every DAC write the CPU makes during live playback is captured into a `DacHistory` ring buffer with its cycle stamp. Scrub mode replays the buffer at any speed (negative = reverse) without re-running the CPU.
 
-The really clever bit landed in the most recent commits: a parallel **RAM history ring** captures zero-page RAM + the X register every 512 cycles. So when you scrub the slider, the engine view's bars / wavetable / countdowns *animate* — not just the audio. Read [`docs/explorer_implementation.md`](docs/explorer_implementation.md) §"Known caveats" → the entry on "Scrub mode time-travels engine-slot values" describes this.
+The really clever bit landed in the most recent commits: a parallel **RAM history ring** captures zero-page RAM + the X register every 512 cycles. So when you scrub the slider, the engine view's bars / wavetable / countdowns *animate* — not just the audio. Read [`docs/implementation/explorer_implementation.md`](docs/implementation/explorer_implementation.md) §"Known caveats" → the entry on "Scrub mode time-travels engine-slot values" describes this.
 
 ---
 
@@ -274,7 +274,7 @@ What's happening: LITE's inner loop reads `LO`, shifts/EORs it, writes back `HI`
 
 This *proves* that the shift is what makes LITE sound like noise. Take it away and you get a square-ish tone.
 
-**Context**: Pattern 3 (solo / mute / freeze) from [`docs/pedagogical_design.md`](docs/pedagogical_design.md). The implementation is in `explorer/src/engine/engineToggles.ts` — a tiny predicate that gates specific zero-page addresses per engine.
+**Context**: Pattern 3 (solo / mute / freeze) from [`docs/design/pedagogical_design.md`](docs/design/pedagogical_design.md). The implementation is in `explorer/src/engine/engineToggles.ts` — a tiny predicate that gates specific zero-page addresses per engine.
 
 Try the other toggles too:
 - **Freeze VARI period** + fire `$1D SAW` → no descending pitch, steady square wave with the fire-time duty cycle.
@@ -312,9 +312,9 @@ Try the other toggles too:
 
 **What's happening under the hood**: every CPU instruction writing to `$13` (`STAA $13` is the canonical one inside `VSWEEP`) is intercepted by `SoundBoard.write()`, the supplied byte is discarded, and the slider's value is written instead. The CPU sees no error — its next `LDAA $13` returns your value. The synthesis algorithm runs unchanged; it just operates on the byte you chose.
 
-**Context**: This is *Pattern 5* — "what-if parameter sliders" — implemented as the `paramOverrides` map on the SoundBoard. See [`docs/pedagogical_design.md`](docs/pedagogical_design.md) §Pattern 5 for the original design.
+**Context**: This is *Pattern 5* — "what-if parameter sliders" — implemented as the `paramOverrides` map on the SoundBoard. See [`docs/design/pedagogical_design.md`](docs/design/pedagogical_design.md) §Pattern 5 for the original design.
 
-The architecture matters: we *don't* recompile or modify the ROM. The ROM runs exactly as Sam Dicker wrote it in 1980. We just substitute one zero-page byte at the bus level. This is the same trick the [Defender Sound Studio](docs/sound_studio_reference.md) uses, but here it's live and reversible.
+The architecture matters: we *don't* recompile or modify the ROM. The ROM runs exactly as Sam Dicker wrote it in 1980. We just substitute one zero-page byte at the bus level. This is the same trick the [Defender Sound Studio](docs/design/sound_studio_reference.md) uses, but here it's live and reversible.
 
 ---
 
@@ -350,7 +350,7 @@ Now try Defender `01` vs Robotron `01`. The diff band lights up red almost every
 
 **Context**: The genealogy data is hand-curated — see `explorer/public/data/genealogy.json`. Adding a new family is a JSON edit. The intent is to surface the *evolution* of the engines across the three games: which sounds are direct ports, which are re-implementations, which are new.
 
-For deeper genealogy reading: [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md) has Mike Hutchinson's analysis of the cross-Williams engine lineage.
+For deeper genealogy reading: [`docs/design/sound_studio_reference.md`](docs/design/sound_studio_reference.md) has Mike Hutchinson's analysis of the cross-Williams engine lineage.
 
 ---
 
@@ -498,14 +498,14 @@ npx tsx tools/render_sound.ts robotron 0x1A out/x.wav     # SCREAM, 5 seconds
 
 ### Where to go deeper
 
-- **Want to understand the original hardware** → [`docs/sound_hardware_model.md`](docs/sound_hardware_model.md)
-- **Want to understand the eight DSP primitives** → [`docs/synthesis_techniques.md`](docs/synthesis_techniques.md)
-- **Want to look up a specific command code** → [`docs/defender_sound_catalogue.md`](docs/defender_sound_catalogue.md) / [`docs/stargate_sound_catalogue.md`](docs/stargate_sound_catalogue.md) / [`docs/robotron_sound_catalogue.md`](docs/robotron_sound_catalogue.md)
+- **Want to understand the original hardware** → [`docs/hardware/sound_hardware_model.md`](docs/hardware/sound_hardware_model.md)
+- **Want to understand the eight DSP primitives** → [`docs/hardware/synthesis_techniques.md`](docs/hardware/synthesis_techniques.md)
+- **Want to look up a specific command code** → [`docs/catalogue/defender_sound_catalogue.md`](docs/catalogue/defender_sound_catalogue.md) / [`docs/catalogue/stargate_sound_catalogue.md`](docs/catalogue/stargate_sound_catalogue.md) / [`docs/catalogue/robotron_sound_catalogue.md`](docs/catalogue/robotron_sound_catalogue.md)
 - **Want to read the actual 1980 source code** → `research/williams-soundroms/VSNDRM1.SRC` (Defender), `VSNDRM2.SRC` (Stargate), `VSNDRM3.SRC` (Robotron). The originals are in MC6809 assembler dialect; the preprocessor in `tools/williams_preproc.py` bridges 17 dialect quirks to feed vasm.
-- **Want to know what's been built (TypeScript implementation)** → [`docs/explorer_implementation.md`](docs/explorer_implementation.md)
-- **Want to know the design philosophy** → [`docs/pedagogical_design.md`](docs/pedagogical_design.md) (5 design principles + 12 UX patterns)
-- **Want to know the project roadmap** → [`~/.claude/plans/goal-is-to-built-purrfect-river.md`](~/.claude/plans/goal-is-to-built-purrfect-river.md)
-- **Want prior art / inspiration** → [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md) describes zapspace's Defender Sound Studio
+- **Want to know what's been built (TypeScript implementation)** → [`docs/implementation/explorer_implementation.md`](docs/implementation/explorer_implementation.md)
+- **Want to know the design philosophy** → [`docs/design/pedagogical_design.md`](docs/design/pedagogical_design.md) (5 design principles + 12 UX patterns)
+- **Want to know the project status + roadmap** → [`plans/STATUS.md`](plans/STATUS.md) (the single source for state + what's next; per-area roadmaps in `plans/`)
+- **Want prior art / inspiration** → [`docs/design/sound_studio_reference.md`](docs/design/sound_studio_reference.md) describes zapspace's Defender Sound Studio
 
 ### Historical timeline
 
@@ -515,7 +515,7 @@ npx tsx tools/render_sound.ts robotron 0x1A out/x.wav     # SCREAM, 5 seconds
 | **1981** | Stargate (Defender II) ships. Sound ROM is `VSNDRM2.SRC` — about 95% identical to Defender, with a few new commands and one IRQ-stub probe (the ROM checks for a hypothetical talking-speech board that never shipped). |
 | **1982** | Robotron 2084 ships. Eugene Jarvis + Larry DeMar redesign the engine library. New ROM `VSNDRM3.SRC` doubles to 4 KB, adds external RAM, introduces SCREAM (4-voice detune) and ORGAN (polyphonic via popcount). 63 sound commands. Plays Beethoven's 9th as the wave-start jingle. |
 | **2024-2026** | This explorer project. Disassembles the original ROMs, re-assembles them via vasm, emulates them in a browser, makes everything visible and tweakable. |
-| **2026 May** | All 12 UX patterns from `docs/pedagogical_design.md` shipped (1–12).  Phase 6 brings: voice-mute Build-up/Tear-down for SCREAM + ORGAN (Pattern 4), parameter-override sliders (Pattern 5), annotated explainer cards for every catalogued routine (Pattern 9, 63 cards), listen-then-look quiz (Pattern 10), Hide-help toggle (Pattern 12), RAM heatmap, ORGANT `$1B` auto-pulse, ORGANN `$1C` 4-byte picker (Defender), MAME ROM equivalence audit (Stargate + Robotron byte-identical; Defender within 2 hand-patched bytes), bulk audio corpus with `tools/refresh_corpus.sh`. |
+| **2026 May** | All 12 UX patterns from `docs/design/pedagogical_design.md` shipped (1–12).  Phase 6 brings: voice-mute Build-up/Tear-down for SCREAM + ORGAN (Pattern 4), parameter-override sliders (Pattern 5), annotated explainer cards for every catalogued routine (Pattern 9, 63 cards), listen-then-look quiz (Pattern 10), Hide-help toggle (Pattern 12), RAM heatmap, ORGANT `$1B` auto-pulse, ORGANN `$1C` 4-byte picker (Defender), MAME ROM equivalence audit (Stargate + Robotron byte-identical; Defender within 2 hand-patched bytes), bulk audio corpus with `tools/refresh_corpus.sh`. |
 | **2026 May (UI pass)** | Layout reorg to make the live view fit one screen: the Ear/Eye/Code triangle became a 2×2 **live grid** with the Stage swimlane pulled in beside the oscilloscope; spectrogram went full-width; RAM heatmap moved below it (open by default) with engine-aware cell-name tooltips; Glossary + Explainer card paired in a two-up (Explainer open); Log moved to the bottom of the left column (collapsed). Added a per-control **⬇ .wav export** (offline re-render of the current command), 15 more glossary terms (now 33), engine-pane titles, and explanatory tooltips on every Engine-view toggle / voice checkbox. |
 | **2026 May (ROMs)** | The explorer stopped bundling the copyrighted ROM bytes. A first-run **onboarding screen** takes user-supplied sound ROMs (validated by size + 6802 vectors + SHA-1 allowlist, stored in IndexedDB); the app runs with as few as one ROM, and games without one are locked in the switcher. This let the project be published MIT-licensed without distributing Williams' copyrighted data. |
 | **2026 May (engine-view pass)** | All five engine panes now show at once (ordered ORGAN · SCREAM · FNOISE · GWAVE · VARI, each titled with its engine-colour dot); the intro + freeze toggles ride in the first grid cell. Corrected a long-standing mislabel: **SCREAM (`$1A`) and ORGAN (`$1B`/`$1C`) are in all three games** — not Robotron-only — so their panes now animate on Defender and Stargate too, and both are cross-game comparable in the A/B diff / genealogy. GWAVE pane readouts wrap to two lines (no more truncated/overlapping text). |
@@ -527,6 +527,6 @@ The names you'll see in the ROM source — `SETUP`, `LITE`, `HBDV`, `WVDECA`, `G
 
 ## 6. Feedback
 
-The explorer is a learning tool, not a finished product. Things that don't make sense, sounds that don't behave as expected, UX that gets in the way — all worth flagging. The plan file at `~/.claude/plans/goal-is-to-built-purrfect-river.md` tracks open work, and the "Known caveats and deferred follow-ups" section of [`docs/explorer_implementation.md`](docs/explorer_implementation.md) documents the gotchas we know about.
+The explorer is a learning tool, not a finished product. Things that don't make sense, sounds that don't behave as expected, UX that gets in the way — all worth flagging. [`plans/STATUS.md`](plans/STATUS.md) tracks state + open work, and the "Known caveats and deferred follow-ups" section of [`docs/implementation/explorer_implementation.md`](docs/implementation/explorer_implementation.md) documents the gotchas we know about.
 
 Enjoy the deep dive.

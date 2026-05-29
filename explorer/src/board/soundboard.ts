@@ -1,7 +1,7 @@
 /**
  * The Williams sound-board memory bus.
  *
- * Memory map (`docs/sound_hardware_model.md`):
+ * Memory map (`docs/hardware/sound_hardware_model.md`):
  *
  *   $0000-$007F   internal RAM (128 B, on-chip)
  *   $0080-$00FF   external RAM (MC6810; **Robotron/Joust only**, 128 B)

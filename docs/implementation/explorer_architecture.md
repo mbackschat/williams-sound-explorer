@@ -201,6 +201,8 @@ interface Snapshot {
 
 ## Implementation phases
 
+> Status authority is [`../plans/done/explorer.md`](../../plans/done/explorer.md) (all phases ✅ complete); this lists the phasing as architectural context.
+
 A pragmatic phasing — each phase produces something demoable.
 
 **Phase 1 — silent emulator** *(✅ DONE)* — 6800 CPU core, RAM, ROM, PIA wired through IRQ, offline WAV exporter. Deliverable: an audible `out/defender_11_lite.wav` rendered from the original 1980 ROM bytes.

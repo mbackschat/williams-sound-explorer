@@ -21,6 +21,6 @@
   "see": [
     "**BG2INC** (`$10`) — ratchets the BG drone pitch upward over time.",
     "**BGEND** (`$13`) — clears both BG flags.",
-    "[MANUAL.md](MANUAL.md#common-pitfalls) — note that `$13` alone is silent (it just clears flags)."
+    "[MANUAL.md](../../MANUAL.md#common-pitfalls) — note that `$13` alone is silent (it just clears flags)."
   ]
 }

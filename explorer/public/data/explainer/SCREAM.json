@@ -18,8 +18,8 @@
     "Source: `VSNDRM3.SRC:1290`."
   ],
   "see": [
-    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §SCREAM",
-    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — Pattern 5 sliders",
+    "[docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §SCREAM",
+    "[MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — Pattern 5 sliders",
     "Pattern 4 voice mute — turn voices on/off one at a time"
   ]
 }

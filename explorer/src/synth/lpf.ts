@@ -3,7 +3,7 @@
  *
  * Models the Williams sound-board's reconstruction filter:
  * 1458 op-amp I-to-V converter with a feedback capacitor giving a soft,
- * 6 dB/octave roll-off around 10 kHz.  Per `docs/sound_hardware_model.md`
+ * 6 dB/octave roll-off around 10 kHz.  Per `docs/hardware/sound_hardware_model.md`
  * "DAC and the analog tail" — NOT a brick-wall multi-pole filter.  Pick the
  * cutoff loose enough that DAC stair-step aliasing still bleeds through (it's
  * part of the iconic Williams grit).

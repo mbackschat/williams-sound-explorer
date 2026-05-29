@@ -54,7 +54,7 @@ Nothing is uploaded; ROMs live only in your browser's IndexedDB. Use **Remove** 
 The assemble-from-source toolchain is included, but the **Williams sound source is not** (it is copyrighted). To rebuild the ROMs yourself:
 
 1. Obtain the Williams sound source and place it at `research/williams-soundroms/` (`VSNDRM1.SRC` … for Defender/Stargate/Robotron).
-2. Install the `vasm` 6800 assembler — see [`docs/vasm_install_notes.md`](docs/vasm_install_notes.md).
+2. Install the `vasm` 6800 assembler — see [`docs/pipeline/vasm_install_notes.md`](docs/pipeline/vasm_install_notes.md).
 3. Run `tools/build_roms.sh` → produces `research/roms/*_sound.bin`.
 4. `cd explorer && npm run dev:roms` copies them into the gitignored `public/roms/` so the app auto-loads them and skips onboarding.
 
@@ -64,7 +64,7 @@ The assemble-from-source toolchain is included, but the **Williams sound source 
 |---|---|
 | `explorer/` | The TypeScript app (Vite + plain TS + canvas). 6802 emulator, PIA, synth, AudioWorklet pipeline, all the visualizations. |
 | `tools/` | Assembler toolchain (`build_roms.sh`, preprocessor) + data generators (glossary, label map, explainer cards, zero-page map). |
-| `docs/` | Curated reference: hardware model, the 8 synthesis primitives, per-game command catalogues, pedagogical design, architecture. Start at [`docs/00_INDEX.md`](docs/00_INDEX.md). |
+| `docs/` | Curated reference: hardware model, the 8 synthesis primitives, per-game command catalogues, pedagogical design, architecture. Start at [`docs/README.md`](docs/README.md). |
 | [`MANUAL.md`](MANUAL.md) | Explorer manual — 12 tutorials + interface tour. |
 | [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md) | Designer manual — build your own custom sound ROM (Design mode). |
 
@@ -82,7 +82,7 @@ Most tools for these sounds either *play* them (emulators) or *document* them (d
 
 ### vs. MAME & arcade emulators
 
-[MAME](https://www.mamedev.org/) emulates the whole cabinet (main CPU, video, and the sound board) for faithful play and preservation — it's the gold standard for *accuracy*, and WSED uses MAME's output as a golden reference for its regression tests. But MAME is a black box for *understanding*: you hear the result, you can't watch the 6802 execute, see the DAC byte stream, tell which ROM routine is running, or inspect an engine's internal state — and there's no slow-motion, no single-instruction stepping, and no way to edit a sound. WSED runs the same sound CPU but surfaces all of that and slows it to a crawl. → [`docs/reference_audio_plan.md`](docs/reference_audio_plan.md)
+[MAME](https://www.mamedev.org/) emulates the whole cabinet (main CPU, video, and the sound board) for faithful play and preservation — it's the gold standard for *accuracy*, and WSED uses MAME's output as a golden reference for its regression tests. But MAME is a black box for *understanding*: you hear the result, you can't watch the 6802 execute, see the DAC byte stream, tell which ROM routine is running, or inspect an engine's internal state — and there's no slow-motion, no single-instruction stepping, and no way to edit a sound. WSED runs the same sound CPU but surfaces all of that and slows it to a crawl. → [`docs/pipeline/reference_audio_plan.md`](docs/pipeline/reference_audio_plan.md)
 
 ### vs. Defender Sound Studio (msarnoff, 2020)
 
@@ -99,11 +99,11 @@ The closest peer: [Defender Sound Studio](https://zapspace.net/defender_sound/),
 
 The Studio's 9 UI tabs include **6 editable tabs** covering **5 distinct engines** in WSED's taxonomy (it splits LFSR across multiple tabs WSED would group together). WSED now edits **all 5 (VARI + GWAVE + LFSR + FNOISE + RADIO)** — **per-engine parity with the Studio on Defender** — but across all three games, running the actual ROMs rather than a hand-port across one. SCREAM and HYPER are un-editable in both tools — they have no preset record in the ROM.
 
-→ [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md); the full feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
+→ [`docs/design/sound_studio_reference.md`](docs/design/sound_studio_reference.md); the full feature-by-feature table is in [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md).
 
 ### vs. disassemblies & write-ups
 
-[Computer Archeology](https://computerarcheology.com/Arcade/Defender/SoundHardware.html), [ZEN Instruments](http://zeninstruments.blogspot.com/2020/02/williams-defender-sound-disassembly.html), and [Nameless Algorithm](https://namelessalgorithm.com/defender/) offer excellent *static* documentation — annotated source listings and prose explaining how the routines work. WSED stands on their shoulders (and links them), but makes the same code **audible, animated at human-scale time, and editable** rather than read-only. → links in [`docs/00_INDEX.md`](docs/00_INDEX.md)
+[Computer Archeology](https://computerarcheology.com/Arcade/Defender/SoundHardware.html), [ZEN Instruments](http://zeninstruments.blogspot.com/2020/02/williams-defender-sound-disassembly.html), and [Nameless Algorithm](https://namelessalgorithm.com/defender/) offer excellent *static* documentation — annotated source listings and prose explaining how the routines work. WSED stands on their shoulders (and links them), but makes the same code **audible, animated at human-scale time, and editable** rather than read-only. → links in [`docs/README.md`](docs/README.md)
 
 ## Development
 

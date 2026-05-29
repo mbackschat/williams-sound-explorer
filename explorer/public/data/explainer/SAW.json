@@ -19,7 +19,7 @@
     "Source: `VSNDRM1.SRC:194` (Defender VARILD), `VSNDRM1.SRC:208` (VARI inner loop)."
   ],
   "see": [
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square",
-    "[MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag the LOPER slider"
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §VARI duty-cycle square",
+    "[MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag the LOPER slider"
   ]
 }

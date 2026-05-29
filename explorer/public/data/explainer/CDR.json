@@ -18,7 +18,7 @@
     "Source: `VSNDRM3.SRC:916`."
   ],
   "see": [
-    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §CDR — full byte-level DSL description.",
-    "[research/findings_robotron_sound.md](research/findings_robotron_sound.md) — line-by-line analysis of `WISLD` / `NOISLD` / `NINIT`."
+    "[docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §CDR — full byte-level DSL description.",
+    "[research/findings_robotron_sound.md](../../research/findings_robotron_sound.md) — line-by-line analysis of `WISLD` / `NOISLD` / `NINIT`."
   ]
 }

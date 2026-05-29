@@ -1,6 +1,6 @@
 # Williams Sound Designer — Manual
 
-> Build your own custom sound ROM in the explorer's **Design** mode (companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/designer_implementation.md`](docs/designer_implementation.md).
+> Build your own custom sound ROM in the explorer's **Design** mode (companion to the explorer's [`MANUAL.md`](MANUAL.md)). For *how it's built*, see [`docs/implementation/designer_implementation.md`](docs/implementation/designer_implementation.md).
 
 <p align="center">
   <img src="docs/img/manual/designer-overview.png" width="820" alt="Design mode (Custom ROM): header, the game's sound bank as a multi-column item list, the transport below it, then the VVECT parameter sliders and a full-width audition scope">
@@ -199,7 +199,7 @@ Ignored while you're typing in a text field. Explore's full keymap is in [`MANUA
 
 ## How it compares to the original "Sound Designer"
 
-The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.net/defender_sound/)** (2020) — see [`docs/sound_studio_reference.md`](docs/sound_studio_reference.md). It pioneered *tweak a Williams sound in the browser and hear it*; we reuse two of its ideas (labelled parameter controls with tooltips, JSON import/export). The differences:
+The closest prior art is msarnoff's **[Defender Sound Studio](https://zapspace.net/defender_sound/)** (2020) — see [`docs/design/sound_studio_reference.md`](docs/design/sound_studio_reference.md). It pioneered *tweak a Williams sound in the browser and hear it*; we reuse two of its ideas (labelled parameter controls with tooltips, JSON import/export). The differences:
 
 | | Defender Sound Studio (2020) | WSED |
 |---|---|---|

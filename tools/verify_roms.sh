@@ -3,7 +3,7 @@
 # ROM dumps shipped by MAME.  Run after `tools/build_roms.sh`.
 #
 # Hard-coded reference SHA1s come from `mame -listroms <game>` (MAME 0.287)
-# and are the canonical Williams sound ROMs.  See `docs/vasm_install_notes.md`
+# and are the canonical Williams sound ROMs.  See `docs/pipeline/vasm_install_notes.md`
 # for the audit that closed Robotron's 3812-byte mismatch.
 #
 # Exit codes:
@@ -39,8 +39,12 @@ for game in defender stargate robotron; do
     echo "  ✓ $game  SHA1 matches production ROM ($expected)"
   else
     # SHA1 differs.  Try to extract MAME's bundled ROM (if MAME is installed)
-    # and report the per-byte delta.
-    mame_zip=$(mame -showconfig 2>/dev/null | awk '/^rompath/{print $2}' | cut -d';' -f1)/${game}.zip
+    # and report the per-byte delta.  Guard the `mame` call: when MAME is absent
+    # it exits 127, which would trip `set -euo pipefail` before the fallback below.
+    mame_zip=""
+    if command -v mame >/dev/null 2>&1; then
+      mame_zip=$(mame -showconfig 2>/dev/null | awk '/^rompath/{print $2}' | cut -d';' -f1)/${game}.zip
+    fi
     snd_name=$(case $game in defender) echo defend.snd;; stargate) echo sg.snd;; robotron) echo robotron.snd;; esac)
     delta="(MAME not available — can't compute byte delta)"
     if command -v unzip >/dev/null 2>&1 && [ -f "$mame_zip" ]; then

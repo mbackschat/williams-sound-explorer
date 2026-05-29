@@ -1,6 +1,6 @@
-# Explorer Implementation — Phases 1-6 (complete)
+# Explorer Implementation — reference
 
-> What's actually built in `explorer/` as of 2026-05-26. Companion to `docs/explorer_architecture.md` (the design spine) — this one describes the **code that exists** rather than the future plan. Read this when starting a new session to get up to speed on the emulator.  Users should read `../MANUAL.md` first.
+> **Reference: the code that exists in `explorer/`** (module map, APIs, pipelines, per-engine viz). Companion to `docs/explorer_architecture.md` (the design spine). Read this to get up to speed on the emulator. **Status / roadmap / what's next live in [`../plans/STATUS.md`](../../plans/STATUS.md) + [`../plans/done/explorer.md`](../../plans/done/explorer.md)** — not here. Users should read `../MANUAL.md` first.
 
 ## Current state
 
@@ -907,7 +907,7 @@ Phases 1–6 are closed.  All six engines live (LFSR / VARI / GWAVE / FNOISE / S
 - **Step 6.1** — Build-up / tear-down (Pattern 4): SCREAM voice-mute toggles + 700 ms sequencer; ORGAN voice mute extension via `transformWriteValue()` AND-masking OSCIL bits.  Both sequencers run on **whichever game is loaded** — SCREAM/ORGAN are cross-game, so `engineToggles.ts`'s `CELL_MAP` and the `setToggle` OSCIL stomp carry per-game addresses (D/S STABLE=$13 / OSCIL=$15, Robotron $12 / $14).
 - **Step 6.2** — What-if parameter sliders (Pattern 5): VARI LOPER/HIPER force-overrides.
 - **Step 6.5** — No-explanation toggle (Pattern 12): `body.hide-help` CSS class, persisted to localStorage.
-- **Step 6.3** — Annotated explainer cards (Pattern 9): `viz/ExplainerCard.ts` + **63 routine cards covering every catalogued sound**.  Source of truth: [`docs/explainer_cards.md`](../docs/explainer_cards.md) (one `## ROUTINE — Title` section per card).  `tools/build_explainer_cards.py` (auto-run via `prepare:public`) emits per-routine JSON to `explorer/public/data/explainer/`.  Loaded on every user-driven fire via `loadExplainerForCmd()`; runtime `sanitiseRoutine()` matches the tool's sanitisation so e.g. `"SP1 / CABSHK"` and `"PERK$$"` both resolve to single-key files.
+- **Step 6.3** — Annotated explainer cards (Pattern 9): `viz/ExplainerCard.ts` + **63 routine cards covering every catalogued sound**.  Source of truth: [`docs/explainer_cards.md`](../design/explainer_cards.md) (one `## ROUTINE — Title` section per card).  `tools/build_explainer_cards.py` (auto-run via `prepare:public`) emits per-routine JSON to `explorer/public/data/explainer/`.  Loaded on every user-driven fire via `loadExplainerForCmd()`; runtime `sanitiseRoutine()` matches the tool's sanitisation so e.g. `"SP1 / CABSHK"` and `"PERK$$"` both resolve to single-key files.
 - **Step 6.4** — Listen-then-look quiz (Pattern 10): `viz/QuizPanel.ts` — collapsible right-column section, random sound from a ~96-entry pool (6 canonical engines), MCQ engine-identification, reveal with link into the explainer card.  Closes Pattern 10 — **all 12 UX patterns now delivered**.
 - **Step 6.6** — RAM heatmap: `SoundBoard.lastWriteCycle` + `viz/RAMHeatmap.ts` (16×8 grid, cold→hot over 1 s decay).  Hover tooltip names the cell's function via `tools/build_zeropage.py` → `{game}_zeropage.json` + `web/zeroPageMap.ts`.  The 128-byte zero page is `ORG LOCRAM`-overlaid by every engine, so a single address (e.g. `$13`) maps to GECHO / LOPER / DECAY / FMAX / STABLE / DUR — `describeCell()` picks the meaning for the active engine and reports the overlap depth.
 - **Auto-pulse for `$1B` ORGANT** — `fireUserCmd()` wraps Fire / chip clicks; arm-only audit confirmed only ORGANT and ORGANN qualify across all 3 ROMs.
@@ -957,4 +957,4 @@ When the user hits Pause mid-sound the audio thread holds the *current LPF outpu
 - The Williams hardware being emulated: `docs/sound_hardware_model.md`
 - The DSP primitives the sounds are built from: `docs/synthesis_techniques.md`
 - Per-game catalogues for command-code lookups: `docs/{defender,stargate,robotron}_sound_catalogue.md`
-- The live execution plan: `~/.claude/plans/goal-is-to-built-purrfect-river.md`
+- Project status + roadmap: [`../plans/STATUS.md`](../../plans/STATUS.md) (per-area: `../plans/done/explorer.md`, `../plans/designer-mode-v2.md`)

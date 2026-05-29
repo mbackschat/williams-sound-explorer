@@ -15,6 +15,6 @@
     "Source: `VSNDRM3.SRC:500-541` (`KNOCK` routine + `KNKTAB` pattern)."
   ],
   "see": [
-    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §KNOCK — notes the PIA clobber."
+    "[docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §KNOCK — notes the PIA clobber."
   ]
 }

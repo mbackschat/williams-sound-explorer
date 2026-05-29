@@ -53,7 +53,7 @@ describe("runSound — Defender", () => {
 describe("runSound — cross-game equivalence", () => {
   /**
    * Stargate's LITE engine is byte-identical to Defender's (per
-   * `docs/stargate_sound_catalogue.md` — only ORGAN tunes differ).
+   * `docs/catalogue/stargate_sound_catalogue.md` — only ORGAN tunes differ).
    *
    * Their DAC *values* therefore match exactly; the absolute cycle offsets
    * differ because Defender's IRQ handler probes the (absent) talking ROM,

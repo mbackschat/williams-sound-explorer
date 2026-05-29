@@ -4,39 +4,39 @@
 
 ## Where everything lives
 
+- **Plan / state / roadmap (START HERE when resuming)**: [`plans/STATUS.md`](plans/STATUS.md) — the single source for project state + what's next. `plans/` holds all plan/state: active roadmap + decisions in [`plans/designer-mode-v2.md`](plans/designer-mode-v2.md); proposed/not-started in [`plans/backlog/`](plans/backlog/); completed in [`plans/done/`](plans/done/).
 - **User manual**: [`MANUAL.md`](MANUAL.md) — for humans using the explorer (12 tutorials, engine catalogue, links into the deep docs)
-- **Live execution plan**: [`~/.claude/plans/goal-is-to-built-purrfect-river.md`](~/.claude/plans/goal-is-to-built-purrfect-river.md) — 6 phases, 18 numbered steps, decisions, risk register
-- **Docs index**: [`docs/00_INDEX.md`](docs/00_INDEX.md) — fast-lookup tables, "where do I find X?", project state
-- **Currently-built code reference**: [`docs/explorer_implementation.md`](docs/explorer_implementation.md) — read this first when resuming a session
+- **Docs index** (reference navigation, *not* state): [`docs/README.md`](docs/README.md) — fast-lookup tables, "where do I find X?"
+- **Currently-built code reference**: [`docs/implementation/explorer_implementation.md`](docs/implementation/explorer_implementation.md) — how the explorer is built (reference; status → `plans/`)
 - **Designer manual**: [`MANUAL_DESIGNER.md`](MANUAL_DESIGNER.md) — for humans using Design mode (the companion to `MANUAL.md`)
-- **Sound Designer mode (internals)**: [`docs/designer_implementation.md`](docs/designer_implementation.md) (impl state); roadmap + decision log in [`plans/designer-mode.md`](plans/designer-mode.md) — the separate Design mode for editing all 5 data-driven engines (VARI + GWAVE + LFSR + FNOISE + RADIO)
+- **Sound Designer mode (internals)**: [`docs/implementation/designer_implementation.md`](docs/implementation/designer_implementation.md) — how Design mode is built (reference; status/roadmap → `plans/`). The Design mode edits all 5 data-driven engines (VARI + GWAVE + LFSR + FNOISE + RADIO).
 
 ## On-demand references (load when you need them)
 
 | If you need… | Read |
 |---|---|
-| What's actually built in `explorer/` (module map, design decisions, APIs) | `docs/explorer_implementation.md` |
-| Sound Designer mode (VARI + GWAVE + LFSR + FNOISE + RADIO editors, .bin roundtrip): module map, decisions, record references, recipe schema | `docs/designer_implementation.md` |
+| What's actually built in `explorer/` (module map, design decisions, APIs) | `docs/implementation/explorer_implementation.md` |
+| Sound Designer mode (VARI + GWAVE + LFSR + FNOISE + RADIO editors, .bin roundtrip): module map, decisions, record references, recipe schema | `docs/implementation/designer_implementation.md` |
 | Why authoring works without an assembler ("a sound is *data*, not code") | private submodule — `research/findings_designer_feasibility.md` |
-| Real-time AudioWorklet pipeline + message protocol (Phase 2.1) | `docs/explorer_implementation.md` §Real-time pipeline |
-| Disassembler + semantic Step→DAC/IRQ + glossary (Step 2.2 extras) | `docs/explorer_implementation.md` §Debugger primitives |
-| Tape-loop scrubber + DAC history ring (Step 2.3 / Pattern 11) | `docs/explorer_implementation.md` §Tape-loop scrubber |
-| Live grid Ear·Code / Eye·Swimlane (Step 3.1 / Pattern 1, reorganised) | `docs/explorer_implementation.md` §Live grid |
-| Dual-trace oscilloscope + spectrogram (Step 3.2) | `docs/explorer_implementation.md` §Oscilloscope + Spectrogram |
-| Stage swimlane + label-map (Step 3.4 / Pattern adjacent) | `docs/explorer_implementation.md` §Stage swimlane |
-| Known caveats + deferred follow-ups (read before changing scrub / engine slots) | `docs/explorer_implementation.md` §Known caveats and deferred follow-ups |
-| Tutorial screenshot + verification harness (`explorer/e2e/`, MANUAL/README images) | `docs/web-capture.md` |
-| The 6-phase architectural plan + snapshot schema | `docs/explorer_architecture.md` |
-| The 5 design principles + 12 UX patterns | `docs/pedagogical_design.md` |
-| Williams hardware (6802, PIA, DAC, clock, filter) | `docs/sound_hardware_model.md` |
-| The 8 DSP primitives every sound uses | `docs/synthesis_techniques.md` |
-| Defender command codes + parameters | `docs/defender_sound_catalogue.md` |
-| Stargate (= Defender II) command codes (mostly identical to Defender) | `docs/stargate_sound_catalogue.md` |
-| Robotron command codes (63 total) | `docs/robotron_sound_catalogue.md` |
-| Prior art (zapspace's Defender Sound Studio) | `docs/sound_studio_reference.md` |
-| Williams main-CPU + video deep-dive (background reading) | `docs/defender_hardware_and_programming.md` |
-| How to obtain reference audio (MAME / emulator) | `docs/reference_audio_plan.md` |
-| Path B audio pipeline build plan | `docs/assemble_drive_pipeline.md` |
+| Real-time AudioWorklet pipeline + message protocol (Phase 2.1) | `docs/implementation/explorer_implementation.md` §Real-time pipeline |
+| Disassembler + semantic Step→DAC/IRQ + glossary (Step 2.2 extras) | `docs/implementation/explorer_implementation.md` §Debugger primitives |
+| Tape-loop scrubber + DAC history ring (Step 2.3 / Pattern 11) | `docs/implementation/explorer_implementation.md` §Tape-loop scrubber |
+| Live grid Ear·Code / Eye·Swimlane (Step 3.1 / Pattern 1, reorganised) | `docs/implementation/explorer_implementation.md` §Live grid |
+| Dual-trace oscilloscope + spectrogram (Step 3.2) | `docs/implementation/explorer_implementation.md` §Oscilloscope + Spectrogram |
+| Stage swimlane + label-map (Step 3.4 / Pattern adjacent) | `docs/implementation/explorer_implementation.md` §Stage swimlane |
+| Known caveats + deferred follow-ups (read before changing scrub / engine slots) | `docs/implementation/explorer_implementation.md` §Known caveats and deferred follow-ups |
+| Tutorial screenshot + verification harness (`explorer/e2e/`, MANUAL/README images) | `docs/implementation/web-capture.md` |
+| The 6-phase architectural plan + snapshot schema | `docs/implementation/explorer_architecture.md` |
+| The 5 design principles + 12 UX patterns | `docs/design/pedagogical_design.md` |
+| Williams hardware (6802, PIA, DAC, clock, filter) | `docs/hardware/sound_hardware_model.md` |
+| The 8 DSP primitives every sound uses | `docs/hardware/synthesis_techniques.md` |
+| Defender command codes + parameters | `docs/catalogue/defender_sound_catalogue.md` |
+| Stargate (= Defender II) command codes (mostly identical to Defender) | `docs/catalogue/stargate_sound_catalogue.md` |
+| Robotron command codes (63 total) | `docs/catalogue/robotron_sound_catalogue.md` |
+| Prior art (zapspace's Defender Sound Studio) | `docs/design/sound_studio_reference.md` |
+| Williams main-CPU + video deep-dive (background reading) | `docs/hardware/defender_hardware_and_programming.md` |
+| How to obtain reference audio (MAME / emulator) | `docs/pipeline/reference_audio_plan.md` |
+| Path B audio pipeline build plan | `docs/pipeline/assemble_drive_pipeline.md` |
 | Low-level reverse-engineering notes + build internals | private submodule — see `research/CLAUDE_research.md` (contributors with access) |
 
 ## Project layout
@@ -45,7 +45,7 @@
 williams-sound-explorer/
 ├── CLAUDE.md            this file
 ├── MANUAL.md            user-facing 12-tutorial manual
-├── docs/                curated reference (13 files; start at 00_INDEX.md)
+├── docs/                curated reference, grouped in 5 subfolders (hardware/ catalogue/ design/ implementation/ pipeline/); start at docs/README.md
 ├── research/            private submodule (access-restricted) — raw research notes
 ├── tools/               render scripts (render_sound.ts, render_all.ts); build tooling documented privately
 ├── explorer/            the TypeScript app — Phases 1-6 done; all 12 UX patterns shipped
@@ -56,15 +56,15 @@ williams-sound-explorer/
 
 **Phases 1–6 done; all 12 UX patterns shipped.** The explorer emulates the 6802 sound CPU, plays every command, and visualises all six engines (LFSR / VARI / GWAVE / FNOISE / SCREAM / ORGAN) with slow-motion, scrub, and per-engine views. (Build + verification internals are kept in the private `research/CLAUDE_research.md`.)
 
-There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): fork the game's sound bank — opens with every editable command pre-loaded, edit any **VARI**, **GWAVE**, **LFSR**, **FNOISE**, or **RADIO** sound's parameter record, audition/A/B, save as a JSON recipe (no ROM bytes) or download a runnable custom `.bin` for MAME / a real cabinet, upload it back to keep editing. All 5 of Williams's data-driven engines are now editable — **per-engine parity with the Defender Sound Studio**. Its implementation state lives in `docs/designer_implementation.md` (the designer analog of the implementation doc below); the Explore UI is unchanged by it.
+There is also a separate **Sound Designer mode** (top-level Explore ↔ Design toggle): fork the game's sound bank — opens with every editable command pre-loaded, edit any **VARI**, **GWAVE**, **LFSR**, **FNOISE**, or **RADIO** sound's parameter record, audition/A/B, save as a JSON recipe (no ROM bytes) or download a runnable custom `.bin` for MAME / a real cabinet, upload it back to keep editing. All 5 of Williams's data-driven engines are now editable — **per-engine parity with the Defender Sound Studio**. How it's built: `docs/implementation/designer_implementation.md`; the Explore UI is unchanged by it.
 
-**`docs/explorer_implementation.md` is the source of truth for implementation state** — module map, per-engine viz, phase + test status, known caveats. Read it first when resuming a session. The roadmap (6 phases, 18 steps, risk register) lives in the plan file linked above. This file is durable orientation only and does **not** track a per-feature changelog — that's git history + the implementation doc (see the CLAUDE.md convention below).
+**Resuming a session:** start at **[`plans/STATUS.md`](plans/STATUS.md)** for state + what's next. For *how the code works*, read `docs/implementation/explorer_implementation.md` (Explore) / `docs/implementation/designer_implementation.md` (Design) — those are how-it-works **reference**, with status/roadmap delegated to `plans/`. This file (CLAUDE.md) is durable orientation only; the per-feature changelog is git history.
 
 ## Commands
 
 ```bash
 # Build/verify internals are documented privately — see research/CLAUDE_research.md
-python3 tools/build_explainer_cards.py                 # rebuild explainer card JSONs from docs/explainer_cards.md
+python3 tools/build_explainer_cards.py                 # rebuild explainer card JSONs from docs/design/explainer_cards.md
 python3 tools/build_zeropage.py                        # rebuild RAM-heatmap cell descriptors ({game}_zeropage.json)
 tools/refresh_corpus.sh                                # re-render bulk audio corpus (out/corpus/) — see "Bulk corpus freshness" below
 npx tsx tools/render_all.ts                            # what refresh_corpus.sh wraps (use that one)
@@ -73,7 +73,7 @@ cd explorer && npm run typecheck                       # strict typecheck — fu
 cd explorer && npm run dev                             # Vite dev server → http://localhost:5173
 cd explorer && npm run build                           # production bundle → explorer/dist
 npx tsx tools/render_sound.ts defender 0x11 out/x.wav  # render any sound → WAV
-cd explorer && npx tsx e2e/capture.ts                  # verify + (re)shoot every MANUAL/MANUAL_DESIGNER illustration (needs dev:roms + dev server; docs/web-capture.md)
+cd explorer && npx tsx e2e/capture.ts                  # verify + (re)shoot every MANUAL/MANUAL_DESIGNER illustration (needs dev:roms + dev server; docs/implementation/web-capture.md)
 cd explorer && npx tsx e2e/capture.ts designer         # filter to one manifest (explorer | designer | smokes); `designer:gwave` filters within
 cd explorer && npx tsx e2e/capture.ts <id-substring>   # legacy: scan every manifest for matching ids
 cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README hero + demo GIF
@@ -94,7 +94,8 @@ cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README he
 - **Git: commit directly to `main` and stay on `main`. Never auto-create branches.** *When the user does ask you to commit*, stage + commit on the current branch (main) — this **overrides** the default "if on the default branch, branch first" behaviour.
 - **Docs vs research**: curated docs in `docs/` (public), raw dense notes in the private `research/` submodule. Cross-link both ways; don't duplicate.
 - **Persistence**: always write findings to disk, never leave deep research only in chat.
-- **CLAUDE.md is durable orientation, not a changelog.** Keep it to: where-things-live, project layout, commands, locked decisions, conventions/gotchas, and a short current-status blurb. Implementation state + per-feature history live in `docs/explorer_implementation.md` and git history — never append a per-step `✅ …` log here. (It bloats every session's context and triplicates the implementation doc + plan, forcing the same edit in three places.) Touch CLAUDE.md only when *durable orientation* changes: a new top-level dir, a new command, a locked decision, or a convention.
+- **`plans/` is the single home for plan / state / roadmap / what's-next.** [`plans/STATUS.md`](plans/STATUS.md) is the scannable dashboard (state + Now/Next/Backlog); active roadmaps + decisions in [`plans/designer-mode-v2.md`](plans/designer-mode-v2.md); proposed/not-started plans in `plans/backlog/`; completed plans in `plans/done/`. **`docs/` is reference (how things work), not state** — `docs/*_implementation.md` are how-it-works references and `docs/README.md` is the documentation index; do **not** record status / "what's next" / per-feature changelogs there. The detailed per-feature changelog is **git history**, not a doc. When something ships or the plan changes, update `plans/` (and trim the dashboard so it stays scannable) — don't grow a dated ✅ log anywhere.
+- **CLAUDE.md is durable orientation, not a changelog.** Keep it to: where-things-live, project layout, commands, locked decisions, conventions/gotchas, and a short current-status blurb. Never append a per-step `✅ …` log here (it bloats every session's context). Touch CLAUDE.md only when *durable orientation* changes: a new top-level dir, a new command, a locked decision, or a convention.
 - **Doc sweep is part of "done" — sweep BEFORE the change is considered shipped, not after.** Any change visible to a user (UI / behaviour / new feature / new control), reader (docs / glossary / catalogue facts), or future maintainer (module layout / test count / phase status / API shape) requires a repo-wide sweep of every place the affected fact appears. The fail-mode is updating one doc and missing the others — the same fact (a feature name, a count, a control binding, a piece of state, a pattern's status) is duplicated across many files, and stale claims are reputational damage that surfaces later.
 
   **How to sweep:**
@@ -104,13 +105,13 @@ cd explorer && npx tsx e2e/readme.ts                   # (re)shoot the README he
   3. **Update every match consistently.** Anywhere a list of similar items exists, the new item belongs in it. Anywhere a count or summary depends on what changed, update it. Anywhere the old name appears, update or remove it.
   4. **When in doubt, sweep.** A wasted grep costs nothing; a stale claim surfacing later costs trust.
 
-  **The required minimum surface to verify** for every meaningful change: `MANUAL.md` (user-facing — if the UI / behaviour changed, this needs an interface-tour / pitfalls / timeline entry, not just the agent-facing docs), `docs/00_INDEX.md` (project state + "up next"), `docs/explorer_implementation.md` (module map / test count / Phase status / source-layout tree — **the home for implementation state**), `docs/pedagogical_design.md` (pattern status if a pattern shipped), `docs/explorer_architecture.md` (phase completion), and the per-game sound catalogues if a ROM-level finding changed. For **Design-mode / capability** changes, also sweep `MANUAL_DESIGNER.md` (the designer manual) + `docs/designer_implementation.md` + `plans/designer-mode.md`, and keep `README.md` current — its **test badge**, the **Sound Designer** section, and especially the **"How it compares" section** (per-solution prose, using the **WSED** acronym; refresh it whenever WSED's features or approach shift relative to the other tools it names — e.g. the Defender Sound Studio; the fuller feature-by-feature comparison lives in `MANUAL_DESIGNER.md`). `CLAUDE.md` is **not** in this list — update it only when *durable orientation* changes (layout / commands / locked decisions / conventions), never as a per-feature changelog (see the CLAUDE.md convention above). **Only skip MANUAL.md** if the change is genuinely internal (private method, refactor that doesn't change behaviour, test added without a UI surface). Treat stale docs as a regression.
+  **The required minimum surface to verify** for every meaningful change: `plans/STATUS.md` (**the state home** — update status / what's-next here, and the active per-area roadmap `plans/designer-mode-v2.md` when a plan changes; new not-started plans go in `plans/backlog/`, finished ones move to `plans/done/`), `MANUAL.md` (user-facing — if the UI / behaviour changed, this needs an interface-tour / pitfalls entry, not just the agent-facing docs), `docs/implementation/explorer_implementation.md` (module map / source-layout tree — **how-it-works reference**, no status), `docs/design/pedagogical_design.md` (pattern detail if a pattern shipped), and the per-game sound catalogues if a ROM-level finding changed. (`docs/README.md` is the doc index — touch it only when the *set of docs* changes, not for status.) For **Design-mode / capability** changes, also sweep `MANUAL_DESIGNER.md` (the designer manual) + `docs/implementation/designer_implementation.md` (reference) + `plans/designer-mode-v2.md`, and keep `README.md` current — its **test badge**, the **Sound Designer** section, and especially the **"How it compares" section** (per-solution prose, using the **WSED** acronym; refresh it whenever WSED's features or approach shift relative to the other tools it names — e.g. the Defender Sound Studio; the fuller feature-by-feature comparison lives in `MANUAL_DESIGNER.md`). `CLAUDE.md` is **not** in this list — update it only when *durable orientation* changes (layout / commands / locked decisions / conventions), never as a per-feature changelog (see the CLAUDE.md convention above). **Only skip MANUAL.md** if the change is genuinely internal (private method, refactor that doesn't change behaviour, test added without a UI surface). Treat stale docs as a regression.
 - **Clear, scannable docs — structure first, prose last.** When a doc explains how something works, the reader must be able to **find the answer by scanning headers, tables, and lists** — not by reading linearly. Lead with structure; reach for prose only when a table/list/diagram won't carry the idea.
   - **Default to the densest *clear* form**, in this order: a **table** (parameter / option / field rosters, per-item comparisons), a **short bullet list** (steps, variants, caveats), a **diagram** (ASCII flow / pseudocode for control flow + pipelines), then **prose** — used for the *one-line plain-English intro* before a block ("what this does" / "what you're hearing") and for genuine narrative, not for enumerating things a table would hold.
   - **One idea per short subsection.** If a numbered step or section grows past a screenful, split it into `###` subsections with their own heading — never let one step balloon into a wall covering many cases (e.g. one editor per subsection, not all editors in one step).
   - **Don't pad.** Every sentence earns its place; cut hedges, asides, and restatements. Keep **explicit antecedents** (never "the four" — name them). Surface key caveats as their own line (⚠ / **Note:**), not buried mid-paragraph. **Clarity comes from structure, not volume** — prefer the shortest form that stays unambiguous.
   - **User-facing docs (`README.md`, `MANUAL*.md`) are scannability-critical**: open with a **quick-start / at-a-glance** (the few steps or a summary table), illustrate each distinct surface with a **screenshot**, and let a newcomer succeed without reading every paragraph.
-  - **Deep reference docs** (`docs/*` how-it-works) may go long when the *content* demands it — but still table-first and sectioned. The shape to mirror for a deep case-study doc is `docs/sound_studio_reference.md` (per-engine: parameter table + annotated pseudocode walkthrough). Long ≠ good; long-because-the-detail-is-real is fine, long-because-prose-rambles is not.
+  - **Deep reference docs** (`docs/*` how-it-works) may go long when the *content* demands it — but still table-first and sectioned. The shape to mirror for a deep case-study doc is `docs/design/sound_studio_reference.md` (per-engine: parameter table + annotated pseudocode walkthrough). Long ≠ good; long-because-the-detail-is-real is fine, long-because-prose-rambles is not.
 - **UI/UX is high-priority, not a finishing touch.** Every user-facing surface (Explore, Designer, onboarding, manuals) is a *designed* thing — not "controls that happen to be on a page". Aim for:
   - **Intuitive on first sight** — a user can start exploring without a manual; **visual cues** (segmented controls, colour-coded state, hover tooltips, sticky controls, in-place status feedback) guide progressive discovery. Avoid relying on the docs to explain what a button does — the UI should disclose its own meaning.
   - **Space-efficient** — no controls below the fold that should be in view (e.g. a transport row needs to be reachable without scroll); no two-row layouts where one fits; no half-screen panels for content that fits in a strip; grow with the data (canvases that scale cell width by byte count) so future growth doesn't force re-layout.

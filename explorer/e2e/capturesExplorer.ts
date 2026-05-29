@@ -169,7 +169,7 @@ export const entries: Entry[] = [
     shot: { clip: enginePane("gwave"), file: img("tut-12-combine") },
   },
 
-  // ── Engine showcases (Defender samples per docs/web-capture.md) ──
+  // ── Engine showcases (Defender samples per docs/implementation/web-capture.md) ──
   {
     id: "engine-gwave",
     game: "defender",

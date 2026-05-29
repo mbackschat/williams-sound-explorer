@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build per-routine explainer-card JSON files from the single markdown source
-at ``docs/explainer_cards.md``.
+at ``docs/design/explainer_cards.md``.
 
 **The markdown is the source of truth.**  Edit it, then re-run this script
 (or ``npm run dev`` / ``npm run build``, which invoke it via ``prepare:public``).
@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs" / "explainer_cards.md"
+SOURCE = ROOT / "docs" / "design" / "explainer_cards.md"
 OUT_DIR = ROOT / "explorer" / "public" / "data" / "explainer"
 
 

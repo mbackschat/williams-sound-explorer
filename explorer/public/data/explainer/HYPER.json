@@ -19,6 +19,6 @@
   ],
   "see": [
     "Compare against `LITE` (LFSR) and `SAW` (VARI) to hear what a special-purpose routine adds beyond the standard engines.",
-    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Special routines — HYPER, HBOMB, KNOCK, ZIREN, WHIST are all hand-coded."
+    "[docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §Special routines — HYPER, HBOMB, KNOCK, ZIREN, WHIST are all hand-coded."
   ]
 }

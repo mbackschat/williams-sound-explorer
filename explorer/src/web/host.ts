@@ -39,7 +39,7 @@ export interface WilliamsSoundHostOptions {
 }
 
 /** Default volume.  Williams sounds (especially LITE / TURBO) are near-clipping
- * by design — see `docs/explorer_implementation.md`.  Start quieter. */
+ * by design — see `docs/implementation/explorer_implementation.md`.  Start quieter. */
 export const DEFAULT_VOLUME = 0.3;
 
 export class WilliamsSoundHost {

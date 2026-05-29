@@ -21,6 +21,6 @@
   "see": [
     "**SAW** (`$1D`) — same engine, opposite sweep direction. A/B them to hear the polarity flip.",
     "**FOSHIT** (`$1E`) — third VARI preset, shorter version of SAW.",
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square"
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §VARI duty-cycle square"
   ]
 }

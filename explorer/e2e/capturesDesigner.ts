@@ -25,21 +25,22 @@
 import { type Entry, img } from "./manifest.ts";
 
 export const entries: Entry[] = [
-  // Designer overview: enter Design, copy Defender SAW as the first slot.
-  // That auto-selects the slot, which reveals the editor + audition scope and
-  // triggers the offline render (so .designer-scope is non-blank without
-  // needing playback).
+  // Designer overview: enter Design, select the pre-populated $0A SV3 (GWAVE)
+  // row.  Selecting it opens the $0A GWAVE editor and triggers the offline
+  // render (so .designer-scope is non-blank without needing playback) — a
+  // representative editor + audition view for the Designer's hero illustration.
   {
     id: "designer-overview",
     game: "defender",
     steps: [
       { click: "#modeDesign" },
-      { waitMs: 1500 }, // lazy import + mount + copy-sources populate
-      { select: [".designer-copy", "0"] }, // first source (Defender SAW)
-      { waitMs: 600 }, // offline render → scope draws
+      { waitMs: 1500 }, // lazy import + mount + project populates
+      { click: ".designer-item[data-cmd='0A'][data-kind='gwave'] .designer-item-code" }, // pre-populated $0A SV3 row
+      { waitMs: 800 }, // editor switch + offline render → scope draws
     ],
     assert: [
       { canvasNonBlank: ".designer-scope" },
+      { textContains: [".designer-edit > .designer-edit-label", "GWAVE"] }, // the $0A GWAVE editor is open
       // Keybinding discoverability: the Designer Play button names its key.
       { attrContains: [".designer-play", "title", "[Space]"] },
     ],

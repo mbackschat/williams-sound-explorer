@@ -22,8 +22,8 @@
     "Source: `VSNDRM3.SRC:1334` (Robotron)."
   ],
   "see": [
-    "[MANUAL.md](MANUAL.md#why-1b-organt-is-special) — Why $1B is special (the arm-then-kick IRQ trace)",
-    "[docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §ORGAN tunes",
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §ORGAN popcount-polyphony"
+    "[MANUAL.md](../../MANUAL.md#why-1b-organt-is-special) — Why $1B is special (the arm-then-kick IRQ trace)",
+    "[docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §ORGAN tunes",
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §ORGAN popcount-polyphony"
   ]
 }

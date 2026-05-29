@@ -940,7 +940,7 @@ export class RealtimeRunner {
    * advances the scrub head by `scrubSpeed × cyclesPerSample`.
    *
    * Speed can be negative (reverse playback — the LFSR runs backwards,
-   * which is the Pattern-11 demo in `docs/pedagogical_design.md`).
+   * which is the Pattern-11 demo in `docs/design/pedagogical_design.md`).
    */
   private fillBlockScrub(out: Float32Array): void {
     const cyclesPerSample = this.cpuRate / this.sampleRate;

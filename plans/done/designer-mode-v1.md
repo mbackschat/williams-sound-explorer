@@ -1,8 +1,8 @@
 # Sound Designer — consolidated plan
 
-> Single source of truth for the **Sound Designer mode** work — v1 (shipped), the audition-transport refinements (shipped), the Custom-ROM design discussion, the dispatcher spike, and the v-next roadmap. Consolidates and supersedes the transient harness plan `~/.claude/plans/logical-weaving-axolotl.md`.
+> **Sound Designer mode — roadmap + decision log.** Design discussion, the dispatcher spike, per-phase decisions, and deferred items. Current status + what's-next dashboard: [`STATUS.md`](../STATUS.md).
 >
-> Companions: **`docs/designer_implementation.md`** (curated impl state), **`MANUAL_DESIGNER.md`** (top-level user manual), **`research/findings_designer_feasibility.md`** (raw ROM-level findings). This file is the *plan/decision log*; those are the living references.
+> Companions: **`docs/implementation/designer_implementation.md`** (curated impl state), **`MANUAL_DESIGNER.md`** (top-level user manual), **`research/findings_designer_feasibility.md`** (raw ROM-level findings). This file is the *plan/decision log*; those are the living references.
 
 ## Status at a glance (2026-05-28)
 
@@ -24,7 +24,8 @@
 | 8 | **FNOISE editor** (BG1 / THRUST / CANNON / HBOMB) — fourth engine, dual-path build (Robotron FNTAB table + Defender/Stargate inline immediates) | ✅ shipped 2026-05-28 (Robotron full; D/S CANNON full + THRUST FMAX; BG1 omitted on D/S) |
 | 9 | **RADIO editor** ($18 — 16-byte wavetable + phase-accum) — fifth engine; closes Defender-parity gap with Sound Studio's *Sweeps* tab | ✅ shipped 2026-05-29 (spike + FREQ slider + 16-cell wavetable canvas; **full Defender per-engine parity**) |
 
-Through Phase 3a is committed on `main`; Phase 3b (the own-item-list UI + `CustomProject` store) and its doc sweep are uncommitted in the working tree.
+**Done:** all 9 phases above — all 5 data-driven engines (VARI · GWAVE · LFSR · FNOISE · RADIO) shipped, with per-engine parity vs. the Defender Sound Studio on Defender.
+**What's left:** nothing required to ship. Optional / deferred items only — see **§ Deferred to v-future** at the bottom (Robotron VARI base · new command codes · SCREAM/HYPER/ORGAN-pitch need an assembler).
 
 ## Foundations (the two facts everything rests on)
 
@@ -107,7 +108,7 @@ Delivers the user's vision: a Custom ROM with its own named item list, sounds co
 - Clean for **VARI-only**. Cross-engine (GWAVE/SCREAM/ORGAN) is a further step: GWAVE needs its `GWVTAB`/`GFRTAB` tables copied along; SCREAM has no record (not data-authorable); ORGAN is code-as-data. The base ROM already *contains* all six engines' code, so engines are present — but per-engine complexity remains.
 - Genuinely novel synthesis (new DSP) needs an assembler — out of scope.
 
-**Other fast-follows:** ~~live-worklet audition (pause/step/scrub on the custom ROM)~~ ✅ done 2026-05-28 — shipped as **Open in Explore** (the custom ROM is pushed into Explore's existing worklet via `host.loadCustomRom`; a dynamic **✎ Custom: ⟨name⟩** entry in `#gameSwitcher` shows which ROM is loaded; details in `docs/designer_implementation.md` § *Open in Explore*); ~~a MANUAL/README screenshot via the `e2e/` capture harness~~ ✅ done 2026-05-28 (`designer-overview` + `designer-audition-explore` entries in `explorer/e2e/tutorials.ts`, embedded in `MANUAL_DESIGNER.md` + `README.md`); **GWAVE editor — see Phase 5 below**.
+**Other fast-follows:** ~~live-worklet audition (pause/step/scrub on the custom ROM)~~ ✅ done 2026-05-28 — shipped as **Open in Explore** (the custom ROM is pushed into Explore's existing worklet via `host.loadCustomRom`; a dynamic **✎ Custom: ⟨name⟩** entry in `#gameSwitcher` shows which ROM is loaded; details in `docs/implementation/designer_implementation.md` § *Open in Explore*); ~~a MANUAL/README screenshot via the `e2e/` capture harness~~ ✅ done 2026-05-28 (`designer-overview` + `designer-audition-explore` entries in `explorer/e2e/tutorials.ts`, embedded in `MANUAL_DESIGNER.md` + `README.md`); **GWAVE editor — see Phase 5 below**.
 
 ---
 
@@ -125,7 +126,7 @@ Delivers full editing of every byte the GWAVE kernel reads: the SVTAB parameter 
 2. ✅ **Editable waveform canvas (GWVTAB bytes) — done 2026-05-28.** Below the SVTAB sliders, a 280×100 canvas shows the resolved bytes of the slot's current `WAVE#` (override if present, else stock from base ROM); click-and-drag draws byte values 0..255 cell-by-cell. Lengths don't change → no pointer rebase. Sharing caveat surfaced in UI as *"Shared by: $XX NAME, $YY NAME — your edits affect every one."* (driven by `waveformUsers`); per-idx **Reset to stock** button. `engine/gwaveEdit.ts` gained `GWVTAB_BASE` per game, `STOCK_WAVE_LENGTHS`/`STOCK_WAVE_SAMPLE_OFFSETS`/`STOCK_WAVE_NAMES`, `readWaveform`, `patchWaveform`, `waveformUsers`. `engine/customRom.ts` `buildCustomRom` now takes `options?: { waveformOverrides?: Record<number, number[]> }`; a project with only waveform overrides (no slots) is allowed. `CustomProject.waveformOverrides?: Record<number, number[]>` added to `designerStore.ts` with JSON round-trip + validation. **+20 tests** (479 total).
 3. ✅ **Editable pitch-pattern canvas (GFRTAB bytes) — done 2026-05-28.** A second click-to-draw canvas (teal) below the waveform canvas shows the resolved bytes at the slot's current `(PATOFF, PATLEN)`. Drawing emits `onPatternDraw(offset, bytes)`; the host writes those into `project.patternOverrides[offset]` (keyed by GFRTAB offset, value bytes write at that offset for `bytes.length` bytes). Patterns are byte-addressed so overlap is real — the "Shared by" line lists editable commands whose pattern range overlaps the slot's. `engine/gwaveEdit.ts` gained `GFRTAB_BASE` per game, `gfrtabMaxEnd(game)`, `readPattern` / `patchPattern` / `patternUsers`. `engine/customRom.ts` `BuildOptions.patternOverrides?: Record<number, number[]>` applies after waveform overrides (last write wins on overlap). `CustomProject.patternOverrides?` added to the saved-project schema with JSON round-trip + validation. **+20 tests** (499 total).
 
-**Across all 3 steps:** test suite stays green at every commit; `MANUAL_DESIGNER.md` + `docs/designer_implementation.md` get incremental updates; the `e2e/` capture harness gains a GWAVE entry by Step 1 and is refreshed at Step 3.
+**Across all 3 steps:** test suite stays green at every commit; `MANUAL_DESIGNER.md` + `docs/implementation/designer_implementation.md` get incremental updates; the `e2e/` capture harness gains a GWAVE entry by Step 1 and is refreshed at Step 3.
 
 **Why these 3 steps can ship without pointer rebase:** none of them changes table *lengths* — no new waveforms, no new patterns, no length changes for existing ones — so SVTAB byte-6 pattern offsets and the GWVTAB walk positions stay valid. The custom ROM only ever rewrites bytes in place at the addresses the base ROM was already using.
 
@@ -193,7 +194,7 @@ This is the architectural inversion of how Phase 6 would have been done with the
 
 The third engine: the LFSR noise family that produces **LITE** (lightning), **APPEAR** (enemy-appear descent), **TURBO** (turbo burst), and Robotron's **LAUNCH**. Same architectural pattern as VARI + GWAVE — override-in-place editor — but with one structural twist: **parameters are immediate operands in caller code, not in a parameter table**.
 
-**Shipped as planned below.** Operand offsets were verified against the real ROMs (uniform across games; only caller base addresses differ): LITE 2 fields (DFREQ@+1, CYCNT@+5), APPEAR/LAUNCH 3 (DFREQ@+1, LFREQ@+5, CYCNT@+7), TURBO 4 (CYCNT/NFFLG@+1, DECAY@+7, NFRQ1@+9 16-bit BE, NAMP@+12). Built across `engine/lfsrEdit.ts` (headless) → `engine/customRom.ts` `kind:"lfsr"` + `engine/projectFromBin.ts` LFSR detection → `web/designer/fieldSliders.ts` (shared slider editor) + `designerMode.ts`/`designerStore.ts` wiring. **+34 tests (579 total)**; capture `designer-lfsr-overview`. Per-engine impl details in `docs/designer_implementation.md` § *LFSR editor — Phase 7 (shipped)*.
+**Shipped as planned below.** Operand offsets were verified against the real ROMs (uniform across games; only caller base addresses differ): LITE 2 fields (DFREQ@+1, CYCNT@+5), APPEAR/LAUNCH 3 (DFREQ@+1, LFREQ@+5, CYCNT@+7), TURBO 4 (CYCNT/NFFLG@+1, DECAY@+7, NFRQ1@+9 16-bit BE, NAMP@+12). Built across `engine/lfsrEdit.ts` (headless) → `engine/customRom.ts` `kind:"lfsr"` + `engine/projectFromBin.ts` LFSR detection → `web/designer/fieldSliders.ts` (shared slider editor) + `designerMode.ts`/`designerStore.ts` wiring. **+34 tests (579 total)**; capture `designer-lfsr-overview`. Per-engine impl details in `docs/implementation/designer_implementation.md` § *LFSR editor — Phase 7 (shipped)*.
 
 ### Foundations (verified — see `research/findings_designer_feasibility.md` § LFSR)
 
@@ -247,7 +248,7 @@ The third engine: the LFSR noise family that produces **LITE** (lightning), **AP
 
 ## Phase 8 — FNOISE editor (✅ shipped 2026-05-28)
 
-> **Shipped with a scope refinement from the plan below.** ROM verification showed the Defender/Stargate inline path is more partial than first documented: BG1's DSFLG is a `CLRA` (no patchable immediate), so BG1 is **omitted on D/S**; THRUST exposes only FMAX; CANNON is fully editable. Robotron's FNTAB path is full for all 4 sounds. Net scope = max honest Defender coverage. The LFSR slider editor was generalised into the shared `web/designer/fieldSliders.ts`. **+30 tests (609 total)**; capture `designer-fnoise-overview`. Per-engine impl + the verified offset table in `docs/designer_implementation.md` § *FNOISE editor — Phase 8 (shipped)*.
+> **Shipped with a scope refinement from the plan below.** ROM verification showed the Defender/Stargate inline path is more partial than first documented: BG1's DSFLG is a `CLRA` (no patchable immediate), so BG1 is **omitted on D/S**; THRUST exposes only FMAX; CANNON is fully editable. Robotron's FNTAB path is full for all 4 sounds. Net scope = max honest Defender coverage. The LFSR slider editor was generalised into the shared `web/designer/fieldSliders.ts`. **+30 tests (609 total)**; capture `designer-fnoise-overview`. Per-engine impl + the verified offset table in `docs/implementation/designer_implementation.md` § *FNOISE editor — Phase 8 (shipped)*.
 
 
 The fourth engine: filtered noise (slope-limited DAC walk). Sounds: **BG1** (background drone), **THRUST**, **CANNON**, plus Robotron's **HBOMB**. **The interesting part — this engine has split authorability across games:**
@@ -334,7 +335,7 @@ WSED's edge throughout: spans **3 games**, runs the **actual ROMs** on a cycle-a
 
 ## Phase 9 — RADIO editor (✅ shipped 2026-05-29)
 
-> **Shipped — closes full Defender per-engine parity.** The spike confirmed the editable surface is the 16-byte `RADSND` LUT + one FREQ 16-bit immediate (`LDX #imm` at `RADIO_BASE+5`, uniform across games); findings written to `research/findings_designer_feasibility.md` § RADIO. Built across `engine/radioEdit.ts` → `kind:"radio"` in `customRom.ts` + `projectFromBin.ts` detection → a hybrid `web/designer/radioEditor.ts` (FREQ slider + 16-cell wavetable canvas). **+20 tests (629 total)**; capture `designer-radio-overview`. Per-engine impl + the verified address table in `docs/designer_implementation.md` § *RADIO editor — Phase 9 (shipped)*. The pre-spike plan below is preserved for the record.
+> **Shipped — closes full Defender per-engine parity.** The spike confirmed the editable surface is the 16-byte `RADSND` LUT + one FREQ 16-bit immediate (`LDX #imm` at `RADIO_BASE+5`, uniform across games); findings written to `research/findings_designer_feasibility.md` § RADIO. Built across `engine/radioEdit.ts` → `kind:"radio"` in `customRom.ts` + `projectFromBin.ts` detection → a hybrid `web/designer/radioEditor.ts` (FREQ slider + 16-cell wavetable canvas). **+20 tests (629 total)**; capture `designer-radio-overview`. Per-engine impl + the verified address table in `docs/implementation/designer_implementation.md` § *RADIO editor — Phase 9 (shipped)*. The pre-spike plan below is preserved for the record.
 
 The fifth and final engine in the data-driven set. Closes the per-engine Defender-parity gap with the Sound Studio's *Sweeps* tab.
 
@@ -390,13 +391,13 @@ After Phase 9, **every Williams Defender engine that has a parameter record in t
 
   Cost: ~6–8 hours; the trampoline + relocated SVTAB compete for the same 215-byte Defender free region that VVECT extension + relocated GWVTAB already share — adding new codes meaningfully tightens the budget. Value: niche (the override-in-place mechanic already lets users author a new sound that *plays on an existing trigger*; the "want a new code too" need is narrow). The Phase 6 "fork-the-game" workflow delivers most of the practical "make new sounds for the games" value without this complexity. **Not on the roadmap.**
 
-**Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `MANUAL_DESIGNER.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
+**Docs — compare to the existing Sound Designer — ✅ done (2026-05-28):** `MANUAL_DESIGNER.md` has a "How it compares to the original Sound Designer" table, and `README.md` carries a condensed summary. The brief: **compare features + approach against msarnoff's Defender Sound Studio** (`docs/design/sound_studio_reference.md`): what we match (tweakable original presets, oscilloscope/FFT, JSON import/export, per-handler tooltips) vs. where we differ — real cycle-accurate emulator running the **actual ROMs** (not a per-routine JS hand-port), **all three games** (Studio is Defender-only), **data-driven authoring** (edit the parameter record; no assembler), the true Custom ROM with its own item list, and the visualizations the Studio lacks (DAC byte tape, swimlane, LFSR/state traces, RAM heatmap, A/B diff). Add a condensed version of that comparison to **`README.md`**.
 
 ---
 
 ## References
 
 - Code: `explorer/src/engine/variEdit.ts`, `explorer/src/web/designer/*`, `explorer/src/web/ui/modeToggle.ts`.
-- Docs: `docs/designer_implementation.md`, `MANUAL_DESIGNER.md` (user manual), `docs/00_INDEX.md` (project state).
+- Docs: `docs/implementation/designer_implementation.md`, `MANUAL_DESIGNER.md` (user manual), `docs/README.md` (project state).
 - Research (private): `research/findings_designer_feasibility.md`, `research/findings_{defender,robotron}_sound.md`.
-- Prior art: `docs/sound_studio_reference.md` (+ `research/findings_sound_studio.md`).
+- Prior art: `docs/design/sound_studio_reference.md` (+ `research/findings_sound_studio.md`).

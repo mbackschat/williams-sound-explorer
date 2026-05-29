@@ -61,7 +61,7 @@ Defender's ORGAN engine has two tunes built into ORGTAB: **Phantom** (3 notes) a
 
 The **Close Encounters of the Third Kind** five-note motif, voiced as a 7-note sequence: `G2 — rest — G2 — rest — G2 — rest — EF1 (long)`. Tempo divisor `FIF=6`. 7 notes × 4 bytes per note = 28 bytes of tune data.
 
-Triggered by main CPU sending: `$1B` then `$01` (tune number 1).  **Explorer behaviour**: clicking the `$1B` chip auto-pulses `$01` 40 ms later so a single click plays FIFTH — see [MANUAL.md "Why $1B is special"](../MANUAL.md#why-1b-organt-is-special) for the IRQ-handler trace.  Use the arm-form picker to switch to NINTH instead.
+Triggered by main CPU sending: `$1B` then `$01` (tune number 1).  **Explorer behaviour**: clicking the `$1B` chip auto-pulses `$01` 40 ms later so a single click plays FIFTH — see [MANUAL.md "Why $1B is special"](../../MANUAL.md#why-1b-organt-is-special) for the IRQ-handler trace.  Use the arm-form picker to switch to NINTH instead.
 
 In-game use (informed guess): Stargate transit, Humanoid rescue, attract-mode jingle.
 

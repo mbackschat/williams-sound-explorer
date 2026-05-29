@@ -4,7 +4,7 @@
  * click-path, and capture the illustrative screenshot.  Local maintainer tool —
  * it drives the dev server (which serves your locally-supplied ROMs from
  * public/roms/) and emits only PNG, never ROM bytes.  NOT a CI job.
- * See `docs/web-capture.md`.
+ * See `docs/implementation/web-capture.md`.
  *
  * Prereqs (the wrapper tools/refresh_screenshots.sh does these for you):
  *   cd explorer && npm run dev:roms && npm run dev      # server on :5173

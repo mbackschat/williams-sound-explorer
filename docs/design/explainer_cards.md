@@ -31,7 +31,7 @@
 
 The 6800 sound CPU has a small library of engines.  Each card below
 explains one routine — *what* algorithm runs and *why* it sounds the
-way it does.  See [docs/synthesis_techniques.md](docs/synthesis_techniques.md)
+way it does.  See [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md)
 for the engine-level survey and the per-game catalogues for byte-level
 preset data.
 
@@ -65,9 +65,9 @@ LITE keeps the shift register at `$09/$0A` (HI/LO). Every iteration it computes 
 
 ### See also
 
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §LFSR-noise
-- [MANUAL.md](MANUAL.md#tutorial-2--slow-down-lite-watch-the-lfsr-shift) Tutorial 2 — slow down LITE
-- [MANUAL.md](MANUAL.md#tutorial-6--freeze-the-lfsr-whats-noise-without-the-shift) Tutorial 6 — Freeze the LFSR
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §LFSR-noise
+- [MANUAL.md](../../MANUAL.md#tutorial-2--slow-down-lite-watch-the-lfsr-shift) Tutorial 2 — slow down LITE
+- [MANUAL.md](../../MANUAL.md#tutorial-6--freeze-the-lfsr-whats-noise-without-the-shift) Tutorial 6 — Freeze the LFSR
 
 ---
 
@@ -180,9 +180,9 @@ The pitch pattern (`HBDSND`) is a sequence of single-byte values added to `FOFSE
 
 ### See also
 
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §GWAVE wavetable
-- [MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag a parameter slider
-- [MANUAL.md](MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — toggle Skip WVDECA + scrub
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §GWAVE wavetable
+- [MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag a parameter slider
+- [MANUAL.md](../../MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — toggle Skip WVDECA + scrub
 
 ---
 
@@ -212,8 +212,8 @@ Net effect: same heartbeat *shape* (pulse → decay → silence), but smoother t
 ### See also
 
 - **HBDV** — fire `$01` then `$06` to A/B them.
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §GWAVE wavetable
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §GWAVE presets — compare all 14 wavetable sounds
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §GWAVE wavetable
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §GWAVE presets — compare all 14 wavetable sounds
 
 ---
 
@@ -243,7 +243,7 @@ The `FOFSET` modulator drives the rise-then-fall: each echo iteration adjusts th
 ### See also
 
 - **HBDV** — canonical GWAVE card.
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §GWAVE preset details
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §GWAVE preset details
 
 ---
 
@@ -331,7 +331,7 @@ The pitch pattern uses a small `FOFSET` modulation that creates a subtle 'bell p
 
 ### See also
 
-- [MANUAL.md](MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — Skip WVDECA experiment.
+- [MANUAL.md](../../MANUAL.md#tutorial-12--combine-toggles--sliders--scrub) Tutorial 12 — Skip WVDECA experiment.
 - **HBDV** — canonical GWAVE card.
 
 ---
@@ -443,7 +443,7 @@ Firing it shows what a 'baseline' GWAVE sound looks like in the explorer without
 ### See also
 
 - **HBDV** — canonical GWAVE card.
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Notable: dead/unused code
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §Notable: dead/unused code
 
 ---
 
@@ -470,7 +470,7 @@ Each has its own preset bytes in `SVTAB`; the engine code is the same GWAVE used
 ### See also
 
 - **ED12 / ED17** — companions.
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Notable: dead/unused code
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §Notable: dead/unused code
 - **HBDV** — canonical GWAVE card.
 
 ---
@@ -577,8 +577,8 @@ For `LOPER = HIPER` you'd get a perfectly symmetric square at that period; the p
 
 ### See also
 
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square
-- [MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag the LOPER slider
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §VARI duty-cycle square
+- [MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — drag the LOPER slider
 
 ---
 
@@ -658,7 +658,7 @@ The other deltas in the preset bytes (LODT/HIDT/HIEN/LOMOD modulator rates) furt
 
 - **SAW** (`$1D`) — same engine, opposite sweep direction. A/B them to hear the polarity flip.
 - **FOSHIT** (`$1E`) — third VARI preset, shorter version of SAW.
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §VARI duty-cycle square
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §VARI duty-cycle square
 
 ---
 
@@ -754,7 +754,7 @@ FNOISE (filtered noise) is the percussion engine: cannon, thrust, BG1. A 16-bit 
 
 ### See also
 
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE filtered noise
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §FNOISE filtered noise
 - Compare CANNON vs THRUST vs BG1 (all FNOISE presets) in the A/B diff
 
 ---
@@ -787,7 +787,7 @@ The game CPU re-fires `$16` every few frames while the thrust key is held, so wh
 
 - **CANNON** — same engine with distortion on + bigger amplitude. Compare them via the A/B diff.
 - **BG1** — another FNOISE preset, configured as a background loop.
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §FNOISE
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §FNOISE
 
 ---
 
@@ -821,7 +821,7 @@ The game CPU also fires `$10 BG2INC` periodically; each pulse ticks `BG2FLG` and
 
 - **BG2INC** (`$10`) — ratchets the BG drone pitch upward over time.
 - **BGEND** (`$13`) — clears both BG flags.
-- [MANUAL.md](MANUAL.md#common-pitfalls) — note that `$13` alone is silent (it just clears flags).
+- [MANUAL.md](../../MANUAL.md#common-pitfalls) — note that `$13` alone is silent (it just clears flags).
 
 ---
 
@@ -934,7 +934,7 @@ This is the closest thing to a 'sample' in the Williams sound ROM — and at 16 
 
 ### See also
 
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §RADIO
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §RADIO
 
 ---
 
@@ -967,8 +967,8 @@ The cascade: SCREAM starts with voice 0's FREQ at `$40` and the others at 0. Eac
 
 ### See also
 
-- [docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §SCREAM
-- [MANUAL.md](MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — Pattern 5 sliders
+- [docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §SCREAM
+- [MANUAL.md](../../MANUAL.md#tutorial-7--whatif-drag-a-parameter-slider) Tutorial 7 — Pattern 5 sliders
 - Pattern 4 voice mute — turn voices on/off one at a time
 
 ---
@@ -1008,9 +1008,9 @@ Robotron's `ORGTAB` has two tunes: FIFTH (Close Encounters 5-note motif) and NIN
 
 ### See also
 
-- [MANUAL.md](MANUAL.md#why-1b-organt-is-special) — Why $1B is special (the arm-then-kick IRQ trace)
-- [docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §ORGAN tunes
-- [docs/synthesis_techniques.md](docs/synthesis_techniques.md) §ORGAN popcount-polyphony
+- [MANUAL.md](../../MANUAL.md#why-1b-organt-is-special) — Why $1B is special (the arm-then-kick IRQ trace)
+- [docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §ORGAN tunes
+- [docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §ORGAN popcount-polyphony
 
 ---
 
@@ -1040,7 +1040,7 @@ The explorer's cmdInfo panel renders a small picker (osc / dly / note) on Defend
 ### See also
 
 - **ORGANT** ($1B) — sibling, plays pre-built tunes from ORGTAB.
-- [MANUAL.md](MANUAL.md#common-pitfalls) — note that Stargate/Robotron `$1C` is gutted.
+- [MANUAL.md](../../MANUAL.md#common-pitfalls) — note that Stargate/Robotron `$1C` is gutted.
 
 ---
 
@@ -1070,7 +1070,7 @@ The result is a clean, *non-noise*, *non-wavetable* warble that descends in pitc
 ### See also
 
 - Compare against `LITE` (LFSR) and `SAW` (VARI) to hear what a special-purpose routine adds beyond the standard engines.
-- [docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §Special routines — HYPER, HBOMB, KNOCK, ZIREN, WHIST are all hand-coded.
+- [docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §Special routines — HYPER, HBOMB, KNOCK, ZIREN, WHIST are all hand-coded.
 
 ---
 
@@ -1393,7 +1393,7 @@ The PLAY engine maintains three oscillator pairs `(FREQ_n, COUNTER_n)`. Each sam
 ### See also
 
 - **SND5 / THNDR / SND16 / SND17** — other PLAY presets.
-- [docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §PLAY 3-osc engine
+- [docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §PLAY 3-osc engine
 
 ---
 
@@ -1725,7 +1725,7 @@ The audible result: a quick, punchy "thunk" with no envelope decay.
 
 ### See also
 
-- [docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §KNOCK — notes the PIA clobber.
+- [docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §KNOCK — notes the PIA clobber.
 
 ---
 
@@ -1811,5 +1811,5 @@ The parameter DSL is the trick: instead of hand-coding each whistle note, the RO
 
 ### See also
 
-- [docs/robotron_sound_catalogue.md](docs/robotron_sound_catalogue.md) §CDR — full byte-level DSL description.
-- [research/findings_robotron_sound.md](research/findings_robotron_sound.md) — line-by-line analysis of `WISLD` / `NOISLD` / `NINIT`.
+- [docs/robotron_sound_catalogue.md](../catalogue/robotron_sound_catalogue.md) §CDR — full byte-level DSL description.
+- [research/findings_robotron_sound.md](../../research/findings_robotron_sound.md) — line-by-line analysis of `WISLD` / `NOISLD` / `NINIT`.

@@ -30,7 +30,7 @@ Everything green-gated today is **headless**. Nothing in CI exercises the actual
 - **Assert vocabulary** (`capture.ts: checkAssert`): `recorded` · `text` · `textContains` · `cmdInfoContains` · `hasClass` · `markerCountAtLeast` · `canvasNonBlank`.
 - **Shot variants**: `{ clip }` (element) · `{ viewport }` · `{ fullPage }`.
 - **Robustness already solved**: `launch()` sets `--autoplay-policy=no-user-gesture-required`; `selectGame()` waits out the startup race for a settled active game (= worklet ready); `resetState()` makes entries order-independent (exit scrub, clear freeze toggles / forced sliders, reset scroll); `reveal()` opens collapsed `<details>` and tolerates Playwright-only `:has-text()`.
-- Design + selectors documented in [`docs/web-capture.md`](../docs/web-capture.md).
+- Design + selectors documented in [`docs/implementation/web-capture.md`](../../docs/implementation/web-capture.md).
 
 ### 1.4 Honest limitations (design must respect these)
 
@@ -96,7 +96,7 @@ Current asserts cover "present / has class / non-blank." For real UI regression 
 
 - New script: `"test:ui": "tsx e2e/capture.ts --verify"` in `explorer/package.json` (note: needs a dev server + `dev:roms` already up — document the two-step, and have the future `tools/refresh_screenshots.sh` / a `test:ui` wrapper start/stop the server).
 - **Do not** fold into `npm test` (that must stay fast, headless, CI-safe). `test:ui` is a separate, local, pre-ship gate — sibling to `refresh_corpus.sh`.
-- Document in `docs/web-capture.md` (it already half-describes this) + a one-line pointer in `docs/00_INDEX.md` and the CLAUDE.md commands block.
+- Document in `docs/implementation/web-capture.md` (it already half-describes this) + a one-line pointer in `docs/README.md` and the CLAUDE.md commands block.
 
 ---
 
@@ -175,4 +175,4 @@ Future unlock (own work item, not blocking Phases 1–4): a small **synthetic, n
 - `Entry.shot` is optional; doc-illustration and test entries are cleanly separated; `capture` (screenshot) still produces exactly the MANUAL/README images.
 - The §4 coverage matrix (minus the ROM-gated onboarding case) is implemented and green.
 - Flake rate measured and acceptable locally.
-- `docs/web-capture.md` (+ INDEX + CLAUDE.md commands) describe the suite, its local-only status, and the deferred CI path.
+- `docs/implementation/web-capture.md` (+ INDEX + CLAUDE.md commands) describe the suite, its local-only status, and the deferred CI path.

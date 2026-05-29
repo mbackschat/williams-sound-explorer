@@ -17,6 +17,6 @@
     "Source: `VSNDRM1.SRC:1020` (`RADSND` LUT) and the RADIO routine entry."
   ],
   "see": [
-    "[docs/defender_sound_catalogue.md](docs/defender_sound_catalogue.md) §RADIO"
+    "[docs/defender_sound_catalogue.md](../catalogue/defender_sound_catalogue.md) §RADIO"
   ]
 }

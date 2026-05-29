@@ -152,7 +152,7 @@ Stored in `ORGTAB` (file lines 1881–1937):
 
 The 9th plays at the start of every wave — *the* Robotron auditory signature. Each note is `(osc_mask, delay, duration_hi, duration_lo)` = 4 bytes. The popcount-polyphony technique means up to 8 voices play simultaneously from a single byte (see `docs/synthesis_techniques.md` §8).
 
-**Why `$1B` doesn't play on a single fire** — and how the explorer makes it.  `ORGANT` is `DEC ORGFLG / RTS`; the tune plays inside the *next* IRQ which reads its command byte as the tune index.  Without a follow-up the CPU spins forever at `BEQ *` in IRQ3.  The explorer's `fireUserCmd()` auto-pulses `$01` (= FIFTH) 40 ms after every `$1B` arm; the arm-form picker that appears below the Cmd field lets you switch to NINTH.  Full pedagogical write-up: [MANUAL.md "Why $1B is special"](../MANUAL.md#why-1b-organt-is-special).  `$1C` ORGANN is a `RTS` placeholder on Robotron — silent regardless of follow-ups.
+**Why `$1B` doesn't play on a single fire** — and how the explorer makes it.  `ORGANT` is `DEC ORGFLG / RTS`; the tune plays inside the *next* IRQ which reads its command byte as the tune index.  Without a follow-up the CPU spins forever at `BEQ *` in IRQ3.  The explorer's `fireUserCmd()` auto-pulses `$01` (= FIFTH) 40 ms after every `$1B` arm; the arm-form picker that appears below the Cmd field lets you switch to NINTH.  Full pedagogical write-up: [MANUAL.md "Why $1B is special"](../../MANUAL.md#why-1b-organt-is-special).  `$1C` ORGANN is a `RTS` placeholder on Robotron — silent regardless of follow-ups.
 
 ## VARI presets
 

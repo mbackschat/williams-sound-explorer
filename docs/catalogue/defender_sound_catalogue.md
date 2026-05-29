@@ -181,7 +181,7 @@ IRQ:    LDAB ORGFLG
         JSR  ORGNT1    ; flag negative (ORGANT armed) → play tune in A
 ```
 
-**Explorer behaviour** (commit `56f8978`): clicking `$1B` in the UI auto-pulses `$01` (tune 1 = PHANTOM) 40 ms after the arm so a single click plays the tune.  The arm-form picker that appears under the Cmd field lets you choose tune 2 (TACCATA) instead.  `$1C` is **not** auto-pulsed — its true protocol is four bytes (arm + osc-hi + osc-lo + note#) and a fixed-default follow-up would just play noise.  See [MANUAL.md "Why $1B is special"](../MANUAL.md#why-1b-organt-is-special).  Audit confirmed these two are the only arm-only entries in `VSNDRM1.SRC` — every other command writes the DAC directly or runs as a self-sustaining background loop.
+**Explorer behaviour** (commit `56f8978`): clicking `$1B` in the UI auto-pulses `$01` (tune 1 = PHANTOM) 40 ms after the arm so a single click plays the tune.  The arm-form picker that appears under the Cmd field lets you choose tune 2 (TACCATA) instead.  `$1C` is **not** auto-pulsed — its true protocol is four bytes (arm + osc-hi + osc-lo + note#) and a fixed-default follow-up would just play noise.  See [MANUAL.md "Why $1B is special"](../../MANUAL.md#why-1b-organt-is-special).  Audit confirmed these two are the only arm-only entries in `VSNDRM1.SRC` — every other command writes the DAC directly or runs as a self-sustaining background loop.
 
 ## Background system
 

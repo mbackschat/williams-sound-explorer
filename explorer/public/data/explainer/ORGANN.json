@@ -17,6 +17,6 @@
   ],
   "see": [
     "**ORGANT** ($1B) — sibling, plays pre-built tunes from ORGTAB.",
-    "[MANUAL.md](MANUAL.md#common-pitfalls) — note that Stargate/Robotron `$1C` is gutted."
+    "[MANUAL.md](../../MANUAL.md#common-pitfalls) — note that Stargate/Robotron `$1C` is gutted."
   ]
 }

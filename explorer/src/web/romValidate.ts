@@ -45,7 +45,7 @@ const GEOMETRY: Record<GameKind, { size: number; base: number }> = {
  * Known-good SHA-1s.  Extensible — add hashes here as working variant dumps
  * are confirmed and they'll validate as `ok` instead of `warn`.
  *   defender: MAME production dump + this project's from-source build (2-byte
- *             revision delta, see docs/vasm_install_notes.md).
+ *             revision delta, see docs/pipeline/vasm_install_notes.md).
  */
 export const KNOWN_GOOD_SHA1: Record<GameKind, ReadonlySet<string>> = {
   defender: new Set([

@@ -19,8 +19,8 @@
     "Source: `VSNDRM1.SRC:250` (Defender), `VSNDRM3.SRC:828` (Robotron)."
   ],
   "see": [
-    "[docs/synthesis_techniques.md](docs/synthesis_techniques.md) §LFSR-noise",
-    "[MANUAL.md](MANUAL.md#tutorial-2--slow-down-lite-watch-the-lfsr-shift) Tutorial 2 — slow down LITE",
-    "[MANUAL.md](MANUAL.md#tutorial-6--freeze-the-lfsr-whats-noise-without-the-shift) Tutorial 6 — Freeze the LFSR"
+    "[docs/synthesis_techniques.md](../hardware/synthesis_techniques.md) §LFSR-noise",
+    "[MANUAL.md](../../MANUAL.md#tutorial-2--slow-down-lite-watch-the-lfsr-shift) Tutorial 2 — slow down LITE",
+    "[MANUAL.md](../../MANUAL.md#tutorial-6--freeze-the-lfsr-whats-noise-without-the-shift) Tutorial 6 — Freeze the LFSR"
   ]
 }

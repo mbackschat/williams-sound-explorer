@@ -1,6 +1,6 @@
-# Designer mode — implementation state
+# Designer mode — implementation reference
 
-> Home for the **Sound Designer** mode's implementation (module map, decisions, the VARI/VVECT + GWAVE/SVTAB references, recipe schema, `.bin` roundtrip, tests). This plays the role `explorer_implementation.md` plays for the explorer; read it first when resuming Designer work. User-facing how-to lives in [`MANUAL_DESIGNER.md`](../MANUAL_DESIGNER.md); the raw "why this is even possible" findings live in the private `research/findings_designer_feasibility.md`.
+> **Reference: how the Sound Designer is built** (module map, the VARI/VVECT + GWAVE/SVTAB + per-engine references, recipe schema, `.bin` roundtrip, tests). Read it when resuming Designer work. **Status, roadmap, and what's next live in [`../plans/STATUS.md`](../../plans/STATUS.md) + [`../plans/designer-mode-v2.md`](../../plans/designer-mode-v2.md)** — not here. User-facing how-to: [`MANUAL_DESIGNER.md`](../../MANUAL_DESIGNER.md); raw ROM-level findings: the private `research/findings_designer_feasibility.md`.
 
 ## What it is
 
@@ -398,11 +398,9 @@ The `RADSND` pointer bytes baked into the routine (page-hi @ +1, page-lo @ +33) 
 
 **After Phase 9, every Williams Defender engine that has a parameter record in the ROM is editable in WSED.** SCREAM / HYPER / ORGAN-pitch remain out-of-scope by design (no preset record — need an assembler we deliberately don't ship).
 
-## Fast-follows (not yet built)
+## Fast-follows / not built
 
-- **Adding new GWAVE command codes** — feasible but higher risk; needs a per-game dispatcher spike (branch-tree injection on Defender/Stargate; JMPTBL append on Robotron). See `plans/designer-mode.md` § Phase 5 deferrals for the feasibility analysis.
-- **Robotron as engine base for VARI** — its non-linear dispatch (`JMPTBL` pointer table + the `$3F` `SUBA #$39` special-case) needs different patching than the Defender/Stargate linear band. (GWAVE on Robotron *is* supported now since it's in-place SVTAB patching.)
-- **SCREAM / novel synthesis** — SCREAM has no preset record (not data-authorable); ORGAN tunes are editable but realised via self-modifying code. Genuinely new DSP needs an assembler — out of scope.
+Deferred + out-of-scope items (Robotron VARI base, new command codes, SCREAM/HYPER/ORGAN-pitch) live in **[`../plans/designer-mode-v2.md`](../../plans/designer-mode-v2.md) § What's left**; the full feasibility rationale is in **[`../plans/done/designer-mode-v1.md`](../../plans/done/designer-mode-v1.md) § Deferred to v-future**.
 
 ## The true Custom ROM (shipped) — how it works
 

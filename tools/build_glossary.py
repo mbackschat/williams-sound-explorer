@@ -2,7 +2,7 @@
 """
 Build `explorer/public/data/glossary.json` from the per-game catalogue docs.
 
-The catalogue master tables in `docs/{defender,robotron}_sound_catalogue.md`
+The catalogue master tables in `docs/catalogue/{defender,robotron}_sound_catalogue.md`
 follow a regular layout:
 
     | $XX | Engine | Routine | Name | Notes |
@@ -12,7 +12,7 @@ This script extracts one row per command code and emits a flat
 browser harness for glossary tooltips.  Stargate inherits from Defender
 (byte-identical for 30 of 31 commands) with the two ORGAN entries overridden
 to reflect the Stargate-specific changes documented in
-`docs/stargate_sound_catalogue.md`.
+`docs/catalogue/stargate_sound_catalogue.md`.
 
 Run:
     uv run tools/build_glossary.py
@@ -81,11 +81,11 @@ def parse_catalogue(md: Path) -> dict[str, dict[str, str]]:
 
 
 def build() -> dict:
-    defender = parse_catalogue(ROOT / "docs/defender_sound_catalogue.md")
-    robotron = parse_catalogue(ROOT / "docs/robotron_sound_catalogue.md")
+    defender = parse_catalogue(ROOT / "docs/catalogue/defender_sound_catalogue.md")
+    robotron = parse_catalogue(ROOT / "docs/catalogue/robotron_sound_catalogue.md")
 
     # Stargate inherits from Defender (byte-identical for 30/31 codes), with
-    # the two ORGAN entries overridden per docs/stargate_sound_catalogue.md.
+    # the two ORGAN entries overridden per docs/catalogue/stargate_sound_catalogue.md.
     stargate = {code: dict(v) for code, v in defender.items()}
     stargate["1B"] = {
         "name": "ORGANT — Stargate tune",
@@ -110,7 +110,7 @@ def build() -> dict:
 
 # ----------------------------------------------------------------------------
 # Glossary of engine/technique names used throughout the catalogue + UI.
-# Curated from docs/synthesis_techniques.md so each entry is short enough to
+# Curated from docs/hardware/synthesis_techniques.md so each entry is short enough to
 # fit in a tooltip but explains *why* the term matters here.
 # ----------------------------------------------------------------------------
 

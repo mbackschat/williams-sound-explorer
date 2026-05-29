@@ -8,7 +8,7 @@
  * read live RAM, which is frozen at whatever it had when the user pressed
  * Scrub.  Bars therefore didn't animate as the head moved.  Documented as
  * the "scrub doesn't time-travel RAM" caveat in
- * `docs/explorer_implementation.md`.
+ * `docs/implementation/explorer_implementation.md`.
  *
  * The fix is this module: every ~512 CPU cycles we snapshot zero-page RAM
  * (`$00..$7F`, 128 bytes) + the X register into a ring.  Scrub mode
