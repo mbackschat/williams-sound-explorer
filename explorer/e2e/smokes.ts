@@ -21,7 +21,22 @@
 import { type Entry } from "./manifest.ts";
 
 export const entries: Entry[] = [
-  // (none today — add transient regression checks here while building a flow,
-  // and remove them when the feature ships + its permanent capture lives in
-  // capturesExplorer.ts or capturesDesigner.ts.)
+  // Fire-button "sounding now" hint: fire SAW at ¼× (so the sound is still
+  // producing output — the trailing segment stays open — well past the assert),
+  // then verify #fire gains the `.firing` glow class while it stays enabled.
+  // Regression guard for liveSoundActive() + the renderState toggle.
+  {
+    id: "fire-firing-hint",
+    game: "defender",
+    steps: [
+      { speed: "0.25" },
+      { fireChip: "1D" }, // SAW (VARI) — long enough to still be sounding at assert
+      { waitMs: 400 }, // let a snapshot with the open segment arrive
+    ],
+    readyWhen: { recorded: true },
+    assert: [
+      { hasClass: ["#fire", "firing"] }, // glows while sounding (button stays enabled in code — never re-fire-blocked)
+    ],
+    shot: { clip: "#fire", file: "out/smokes/fire-firing-hint.png" },
+  },
 ];

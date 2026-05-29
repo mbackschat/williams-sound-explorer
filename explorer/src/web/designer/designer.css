@@ -145,6 +145,21 @@
 .designer-transport > button.toggle-on {
   background: #2d4a2e; border-color: #a9dc76; color: #d6f5b8; font-weight: 600;
 }
+/* Play button "sounding now" hint — gentle pulsing green glow while audio is
+   playing.  Non-blocking: stays enabled so [Space] still restarts from the top.
+   Reuses the shared `ws-pulse-glow` keyframes defined in main.css. */
+.designer-transport > button.designer-play.playing {
+  --glow-soft: rgba(169, 220, 118, 0.30);
+  --glow-strong: rgba(169, 220, 118, 0.68);
+  border-color: #a9dc76;
+  animation: ws-pulse-glow 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .designer-transport > button.designer-play.playing {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--glow-strong), 0 0 10px 2px var(--glow-strong);
+  }
+}
 /* Open in Explore — purple accent matches the dynamic "Custom" entry in the
    game switcher; signals that clicking hands control over to Explore mode. */
 .designer-transport > button.designer-open-explore {

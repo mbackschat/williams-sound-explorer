@@ -16,6 +16,7 @@ import { loadGlossary, lookup, type Glossary } from "./glossary.ts";
 import { loadLabelMaps, emptyLabelMap, type LabelMap } from "./labelMap.ts";
 import { loadZeroPageMaps } from "./zeroPageMap.ts";
 import { runSoundWithRom } from "../engine/runner.ts";
+import { liveSoundActive } from "../engine/playbackActive.ts";
 import { renderDacEvents } from "../synth/DacSampler.ts";
 import { applyLpf } from "../synth/lpf.ts";
 import { encodeWav } from "../synth/wav.ts";
@@ -612,6 +613,9 @@ function renderState(s: StateSnapshot): void {
   recordedNewest = s.recorded.newestCycle;
   knownSegments = clipSegmentsToRange(s.segments, recordedOldest, recordedNewest);
   scrubbing = s.scrubbing;
+  // Non-blocking "sounding now" hint — Fire stays enabled (Space re-fires
+  // anytime); it just glows while the live sound is still producing output.
+  els.fire.classList.toggle("firing", liveSoundActive(s.segments, s.scrubbing));
   applyScrubUiState();
   updateScrubReadout(s);
   updateVolumeMeter(s);

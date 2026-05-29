@@ -516,6 +516,9 @@ export function mountDesigner(root: HTMLElement, ctx: AppContext): DesignerHandl
   onPlaybackState((s: PlayState) => {
     pauseBtn.disabled = s === "idle";
     pauseBtn.textContent = s === "paused" ? "▶ Resume" : "⏸ Pause";
+    // Non-blocking "sounding now" hint — the button stays enabled (Space still
+    // restarts from the top); it just glows while audio is actually playing.
+    playBtn.classList.toggle("playing", s === "playing");
   });
   // Design-mode keyboard map (F1): kept minimal and scoped to this surface —
   // Space = Play (restart) · P = Pause/Resume.  Listener fires only when

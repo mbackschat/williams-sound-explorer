@@ -54,12 +54,7 @@ The left column is *sticky* while the right column scrolls with the window, so y
 
 <img src="docs/img/manual/ui-navigate-columns.png" width="820" alt="Ear oscilloscope on the left and the highlighted GWAVE pane on the right, in the same horizontal band">
 
-<details>
-<summary>The whole UI at once (full-page map)</summary>
-
-<img src="docs/img/manual/ui-full-map.png" width="700" alt="The entire scrollable interface top to bottom — every panel named in the tables below">
-
-</details>
+🗺 **[See the entire interface in one tall screenshot →](docs/img/manual/ui-full-map.png)** — every panel named in the tables below.
 
 A **"Hide help"** button sits in the header (next to the game switcher).  Toggle it to remove all help text, term-link underlines, the cmdInfo blurb, and the Glossary section — the page collapses to *just data* so you can predict what's happening before the labels nudge you (Pattern 12).  Preference persists across reloads.
 
